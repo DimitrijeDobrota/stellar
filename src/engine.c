@@ -169,7 +169,7 @@ U64 mask_king_attacks(int square) {
   return attacks;
 }
 
-U64 mask_bishup_attacks(int square) {
+U64 mask_bishop_attacks(int square) {
   U64 bitboard = C64(0), attacks = C64(0), tmp;
   int tr = square / 8, tf = square % 8, i;
 
@@ -205,6 +205,66 @@ U64 mask_rook_attacks(int square) {
   return attacks;
 }
 
+U64 bishop_attacks_on_the_fly(int square, U64 block) {
+  U64 bitboard = C64(0), attacks = C64(0), tmp;
+  int tr = square / 8, tf = square % 8, i;
+
+  bit_set(bitboard, square);
+
+  for (i = 0, tmp = bitboard; i < MIN(7 - tf, 7 - tr); i++) {
+    attacks |= tmp = noEaOne(tmp);
+    if (tmp & block)
+      break;
+  }
+  for (i = 0, tmp = bitboard; i < MIN(tf, 7 - tr); i++) {
+    attacks |= tmp = noWeOne(tmp);
+    if (tmp & block)
+      break;
+  }
+  for (i = 0, tmp = bitboard; i < MIN(7 - tf, tr); i++) {
+    attacks |= tmp = soEaOne(tmp);
+    if (tmp & block)
+      break;
+  }
+  for (i = 0, tmp = bitboard; i < MIN(tf, tr); i++) {
+    attacks |= tmp = soWeOne(tmp);
+    if (tmp & block)
+      break;
+  }
+
+  return attacks;
+}
+
+U64 rook_attacks_on_the_fly(int square, U64 block) {
+  U64 bitboard = C64(0), attacks = C64(0), tmp;
+  int tr = square / 8, tf = square % 8, i;
+
+  bit_set(bitboard, square);
+
+  for (i = 0, tmp = bitboard; i < tf; i++) {
+    attacks |= tmp = westOne(tmp);
+    if (tmp & block)
+      break;
+  }
+  for (i = 0, tmp = bitboard; i < tr; i++) {
+    attacks |= tmp = soutOne(tmp);
+    if (tmp & block)
+      break;
+  }
+  for (i = 0, tmp = bitboard; i < 7; i++) {
+    attacks |= tmp = eastOne(tmp);
+    if (tmp & block)
+      break;
+  }
+  for (i = 0, tmp = bitboard; i < 7; i++) {
+    attacks |= tmp = nortOne(tmp);
+    if (tmp & block)
+      break;
+  }
+
+  return attacks;
+}
+
 void init_leapers_attacks(void) {
   for (int square = 0; square < 64; square++) {
     pawn_attacks[WHITE][square] = mask_pawn_attacks(WHITE, square);
@@ -216,7 +276,14 @@ void init_leapers_attacks(void) {
 
 int main(void) {
   init_leapers_attacks();
+
+  U64 block = C64(0);
+  bit_set(block, e4);
+  bit_set(block, e5);
+  bit_set(block, d4);
+  bit_set(block, d5);
+
   for (int square = 0; square < 64; square++)
-    bitboard_print(mask_rook_attacks(square));
+    bitboard_print(rook_attacks_on_the_fly(square, block));
   return 0;
 }
