@@ -51,6 +51,7 @@ char squares[][3]={
 // clang-format on
 
 // board moving
+typedef U64 (*direction_f)(U64);
 U64 soutOne(U64 b) { return b >> 8; }
 U64 nortOne(U64 b) { return b << 8; }
 U64 eastOne(U64 b) { return (b & notHFile) << 1; }
@@ -170,98 +171,65 @@ U64 mask_king_attacks(int square) {
 }
 
 U64 mask_bishop_attacks(int square) {
-  U64 bitboard = C64(0), attacks = C64(0), tmp;
-  int tr = square / 8, tf = square % 8, i;
+  U64         bitboard = C64(0), attacks = C64(0), tmp;
+  direction_f dir[4] = {noEaOne, noWeOne, soEaOne, soWeOne};
+  int         tr = square / 8, tf = square % 8, i, j;
+  int         len[4] = {MIN(7 - tf, 7 - tr) - 1, MIN(tf, 7 - tr) - 1,
+                        MIN(7 - tf, tr) - 1, MIN(tf, tr) - 1};
 
   bit_set(bitboard, square);
-
-  for (i = 0, tmp = bitboard; i < MIN(7 - tf, 7 - tr) - 1; i++)
-    attacks |= tmp = noEaOne(tmp);
-  for (i = 0, tmp = bitboard; i < MIN(tf, 7 - tr) - 1; i++)
-    attacks |= tmp = noWeOne(tmp);
-  for (i = 0, tmp = bitboard; i < MIN(7 - tf, tr) - 1; i++)
-    attacks |= tmp = soEaOne(tmp);
-  for (i = 0, tmp = bitboard; i < MIN(tf, tr) - 1; i++)
-    attacks |= tmp = soWeOne(tmp);
-
+  for (i = 0; i < 4; i++)
+    for (j = 0, tmp = bitboard; j < len[i]; j++)
+      attacks |= tmp = dir[i](tmp);
   return attacks;
 }
 
 U64 mask_rook_attacks(int square) {
-  U64 bitboard = C64(0), attacks = C64(0), tmp;
-  int tr = square / 8, tf = square % 8, i;
+  U64         bitboard = C64(0), attacks = C64(0), tmp;
+  direction_f dir[4] = {westOne, soutOne, eastOne, nortOne};
+  int         tr = square / 8, tf = square % 8, i, j;
+  int         len[4] = {tf - 1, tr - 1, 6 - tf, 6 - tr};
 
   bit_set(bitboard, square);
-
-  for (i = 0, tmp = bitboard; i < tf - 1; i++)
-    attacks |= tmp = westOne(tmp);
-  for (i = 0, tmp = bitboard; i < tr - 1; i++)
-    attacks |= tmp = soutOne(tmp);
-  for (i = 0, tmp = bitboard; i < 6 - tf; i++)
-    attacks |= tmp = eastOne(tmp);
-  for (i = 0, tmp = bitboard; i < 6 - tr; i++)
-    attacks |= tmp = nortOne(tmp);
+  for (i = 0; i < 4; i++)
+    for (j = 0, tmp = bitboard; j < len[i]; j++)
+      attacks |= tmp = dir[i](tmp);
 
   return attacks;
 }
 
 U64 bishop_attacks_on_the_fly(int square, U64 block) {
-  U64 bitboard = C64(0), attacks = C64(0), tmp;
-  int tr = square / 8, tf = square % 8, i;
+  U64         bitboard = C64(0), attacks = C64(0), tmp;
+  direction_f dir[4] = {noEaOne, noWeOne, soEaOne, soWeOne};
+  int         tr = square / 8, tf = square % 8, i, j;
+  int         len[4] = {MIN(7 - tf, 7 - tr), MIN(tf, 7 - tr), MIN(7 - tf, tr),
+                        MIN(tf, tr)};
 
   bit_set(bitboard, square);
-
-  for (i = 0, tmp = bitboard; i < MIN(7 - tf, 7 - tr); i++) {
-    attacks |= tmp = noEaOne(tmp);
-    if (tmp & block)
-      break;
+  for (i = 0; i < 4; i++) {
+    for (j = 0, tmp = bitboard; j < len[i]; j++) {
+      attacks |= tmp = dir[i](tmp);
+      if (tmp & block)
+        break;
+    }
   }
-  for (i = 0, tmp = bitboard; i < MIN(tf, 7 - tr); i++) {
-    attacks |= tmp = noWeOne(tmp);
-    if (tmp & block)
-      break;
-  }
-  for (i = 0, tmp = bitboard; i < MIN(7 - tf, tr); i++) {
-    attacks |= tmp = soEaOne(tmp);
-    if (tmp & block)
-      break;
-  }
-  for (i = 0, tmp = bitboard; i < MIN(tf, tr); i++) {
-    attacks |= tmp = soWeOne(tmp);
-    if (tmp & block)
-      break;
-  }
-
   return attacks;
 }
 
 U64 rook_attacks_on_the_fly(int square, U64 block) {
-  U64 bitboard = C64(0), attacks = C64(0), tmp;
-  int tr = square / 8, tf = square % 8, i;
+  U64         bitboard = C64(0), attacks = C64(0), tmp;
+  direction_f dir[4] = {westOne, soutOne, eastOne, nortOne};
+  int         tr = square / 8, tf = square % 8, i, j;
+  int         len[4] = {tf, tr, 7 - tf, 7 - tr};
 
   bit_set(bitboard, square);
-
-  for (i = 0, tmp = bitboard; i < tf; i++) {
-    attacks |= tmp = westOne(tmp);
-    if (tmp & block)
-      break;
+  for (i = 0; i < 4; i++) {
+    for (j = 0, tmp = bitboard; j < len[i]; j++) {
+      attacks |= tmp = dir[i](tmp);
+      if (tmp & block)
+        break;
+    }
   }
-  for (i = 0, tmp = bitboard; i < tr; i++) {
-    attacks |= tmp = soutOne(tmp);
-    if (tmp & block)
-      break;
-  }
-  for (i = 0, tmp = bitboard; i < 7; i++) {
-    attacks |= tmp = eastOne(tmp);
-    if (tmp & block)
-      break;
-  }
-  for (i = 0, tmp = bitboard; i < 7; i++) {
-    attacks |= tmp = nortOne(tmp);
-    if (tmp & block)
-      break;
-  }
-
   return attacks;
 }
 
@@ -284,6 +252,6 @@ int main(void) {
   bit_set(block, d5);
 
   for (int square = 0; square < 64; square++)
-    bitboard_print(rook_attacks_on_the_fly(square, block));
+    bitboard_print(mask_rook_attacks(square));
   return 0;
 }
