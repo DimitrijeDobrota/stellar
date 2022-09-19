@@ -8,18 +8,22 @@
 
 /* DEFINITIONS */
 
+// useful macros
+#define MAX(a, b) ((a > b) ? a : b)
+#define MIN(a, b) ((a < b) ? a : b)
+
 typedef unsigned long long U64;           // define bitboard data type
 #define C64(constantU64) constantU64##ULL // define shorthand for constants
 
-// usefull bit patterns
+// useful bit patterns
 const U64 universe = C64(0xffffffffffffffff); //
 const U64 notAFile = C64(0xfefefefefefefefe); // ~0x0101010101010101
 const U64 notHFile = C64(0x7f7f7f7f7f7f7f7f); // ~0x8080808080808080
 
 // useful bit operations
-#define bit_get(bitboard, square) ((bitboard >> square) & C64(1))
-#define bit_set(bitboard, square) (bitboard |= C64(1) << square)
-#define bit_pop(bitboard, square) (bitboard &= ~(C64(1) << square))
+#define bit_get(bitboard, square) (((bitboard) >> (square)) & C64(1))
+#define bit_set(bitboard, square) ((bitboard) |= C64(1) << (square))
+#define bit_pop(bitboard, square) ((bitboard) &= ~(C64(1) << (square)))
 
 // squares
 // clang-format off
@@ -161,6 +165,24 @@ U64 mask_king_attacks(int square) {
   attacks |= soutOne(bitboard) | nortOne(bitboard);
   attacks |= soEaOne(bitboard) | noEaOne(bitboard);
   attacks |= soWeOne(bitboard) | noWeOne(bitboard);
+
+  return attacks;
+}
+
+U64 mask_bishup_attacks(int square) {
+  U64 bitboard = C64(0), attacks = C64(0), tmp;
+  int tr = square / 8, tf = square % 8, i;
+
+  bit_set(bitboard, square);
+
+  for (i = 0, tmp = bitboard; i < MIN(7 - tf, 7 - tr) - 1; i++)
+    attacks |= tmp = noEaOne(tmp);
+  for (i = 0, tmp = bitboard; i < MIN(tf, 7 - tr) - 1; i++)
+    attacks |= tmp = noWeOne(tmp);
+  for (i = 0, tmp = bitboard; i < MIN(7 - tf, tr) - 1; i++)
+    attacks |= tmp = soEaOne(tmp);
+  for (i = 0, tmp = bitboard; i < MIN(tf, tr) - 1; i++)
+    attacks |= tmp = soWeOne(tmp);
 
   return attacks;
 }
