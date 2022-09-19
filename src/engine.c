@@ -122,6 +122,9 @@ U64 pawn_attacks[2][64];
 // knight attack table [square]
 U64 knight_attacks[64];
 
+// king attack table [square]
+U64 king_attacks[64];
+
 // generate pawn attack
 U64 mask_pawn_attacks(int side, int square) {
   U64 bitboard = C64(0), attacks;
@@ -149,11 +152,25 @@ U64 mask_knight_attacks(int square) {
   return attacks;
 }
 
+U64 mask_king_attacks(int square) {
+  U64 bitboard = C64(0), attacks = C64(0);
+
+  bit_set(bitboard, square);
+  attacks |= westOne(bitboard) | eastOne(bitboard);
+  attacks |= soutOne(bitboard) | nortOne(bitboard);
+  attacks |= soutOne(bitboard) | nortOne(bitboard);
+  attacks |= soEaOne(bitboard) | noEaOne(bitboard);
+  attacks |= soWeOne(bitboard) | noWeOne(bitboard);
+
+  return attacks;
+}
+
 void init_leapers_attacks(void) {
   for (int square = 0; square < 64; square++) {
     pawn_attacks[WHITE][square] = mask_pawn_attacks(WHITE, square);
     pawn_attacks[BLACK][square] = mask_pawn_attacks(BLACK, square);
     knight_attacks[square] = mask_knight_attacks(square);
+    king_attacks[square] = mask_king_attacks(square);
   }
 }
 
