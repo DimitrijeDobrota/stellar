@@ -36,6 +36,13 @@ static inline int bit_count(U64 bitboard) {
   return count;
 }
 
+static inline int bit_lsb_index(U64 bitboard) {
+  if (!bitboard)
+    return -1;
+
+  return bit_count((bitboard & -bitboard) - 1);
+}
+
 // squares
 // clang-format off
 enum enumSquare {
@@ -49,7 +56,7 @@ enum enumSquare {
   a8, b8, c8, d8, e8, f8, g8, h8
 };
 
-char squares[][3]={
+const char *square_to_coordinates[]={
   "a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1",
   "a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2",
   "a3", "b3", "c3", "d3", "e3", "f3", "g3", "h3",
@@ -246,9 +253,9 @@ int main(void) {
   bit_set(block, d4);
   bit_set(block, d5);
 
-  for (int square = 0; square < 64; square++)
-    bitboard_print(mask_bishop_attacks(square));
-
-  printf("%d\n", bit_count(block));
+  bitboard_print(block);
+  bitboard_print((block & -block) - 1);
+  int cord = bit_lsb_index(block);
+  printf("%d: %s\n", cord, square_to_coordinates[cord]);
   return 0;
 }
