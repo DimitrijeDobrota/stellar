@@ -170,67 +170,51 @@ U64 mask_king_attacks(int square) {
   return attacks;
 }
 
-U64 mask_bishop_attacks(int square) {
-  U64         bitboard = C64(0), attacks = C64(0), tmp;
-  direction_f dir[4] = {noEaOne, noWeOne, soEaOne, soWeOne};
-  int         tr = square / 8, tf = square % 8, i, j;
-  int         len[4] = {MIN(7 - tf, 7 - tr) - 1, MIN(tf, 7 - tr) - 1,
-                        MIN(7 - tf, tr) - 1, MIN(tf, tr) - 1};
+U64 mask_slide_attacks(int square, U64 block, direction_f dir[4], int len[4]) {
+  U64 bitboard = C64(0), attacks = C64(0), tmp;
+  int i, j;
 
   bit_set(bitboard, square);
-  for (i = 0; i < 4; i++)
-    for (j = 0, tmp = bitboard; j < len[i]; j++)
-      attacks |= tmp = dir[i](tmp);
+  for (i = 0; i < 4; i++) {
+    for (j = 0, tmp = bitboard; j < len[i]; j++) {
+      attacks |= tmp = (dir[i])(tmp);
+      if (tmp & block)
+        break;
+    }
+  }
   return attacks;
+}
+
+direction_f bishop_direction[4] = {noEaOne, noWeOne, soEaOne, soWeOne};
+direction_f rook_direction[4] = {westOne, soutOne, eastOne, nortOne};
+
+U64 mask_bishop_attacks(int square) {
+  int tr = square / 8, tf = square % 8;
+  int len[4] = {MIN(7 - tf, 7 - tr) - 1, MIN(tf, 7 - tr) - 1,
+                MIN(7 - tf, tr) - 1, MIN(tf, tr) - 1};
+  return mask_slide_attacks(square, C64(0), bishop_direction, len);
 }
 
 U64 mask_rook_attacks(int square) {
-  U64         bitboard = C64(0), attacks = C64(0), tmp;
-  direction_f dir[4] = {westOne, soutOne, eastOne, nortOne};
-  int         tr = square / 8, tf = square % 8, i, j;
-  int         len[4] = {tf - 1, tr - 1, 6 - tf, 6 - tr};
+  int tr = square / 8, tf = square % 8;
+  int len[4] = {tf - 1, tr - 1, 6 - tf, 6 - tr};
 
-  bit_set(bitboard, square);
-  for (i = 0; i < 4; i++)
-    for (j = 0, tmp = bitboard; j < len[i]; j++)
-      attacks |= tmp = dir[i](tmp);
-
-  return attacks;
+  return mask_slide_attacks(square, C64(0), rook_direction, len);
 }
 
 U64 bishop_attacks_on_the_fly(int square, U64 block) {
-  U64         bitboard = C64(0), attacks = C64(0), tmp;
-  direction_f dir[4] = {noEaOne, noWeOne, soEaOne, soWeOne};
-  int         tr = square / 8, tf = square % 8, i, j;
-  int         len[4] = {MIN(7 - tf, 7 - tr), MIN(tf, 7 - tr), MIN(7 - tf, tr),
-                        MIN(tf, tr)};
+  int tr = square / 8, tf = square % 8;
+  int len[4] = {MIN(7 - tf, 7 - tr), MIN(tf, 7 - tr), MIN(7 - tf, tr),
+                MIN(tf, tr)};
 
-  bit_set(bitboard, square);
-  for (i = 0; i < 4; i++) {
-    for (j = 0, tmp = bitboard; j < len[i]; j++) {
-      attacks |= tmp = dir[i](tmp);
-      if (tmp & block)
-        break;
-    }
-  }
-  return attacks;
+  return mask_slide_attacks(square, block, bishop_direction, len);
 }
 
 U64 rook_attacks_on_the_fly(int square, U64 block) {
-  U64         bitboard = C64(0), attacks = C64(0), tmp;
-  direction_f dir[4] = {westOne, soutOne, eastOne, nortOne};
-  int         tr = square / 8, tf = square % 8, i, j;
-  int         len[4] = {tf, tr, 7 - tf, 7 - tr};
+  int tr = square / 8, tf = square % 8;
+  int len[4] = {tf, tr, 7 - tf, 7 - tr};
 
-  bit_set(bitboard, square);
-  for (i = 0; i < 4; i++) {
-    for (j = 0, tmp = bitboard; j < len[i]; j++) {
-      attacks |= tmp = dir[i](tmp);
-      if (tmp & block)
-        break;
-    }
-  }
-  return attacks;
+  return mask_slide_attacks(square, block, rook_direction, len);
 }
 
 void init_leapers_attacks(void) {
@@ -252,6 +236,6 @@ int main(void) {
   bit_set(block, d5);
 
   for (int square = 0; square < 64; square++)
-    bitboard_print(mask_rook_attacks(square));
+    bitboard_print(mask_bishop_attacks(square));
   return 0;
 }
