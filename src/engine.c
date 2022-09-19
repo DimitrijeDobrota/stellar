@@ -244,18 +244,28 @@ void init_leapers_attacks(void) {
   }
 }
 
+U64 set_occupancy(int index, int bits_in_mask, U64 attack_mask) {
+  U64 occupancy = C64(0);
+
+  for (int count = 0; count < bits_in_mask; count++) {
+    int square = bit_lsb_index(attack_mask);
+    bit_pop(attack_mask, square);
+
+    if (index & (1 << count))
+      bit_set(occupancy, square);
+  }
+
+  return occupancy;
+}
+
 int main(void) {
   init_leapers_attacks();
 
-  U64 block = C64(0);
-  bit_set(block, e4);
-  bit_set(block, e5);
-  bit_set(block, d4);
-  bit_set(block, d5);
-
-  bitboard_print(block);
-  bitboard_print((block & -block) - 1);
-  int cord = bit_lsb_index(block);
-  printf("%d: %s\n", cord, square_to_coordinates[cord]);
+  U64 attack_mask = mask_rook_attacks(a1);
+  for (int i = 0; i < 4096; i++) {
+    U64 occupancy = set_occupancy(i, bit_count(attack_mask), attack_mask);
+    bitboard_print(occupancy);
+    getc(stdin);
+  }
   return 0;
 }
