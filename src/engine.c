@@ -187,6 +187,24 @@ U64 mask_bishup_attacks(int square) {
   return attacks;
 }
 
+U64 mask_rook_attacks(int square) {
+  U64 bitboard = C64(0), attacks = C64(0), tmp;
+  int tr = square / 8, tf = square % 8, i;
+
+  bit_set(bitboard, square);
+
+  for (i = 0, tmp = bitboard; i < tf - 1; i++)
+    attacks |= tmp = westOne(tmp);
+  for (i = 0, tmp = bitboard; i < tr - 1; i++)
+    attacks |= tmp = soutOne(tmp);
+  for (i = 0, tmp = bitboard; i < 6 - tf; i++)
+    attacks |= tmp = eastOne(tmp);
+  for (i = 0, tmp = bitboard; i < 6 - tr; i++)
+    attacks |= tmp = nortOne(tmp);
+
+  return attacks;
+}
+
 void init_leapers_attacks(void) {
   for (int square = 0; square < 64; square++) {
     pawn_attacks[WHITE][square] = mask_pawn_attacks(WHITE, square);
@@ -198,5 +216,7 @@ void init_leapers_attacks(void) {
 
 int main(void) {
   init_leapers_attacks();
+  for (int square = 0; square < 64; square++)
+    bitboard_print(mask_rook_attacks(square));
   return 0;
 }
