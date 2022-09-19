@@ -25,6 +25,17 @@ const U64 notHFile = C64(0x7f7f7f7f7f7f7f7f); // ~0x8080808080808080
 #define bit_set(bitboard, square) ((bitboard) |= C64(1) << (square))
 #define bit_pop(bitboard, square) ((bitboard) &= ~(C64(1) << (square)))
 
+static inline int bit_count(U64 bitboard) {
+  int count = 0;
+
+  while (bitboard > 0) {
+    count++;
+    bitboard &= bitboard - 1;
+  }
+
+  return count;
+}
+
 // squares
 // clang-format off
 enum enumSquare {
@@ -237,5 +248,7 @@ int main(void) {
 
   for (int square = 0; square < 64; square++)
     bitboard_print(mask_bishop_attacks(square));
+
+  printf("%d\n", bit_count(block));
   return 0;
 }
