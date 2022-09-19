@@ -139,6 +139,30 @@ void bitboard_print(U64 bitboard) {
 
 /* ATTACKS */
 
+// clang-format off
+const int bishop_relavant_bits[] = {
+  6, 5, 5, 5, 5, 5, 5, 6,
+  5, 5, 5, 5, 5, 5, 5, 5,
+  5, 5, 7, 7, 7, 7, 5, 5,
+  5, 5, 7, 9, 9, 7, 5, 5,
+  5, 5, 7, 9, 9, 7, 5, 5,
+  5, 5, 7, 7, 7, 7, 5, 5,
+  5, 5, 5, 5, 5, 5, 5, 5,
+  6, 5, 5, 5, 5, 5, 5, 6,
+};
+
+const int rook_relavant_bits[] = {
+  12, 11, 11, 11, 11, 11, 11, 12,
+  11, 10, 10, 10, 10, 10, 10, 11,
+  11, 10, 10, 10, 10, 10, 10, 11,
+  11, 10, 10, 10, 10, 10, 10, 11,
+  11, 10, 10, 10, 10, 10, 10, 11,
+  11, 10, 10, 10, 10, 10, 10, 11,
+  11, 10, 10, 10, 10, 10, 10, 11,
+  12, 11, 11, 11, 11, 11, 11, 12,
+};
+// clang-format on
+
 // pawn attack table [side][square]
 U64 pawn_attacks[2][64];
 
@@ -261,11 +285,13 @@ U64 set_occupancy(int index, int bits_in_mask, U64 attack_mask) {
 int main(void) {
   init_leapers_attacks();
 
-  U64 attack_mask = mask_rook_attacks(a1);
-  for (int i = 0; i < 4096; i++) {
-    U64 occupancy = set_occupancy(i, bit_count(attack_mask), attack_mask);
-    bitboard_print(occupancy);
-    getc(stdin);
+  for (int rank = 0; rank < 8; rank++) {
+    for (int file = 0; file < 8; file++) {
+      int square = rank * 8 + file;
+      /* printf("%d, ", bit_count(mask_bishop_attacks(square))); */
+      printf("%d, ", bit_count(mask_rook_attacks(square)));
+    }
+    printf("\n");
   }
   return 0;
 }
