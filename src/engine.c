@@ -12,6 +12,7 @@
 #define MAX(a, b) ((a > b) ? a : b)
 #define MIN(a, b) ((a < b) ? a : b)
 
+// define number types
 typedef unsigned long long U64;           // define bitboard data type
 #define C64(constantU64) constantU64##ULL // define shorthand for constants
 
@@ -44,6 +45,36 @@ static inline int bit_lsb_index(U64 bitboard) {
     return -1;
 
   return bit_count((bitboard & -bitboard) - 1);
+}
+
+// pseudo random numbers
+
+U32 state = C32(1804289383);
+
+U32 get_random_U32_number() {
+  U32 number = state;
+
+  number ^= number << 13;
+  number ^= number >> 17;
+  number ^= number << 5;
+
+  return state = number;
+}
+
+U64 get_random_U64_number() {
+  U64 n1, n2, n3, n4;
+
+  n1 = (U64)(get_random_U32_number()) & C64(0xFFFF);
+  n2 = (U64)(get_random_U32_number()) & C64(0xFFFF);
+  n3 = (U64)(get_random_U32_number()) & C64(0xFFFF);
+  n4 = (U64)(get_random_U32_number()) & C64(0xFFFF);
+
+  return n1 | (n2 << 16) | (n3 << 32) | (n4 << 48);
+}
+
+U64 generate_magic_number() {
+  return get_random_U64_number() & get_random_U64_number() &
+         get_random_U64_number();
 }
 
 // squares
@@ -285,24 +316,9 @@ U64 set_occupancy(int index, int bits_in_mask, U64 attack_mask) {
   return occupancy;
 }
 
-// pseudo random number state
-U32 state = C32(1804289383);
-U32 get_random_U32_number() {
-  U32 number = state;
-
-  number ^= number << 13;
-  number ^= number >> 17;
-  number ^= number << 5;
-
-  return state = number;
-}
-
 int main(void) {
   init_leapers_attacks();
-  printf("%u\n", get_random_U32_number());
-  printf("%u\n", get_random_U32_number());
-  printf("%u\n", get_random_U32_number());
-  printf("%u\n", get_random_U32_number());
-  printf("%u\n", get_random_U32_number());
+
+  bitboard_print(generate_magic_number());
   return 0;
 }
