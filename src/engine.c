@@ -15,6 +15,9 @@
 typedef unsigned long long U64;           // define bitboard data type
 #define C64(constantU64) constantU64##ULL // define shorthand for constants
 
+typedef unsigned int U32;
+#define C32(constantU32) constantU32##U
+
 // useful bit patterns
 const U64 universe = C64(0xffffffffffffffff); //
 const U64 notAFile = C64(0xfefefefefefefefe); // ~0x0101010101010101
@@ -282,16 +285,24 @@ U64 set_occupancy(int index, int bits_in_mask, U64 attack_mask) {
   return occupancy;
 }
 
+// pseudo random number state
+U32 state = C32(1804289383);
+U32 get_random_U32_number() {
+  U32 number = state;
+
+  number ^= number << 13;
+  number ^= number >> 17;
+  number ^= number << 5;
+
+  return state = number;
+}
+
 int main(void) {
   init_leapers_attacks();
-
-  for (int rank = 0; rank < 8; rank++) {
-    for (int file = 0; file < 8; file++) {
-      int square = rank * 8 + file;
-      /* printf("%d, ", bit_count(mask_bishop_attacks(square))); */
-      printf("%d, ", bit_count(mask_rook_attacks(square)));
-    }
-    printf("\n");
-  }
+  printf("%u\n", get_random_U32_number());
+  printf("%u\n", get_random_U32_number());
+  printf("%u\n", get_random_U32_number());
+  printf("%u\n", get_random_U32_number());
+  printf("%u\n", get_random_U32_number());
   return 0;
 }
