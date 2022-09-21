@@ -4,7 +4,6 @@
 #include <cii/assert.h>
 #include <cii/except.h>
 #include <cii/mem.h>
-
 /* DEFINITIONS */
 
 // useful macros
@@ -71,31 +70,6 @@ U64 get_random_U64_number() {
   return n1 | (n2 << 16) | (n3 << 32) | (n4 << 48);
 }
 
-// squares
-// clang-format off
-enum enumSquare {
-  a1, b1, c1, d1, e1, f1, g1, h1,
-  a2, b2, c2, d2, e2, f2, g2, h2,
-  a3, b3, c3, d3, e3, f3, g3, h3,
-  a4, b4, c4, d4, e4, f4, g4, h4,
-  a5, b5, c5, d5, e5, f5, g5, h5,
-  a6, b6, c6, d6, e6, f6, g6, h6,
-  a7, b7, c7, d7, e7, f7, g7, h7,
-  a8, b8, c8, d8, e8, f8, g8, h8
-};
-
-const char *square_to_coordinates[]={
-  "a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1",
-  "a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2",
-  "a3", "b3", "c3", "d3", "e3", "f3", "g3", "h3",
-  "a4", "b4", "c4", "d4", "e4", "f4", "g4", "h4",
-  "a5", "b5", "c5", "d5", "e5", "f5", "g5", "h5",
-  "a6", "b6", "c6", "d6", "e6", "f6", "g6", "h6",
-  "a7", "b7", "c7", "d7", "e7", "f7", "g7", "h7",
-  "a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8"
-};
-// clang-format on
-
 // board moving
 typedef U64 (*direction_f)(U64);
 U64 soutOne(U64 b) { return b >> 8; }
@@ -111,39 +85,113 @@ U64 noWeOne(U64 b) { return (b & notAFile) << 7; }
 U64 rotateLeft(U64 x, int s) { return (x << s) | (x >> (64 - s)); }
 U64 rotateRight(U64 x, int s) { return (x >> s) | (x << (64 - s)); }
 
-enum enumColor { WHITE = 0, BLACK };
-enum enumPiece { PAWN = 2, KNIGHT, BISHOP, ROOK, QUEEN, KIND };
+// squares
+// clang-format off
+typedef enum enumSquare Square;
+enum enumSquare {
+  a1, b1, c1, d1, e1, f1, g1, h1,
+  a2, b2, c2, d2, e2, f2, g2, h2,
+  a3, b3, c3, d3, e3, f3, g3, h3,
+  a4, b4, c4, d4, e4, f4, g4, h4,
+  a5, b5, c5, d5, e5, f5, g5, h5,
+  a6, b6, c6, d6, e6, f6, g6, h6,
+  a7, b7, c7, d7, e7, f7, g7, h7,
+  a8, b8, c8, d8, e8, f8, g8, h8, no_sq
+};
 
-typedef enum enumColor Color;
-typedef enum enumPiece Piece;
+const char *square_to_coordinates[]={
+  "a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1",
+  "a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2",
+  "a3", "b3", "c3", "d3", "e3", "f3", "g3", "h3",
+  "a4", "b4", "c4", "d4", "e4", "f4", "g4", "h4",
+  "a5", "b5", "c5", "d5", "e5", "f5", "g5", "h5",
+  "a6", "b6", "c6", "d6", "e6", "f6", "g6", "h6",
+  "a7", "b7", "c7", "d7", "e7", "f7", "g7", "h7",
+  "a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8"
+};
+// clang-format on
+
+// enum types for color and piece type
+enum enumColor { WHITE = 0, BLACK };
+enum enumPiece { PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING };
+
+typedef enum enumColor eColor;
+typedef enum enumPiece ePiece;
 
 // piece representation
-typedef struct PieceType *PieceType;
-struct PieceType {
-  Piece piece;
-  Color color;
+typedef struct Piece_T *Piece_T;
+struct Piece_T {
+  ePiece piece;
+  eColor color;
+  char   code;
+  char   asci;
+  char  *unicode;
 };
 
-int pieceCode(PieceType pt) { return pt->piece; }
-int colorCode(PieceType pt) { return pt->color; }
+ePiece Piece_piece(Piece_T pt) { return pt->piece; }
+eColor Piece_color(Piece_T pt) { return pt->color; }
+char   Piece_code(Piece_T pt) { return pt->code; }
+char   Piece_asci(Piece_T pt) { return pt->asci; }
+char  *Piece_unicode(Piece_T pt) { return pt->unicode; }
+
+// Pieces table [color][piece]
+// clang-format off
+struct Piece_T Pieces[2][6] = {
+    {
+     {.color = WHITE, .code = 'P', .asci = 'P', .unicode = "♙ ",   .piece = PAWN },
+     {.color = WHITE, .code = 'N', .asci = 'N', .unicode = "♘ ", .piece = KNIGHT },
+     {.color = WHITE, .code = 'B', .asci = 'B', .unicode = "♗ ", .piece = BISHOP },
+     {.color = WHITE, .code = 'R', .asci = 'R', .unicode = "♖ ",   .piece = ROOK },
+     {.color = WHITE, .code = 'Q', .asci = 'Q', .unicode = "♕ ",  .piece = QUEEN },
+     {.color = WHITE, .code = 'K', .asci = 'K', .unicode = "♔ ",   .piece = KING },
+    },
+    {
+     {.color = BLACK, .code = 'p', .asci = 'p', .unicode = "♟ ",   .piece = PAWN },
+     {.color = BLACK, .code = 'n', .asci = 'n', .unicode = "♞ ", .piece = KNIGHT },
+     {.color = BLACK, .code = 'b', .asci = 'b', .unicode = "♝ ", .piece = BISHOP },
+     {.color = BLACK, .code = 'r', .asci = 'r', .unicode = "♜ ",   .piece = ROOK },
+     {.color = BLACK, .code = 'q', .asci = 'q', .unicode = "♛ ",  .piece = QUEEN },
+     {.color = BLACK, .code = 'k', .asci = 'k', .unicode = "♚ ",   .piece = KING },
+    },
+};
+// clang-format on
+
+typedef enum enumCastle eCastle;
+enum enumCastle { WK = 1, WQ = 2, BK = 4, BQ = 8 };
 
 // board representation
-typedef struct CBoard *CBoard;
-struct CBoard {
-  U64 pieceBB[8];
+typedef struct CBoard_T *CBoard_T;
+struct CBoard_T {
+  U64     colorBB[2];
+  U64     pieceBB[6];
+  eColor  side;
+  Square  enpassant;
+  eCastle castle;
 };
 
-U64 board_getPieceSet(CBoard self, PieceType pt) {
-  return self->pieceBB[pieceCode(pt)] & self->pieceBB[colorCode(pt)];
+// clang-format off
+struct CBoard_T Cboard_new = {
+    .side = -1,
+    .enpassant = no_sq,
+    .castle = 15,
+    .colorBB = { C64(0x000000000000FFFF), C64(0xFFFF000000000000) },
+    .pieceBB = { C64(0x00FF00000000FF00), C64(0x4200000000000042),
+                 C64(0x2400000000000024), C64(0x8100000000000081),
+                 C64(0x800000000000008), C64(0x1000000000000010) },
+};
+// clang-format on
+
+U64 board_getPieceSet(CBoard_T self, Piece_T piece) {
+  return self->pieceBB[Piece_color(piece)] & self->pieceBB[Piece_color(piece)];
 }
-U64 board_getWhitePawns(CBoard self) {
+U64 board_getWhitePawns(CBoard_T self) {
   return self->pieceBB[PAWN] & self->pieceBB[WHITE];
 }
-U64 board_getBlackPawns(CBoard self) {
+U64 board_getBlackPawns(CBoard_T self) {
   return self->pieceBB[PAWN] & self->pieceBB[BLACK];
 }
-U64 board_getPawns(CBoard self, Color ct) {
-  return self->pieceBB[PAWN] & self->pieceBB[ct];
+U64 board_getPawns(CBoard_T self, eColor color) {
+  return self->pieceBB[PAWN] & self->pieceBB[color];
 }
 
 /* ... */
@@ -475,15 +523,16 @@ void init_all() {
 int main(void) {
   init_all();
 
-  U64 occupancy = C64(0);
-  bit_set(occupancy, c5);
-  bit_set(occupancy, f2);
-  bit_set(occupancy, g7);
-  bit_set(occupancy, b2);
+  bitboard_print(Cboard_new.colorBB[0]);
+  bitboard_print(Cboard_new.colorBB[1]);
+  bitboard_print(Cboard_new.pieceBB[0]);
+  bitboard_print(Cboard_new.pieceBB[1]);
+  bitboard_print(Cboard_new.pieceBB[2]);
+  bitboard_print(Cboard_new.pieceBB[3]);
+  bitboard_print(Cboard_new.pieceBB[4]);
+  bitboard_print(Cboard_new.pieceBB[5]);
 
-  bitboard_print(occupancy);
-  bitboard_print(get_bishop_attacks(d4, occupancy));
-  bitboard_print(get_rook_attacks(e5, occupancy));
+  printf("%s\n", Piece_unicode(&Pieces[BLACK][BISHOP]));
 
   return 0;
 }
