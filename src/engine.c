@@ -586,6 +586,10 @@ static inline U64 get_rook_attacks(int square, U64 occupancy) {
   return rook_attacks[square][occupancy];
 }
 
+static inline U64 get_queen_attacks(int square, U64 occupancy) {
+  return (get_bishop_attacks(square, occupancy) |
+          get_rook_attacks(square, occupancy));
+}
 // magic numbers
 
 U64 generate_magic_number() {
@@ -644,11 +648,10 @@ int main(void) {
 
   CBoard_T board;
   NEW(board);
-  CBoard_print(CBoard_fromFEN(board, empty_board));
-  CBoard_print(CBoard_fromFEN(board, start_position));
-  CBoard_print(CBoard_fromFEN(board, tricky_position));
-  CBoard_print(CBoard_fromFEN(board, killer_position));
   CBoard_print(CBoard_fromFEN(board, cmk_position));
+  bitboard_print(
+      get_queen_attacks(d8, board->colorBB[WHITE] | board->colorBB[BLACK]));
+
   FREE(board);
 
   return 0;
