@@ -1,9 +1,24 @@
+#include <ctype.h>
 #include <stdio.h>
 #include <string.h>
 
 #include <cii/assert.h>
 #include <cii/except.h>
 #include <cii/mem.h>
+
+/* DEBUGGING */
+
+// FEN debug positions
+#define empty_board "8/8/8/8/8/8/8/8 w - - "
+#define start_position                                                         \
+  "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 "
+#define tricky_position                                                        \
+  "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1 "
+#define killer_position                                                        \
+  "rnbqkb1r/pp1p1pPp/8/2p1pP2/1P1P4/3P3P/P1P1P3/RNBQKBNR w KQkq e6 0 1"
+#define cmk_position                                                           \
+  "r2q1rk1/ppp2ppp/2n1bn2/2b1p3/3pP3/3P1NPP/PPP1NPB1/R1BQ1RK1 b - - 0 9 "
+
 /* DEFINITIONS */
 
 // useful macros
@@ -156,6 +171,14 @@ struct Piece_T Pieces[2][6] = {
 };
 // clang-format on
 
+Piece_T Piece_fromCode(char code) {
+  int color = (isupper(code)) ? WHITE : BLACK;
+  for (int i = 0; i < 6; i++)
+    if (Pieces[color][i].code == code)
+      return &Pieces[color][i];
+  return NULL;
+}
+
 enum enumCastle { WK = 1, WQ = 2, BK = 4, BQ = 8 };
 typedef enum enumCastle eCastle;
 
@@ -181,17 +204,74 @@ struct CBoard_T Cboard_new = {
 };
 // clang-format on
 
-U64 board_getPieceSet(CBoard_T self, Piece_T piece) {
+U64 CBoard_getPieceSet(CBoard_T self, Piece_T piece) {
   return self->pieceBB[Piece_color(piece)] & self->pieceBB[Piece_color(piece)];
 }
-U64 board_getWhitePawns(CBoard_T self) {
+U64 CBoard_getWhitePawns(CBoard_T self) {
   return self->pieceBB[PAWN] & self->pieceBB[WHITE];
 }
-U64 board_getBlackPawns(CBoard_T self) {
+U64 CBoard_getBlackPawns(CBoard_T self) {
   return self->pieceBB[PAWN] & self->pieceBB[BLACK];
 }
-U64 board_getPawns(CBoard_T self, eColor color) {
+U64 CBoard_getPawns(CBoard_T self, eColor color) {
   return self->pieceBB[PAWN] & self->pieceBB[color];
+}
+
+/* ... */
+
+CBoard_T CBoard_fromFEN(CBoard_T board, char *fen) {
+  if (!board)
+    NEW(board);
+
+  memset(board, C64(0), sizeof(*board));
+
+  board->side = -1;
+  board->enpassant = no_sq;
+  board->castle = 0;
+
+  int file = 0, rank = 7;
+  for (Piece_T piece; *fen != ' '; fen++) {
+    int square = rank * 8 + file;
+    if (isalpha(*fen)) {
+      if (!(piece = Piece_fromCode(*fen)))
+        assert(0);
+      bit_set(board->colorBB[piece->color], square);
+      bit_set(board->pieceBB[piece->piece], square);
+      file++;
+    } else if (isdigit(*fen)) {
+      file += *fen - '0';
+    } else if (*fen == '/') {
+      file = 0;
+      rank--;
+    } else
+      assert(0);
+  }
+
+  fen++;
+  if (*fen == 'w')
+    board->side = WHITE;
+  else if (*fen == 'b')
+    board->side = BLACK;
+  else
+    assert(0);
+
+  for (fen += 2; *fen != ' '; fen++) {
+    switch (*fen) {
+    case 'K': board->castle |= WK; break;
+    case 'Q': board->castle |= WQ; break;
+    case 'k': board->castle |= BK; break;
+    case 'q': board->castle |= BQ; break;
+    case '-': break;
+    default: assert(0);
+    }
+  }
+
+  fen++;
+  if (*fen != '-') {
+    board->enpassant = (*(fen + 1) - '1') * 8 + (*fen - 'a');
+  }
+
+  return board;
 }
 
 void CBoard_print(CBoard_T self) {
@@ -225,13 +305,11 @@ void CBoard_print(CBoard_T self) {
   printf("    A B C D E F G H\n");
   printf("     Side: %s\n", (self->side == WHITE) ? "white" : "black");
   printf("Enpassant: %s\n", square_to_coordinates[self->enpassant]);
-  printf(" Castling: %c%c%c%c\n", (self->castle & WK) ? '-' : ' ',
-         (self->castle & WQ) ? '-' : ' ', (self->castle & BK) ? '-' : ' ',
-         (self->castle & BQ) ? '-' : ' ');
+  printf(" Castling: %c%c%c%c\n", (self->castle & WK) ? 'K' : '-',
+         (self->castle & WQ) ? 'Q' : '-', (self->castle & BK) ? 'k' : '-',
+         (self->castle & BQ) ? 'q' : '-');
   printf("\n");
 }
-
-/* ... */
 
 void bitboard_print(U64 bitboard) {
   for (int rank = 0; rank < 8; rank++) {
@@ -563,6 +641,15 @@ int main(void) {
   init_all();
 
   CBoard_print(&Cboard_new);
+
+  CBoard_T board;
+  NEW(board);
+  CBoard_print(CBoard_fromFEN(board, empty_board));
+  CBoard_print(CBoard_fromFEN(board, start_position));
+  CBoard_print(CBoard_fromFEN(board, tricky_position));
+  CBoard_print(CBoard_fromFEN(board, killer_position));
+  CBoard_print(CBoard_fromFEN(board, cmk_position));
+  FREE(board);
 
   return 0;
 }
