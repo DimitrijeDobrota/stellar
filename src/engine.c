@@ -87,7 +87,6 @@ U64 rotateRight(U64 x, int s) { return (x >> s) | (x << (64 - s)); }
 
 // squares
 // clang-format off
-typedef enum enumSquare Square;
 enum enumSquare {
   a1, b1, c1, d1, e1, f1, g1, h1,
   a2, b2, c2, d2, e2, f2, g2, h2,
@@ -98,6 +97,7 @@ enum enumSquare {
   a7, b7, c7, d7, e7, f7, g7, h7,
   a8, b8, c8, d8, e8, f8, g8, h8, no_sq
 };
+typedef enum enumSquare Square;
 
 const char *square_to_coordinates[]={
   "a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1",
@@ -107,13 +107,13 @@ const char *square_to_coordinates[]={
   "a5", "b5", "c5", "d5", "e5", "f5", "g5", "h5",
   "a6", "b6", "c6", "d6", "e6", "f6", "g6", "h6",
   "a7", "b7", "c7", "d7", "e7", "f7", "g7", "h7",
-  "a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8"
+  "a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8", " "
 };
 // clang-format on
 
 // enum types for color and piece type
 enum enumColor { WHITE = 0, BLACK };
-enum enumPiece { PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING };
+enum enumPiece { PAWN = 0, KNIGHT, BISHOP, ROOK, QUEEN, KING };
 
 typedef enum enumColor eColor;
 typedef enum enumPiece ePiece;
@@ -156,8 +156,8 @@ struct Piece_T Pieces[2][6] = {
 };
 // clang-format on
 
-typedef enum enumCastle eCastle;
 enum enumCastle { WK = 1, WQ = 2, BK = 4, BQ = 8 };
+typedef enum enumCastle eCastle;
 
 // board representation
 typedef struct CBoard_T *CBoard_T;
@@ -171,9 +171,9 @@ struct CBoard_T {
 
 // clang-format off
 struct CBoard_T Cboard_new = {
-    .side = -1,
+    .side = WHITE,
     .enpassant = no_sq,
-    .castle = 15,
+    .castle = WK | WQ | BK| BQ,
     .colorBB = { C64(0x000000000000FFFF), C64(0xFFFF000000000000) },
     .pieceBB = { C64(0x00FF00000000FF00), C64(0x4200000000000042),
                  C64(0x2400000000000024), C64(0x8100000000000081),
@@ -192,6 +192,43 @@ U64 board_getBlackPawns(CBoard_T self) {
 }
 U64 board_getPawns(CBoard_T self, eColor color) {
   return self->pieceBB[PAWN] & self->pieceBB[color];
+}
+
+void CBoard_print(CBoard_T self) {
+  for (int rank = 0; rank < 8; rank++) {
+    for (int file = 0; file < 8; file++) {
+      int     square = (7 - rank) * 8 + file;
+      Piece_T piece = NULL;
+
+      int color = -1;
+      if (bit_get(self->colorBB[WHITE], square))
+        color = WHITE;
+      else if (bit_get(self->colorBB[BLACK], square))
+        color = BLACK;
+
+      if (color != -1) {
+        for (int piece_index = 0; piece_index < 6; piece_index++) {
+          if (bit_get(self->pieceBB[piece_index], square)) {
+            piece = &Pieces[color][piece_index];
+            break;
+          }
+        }
+      }
+
+      if (!file)
+        printf(" %d  ", 8 - rank);
+
+      printf("%s", (piece) ? Piece_unicode(piece) : ". ");
+    }
+    printf("\n");
+  }
+  printf("    A B C D E F G H\n");
+  printf("     Side: %s\n", (self->side == WHITE) ? "white" : "black");
+  printf("Enpassant: %s\n", square_to_coordinates[self->enpassant]);
+  printf(" Castling: %c%c%c%c\n", (self->castle & WK) ? '-' : ' ',
+         (self->castle & WQ) ? '-' : ' ', (self->castle & BK) ? '-' : ' ',
+         (self->castle & BQ) ? '-' : ' ');
+  printf("\n");
 }
 
 /* ... */
@@ -312,7 +349,7 @@ U64 rook_attacks[64][4096]; // 2048K
 
 // generate pawn attack
 U64 mask_pawn_attacks(int side, int square) {
-  U64 bitboard = C64(0), attacks;
+  U64 bitboard = C64(0);
 
   bit_set(bitboard, square);
   if (side == WHITE)
@@ -350,7 +387,8 @@ U64 mask_king_attacks(int square) {
   return attacks;
 }
 
-U64 mask_slide_attacks(int square, U64 block, direction_f dir[4], int len[4]) {
+U64 mask_slide_attacks(int square, U64 block, const direction_f dir[4],
+                       int len[4]) {
   U64 bitboard = C64(0), attacks = C64(0), tmp;
   int i, j;
 
@@ -365,8 +403,8 @@ U64 mask_slide_attacks(int square, U64 block, direction_f dir[4], int len[4]) {
   return attacks;
 }
 
-direction_f bishop_direction[4] = {noEaOne, noWeOne, soEaOne, soWeOne};
-direction_f rook_direction[4] = {westOne, soutOne, eastOne, nortOne};
+const direction_f bishop_direction[4] = {noEaOne, noWeOne, soEaOne, soWeOne};
+const direction_f rook_direction[4] = {westOne, soutOne, eastOne, nortOne};
 
 U64 mask_bishop_attacks(int square) {
   int tr = square / 8, tf = square % 8;
@@ -420,6 +458,10 @@ U64 set_occupancy(int index, int bits_in_mask, U64 attack_mask) {
   return occupancy;
 }
 
+int hash(U64 key, U64 magic, int relevant_bits) {
+  return (key * magic) >> (64 - relevant_bits);
+}
+
 void init_sliders_attacks(int bishop) {
   for (int square = 0; square < 64; square++) {
     U64 attack_mask;
@@ -443,8 +485,8 @@ void init_sliders_attacks(int bishop) {
         bishop_attacks[square][magic_index] =
             bishop_attacks_on_the_fly(square, occupancy);
       } else {
-        int magic_index = (occupancy * rook_magic_numbers[square]) >>
-                          (64 - rook_relevant_bits[square]);
+        int magic_index = hash(occupancy, rook_magic_numbers[square],
+                               rook_relevant_bits[square]);
         rook_attacks[square][magic_index] =
             rook_attacks_on_the_fly(square, occupancy);
       }
@@ -454,17 +496,15 @@ void init_sliders_attacks(int bishop) {
 
 static inline U64 get_bishop_attacks(int square, U64 occupancy) {
   occupancy &= bishop_masks[square];
-  occupancy *= bishop_magic_numbers[square];
-  occupancy >>= 64 - bishop_relevant_bits[square];
-
+  occupancy = hash(occupancy, bishop_magic_numbers[square],
+                   bishop_relevant_bits[square]);
   return bishop_attacks[square][occupancy];
 }
 
 static inline U64 get_rook_attacks(int square, U64 occupancy) {
   occupancy &= rook_masks[square];
-  occupancy *= rook_magic_numbers[square];
-  occupancy >>= 64 - rook_relevant_bits[square];
-
+  occupancy =
+      hash(occupancy, rook_magic_numbers[square], rook_relevant_bits[square]);
   return rook_attacks[square][occupancy];
 }
 
@@ -497,8 +537,7 @@ U64 find_magic_number(int square, int relevant_bits, int bishop) {
     int index, fail;
 
     for (index = 0, fail = 0; !fail && index < occupancy_indicies; index++) {
-      int magic_index =
-          (int)((occupancies[index] * magic_number) >> (64 - relevant_bits));
+      int magic_index = hash(occupancies[index], magic_number, relevant_bits);
 
       if (used_attacks[magic_index] == C64(0))
         used_attacks[magic_index] = attacks[index];
@@ -523,16 +562,7 @@ void init_all() {
 int main(void) {
   init_all();
 
-  bitboard_print(Cboard_new.colorBB[0]);
-  bitboard_print(Cboard_new.colorBB[1]);
-  bitboard_print(Cboard_new.pieceBB[0]);
-  bitboard_print(Cboard_new.pieceBB[1]);
-  bitboard_print(Cboard_new.pieceBB[2]);
-  bitboard_print(Cboard_new.pieceBB[3]);
-  bitboard_print(Cboard_new.pieceBB[4]);
-  bitboard_print(Cboard_new.pieceBB[5]);
-
-  printf("%s\n", Piece_unicode(&Pieces[BLACK][BISHOP]));
+  CBoard_print(&Cboard_new);
 
   return 0;
 }
