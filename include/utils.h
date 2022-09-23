@@ -17,10 +17,14 @@ extern const U64 universe;
 extern const U64 notAFile;
 extern const U64 notHFile;
 
-// useful bit operations
+// useful bit functions
 #define bit_get(bitboard, square) (((bitboard) >> (square)) & C64(1))
 #define bit_set(bitboard, square) ((bitboard) |= C64(1) << (square))
 #define bit_pop(bitboard, square) ((bitboard) &= ~(C64(1) << (square)))
+int bit_count(U64 bitboard);
+int bit_lsb_index(U64 bitboard);
+
+void bitboard_print(U64 bitboard);
 
 // squares
 // clang-format off

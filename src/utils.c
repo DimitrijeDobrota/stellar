@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #include "utils.h"
 
 const U64 universe = C64(0xffffffffffffffff); //
@@ -17,6 +19,7 @@ U64 noWeOne(U64 b) { return (b & notAFile) << 7; }
 U64 rotateLeft(U64 x, int s) { return (x << s) | (x >> (64 - s)); }
 U64 rotateRight(U64 x, int s) { return (x >> s) | (x << (64 - s)); }
 
+// clang-format off
 const char *square_to_coordinates[]={
   "a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1",
   "a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2",
@@ -27,3 +30,39 @@ const char *square_to_coordinates[]={
   "a7", "b7", "c7", "d7", "e7", "f7", "g7", "h7",
   "a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8", " "
 };
+// clang-format on
+
+int bit_count(U64 bitboard) {
+  int count = 0;
+
+  while (bitboard > 0) {
+    count++;
+    bitboard &= bitboard - 1;
+  }
+
+  return count;
+}
+
+int bit_lsb_index(U64 bitboard) {
+  if (!bitboard)
+    return -1;
+
+  return bit_count((bitboard & -bitboard) - 1);
+}
+
+void bitboard_print(U64 bitboard) {
+  for (int rank = 0; rank < 8; rank++) {
+    for (int file = 0; file < 8; file++) {
+      Square square = (7 - rank) * 8 + file;
+
+      if (!file)
+        printf(" %d  ", 8 - rank);
+
+      printf("%d ", bit_get(bitboard, square) ? 1 : 0);
+    }
+    printf("\n");
+  }
+
+  printf("\n    A B C D E F G H\n\n");
+  printf("    Bitboard: %llud\n\n", bitboard);
+}

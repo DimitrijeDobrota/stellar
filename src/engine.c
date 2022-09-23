@@ -164,6 +164,66 @@ int CBoard_square_isAttack(CBoard_T self, Square square, eColor side) {
   return 0;
 }
 
+int square_index_extractor(U64 btbrd) {
+  static U64 bitboard;
+
+  if (btbrd != no_sq)
+    bitboard = btbrd;
+
+  if (bitboard == C64(0))
+    return no_sq;
+
+  int index = bit_lsb_index(bitboard);
+  bit_pop(bitboard, index);
+  return index;
+}
+
+void CBoard_move_generate(CBoard_T self) {
+  Square source, target;
+  U64    bitboard, attack;
+
+  U64 occupancy = self->colorBB[WHITE] | self->colorBB[BLACK];
+  for (int color = 0; color < 2; color++) {
+    // Generate quiet pawn moves
+    {
+      int add = (color == WHITE) ? +8 : -8;
+      bitboard = self->pieceBB[PAWN] & self->colorBB[color];
+      while (bitboard) {
+        target = source = bit_lsb_index(bitboard);
+        target += add;
+        if (target > a1 && target < h8 && !bit_get(occupancy, target)) {
+          // promote
+          if ((color == WHITE && source >= a7 && source <= h7) ||
+              (color == BLACK && source >= a2 && source <= h2)) {
+            // add move to move list
+            printf("PROMOTION!!! ");
+          } else {
+            // one ahead
+            // add move to move list
+            printf("SINGLE PUSH!!! ");
+
+            // two ahead
+            if (((color == BLACK && source >= a7 && source <= h7) ||
+                 (color == WHITE && source >= a2 && source <= h2)) &&
+                !bit_get(occupancy, target + add)) {
+              // add to move list;
+              printf("DOUBLE PUSH!!! ");
+            }
+          }
+          printf("%s pawn: %s; target: %s\n",
+                 (color == WHITE) ? "white" : "black",
+                 square_to_coordinates[source], square_to_coordinates[target]);
+        }
+        bit_pop(bitboard, source);
+      }
+
+      /* for (int piece = 0; piece < 6; piece++) { */
+      /*   bitboard = self->pieceBB[piece] & self->colorBB[color]; */
+      /* } */
+    }
+  }
+}
+
 void CBoard_print(CBoard_T self) {
   for (int rank = 0; rank < 8; rank++) {
     for (int file = 0; file < 8; file++) {
@@ -217,25 +277,6 @@ void CBoard_print_attacked(CBoard_T self, eColor side) {
   printf("\n");
 }
 
-void bitboard_print(U64 bitboard) {
-  for (int rank = 0; rank < 8; rank++) {
-    for (int file = 0; file < 8; file++) {
-      Square square = (7 - rank) * 8 + file;
-
-      if (!file)
-        printf(" %d  ", 8 - rank);
-
-      printf("%d ", bit_get(bitboard, square) ? 1 : 0);
-    }
-    printf("\n");
-  }
-
-  printf("\n    A B C D E F G H\n\n");
-  printf("    Bitboard: %llud\n\n", bitboard);
-}
-
-// clang-format on
-
 void init_all() {
   init_leapers_attacks();
   init_sliders_attacks();
@@ -245,12 +286,10 @@ int main(void) {
   init_all();
 
   CBoard_T board;
-  board = CBoard_fromFEN(
-      NULL, "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1 ");
+  board = CBoard_fromFEN(NULL, tricky_position);
 
   CBoard_print(board);
-  CBoard_print_attacked(board, WHITE);
-  CBoard_print_attacked(board, BLACK);
+  CBoard_move_generate(board);
 
   FREE(board);
   return 0;

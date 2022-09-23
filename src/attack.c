@@ -87,24 +87,6 @@ int hash(U64 key, U64 magic, int relevant_bits) {
   return (key * magic) >> (64 - relevant_bits);
 }
 
-static inline int bit_count(U64 bitboard) {
-  int count = 0;
-
-  while (bitboard > 0) {
-    count++;
-    bitboard &= bitboard - 1;
-  }
-
-  return count;
-}
-
-static inline int bit_lsb_index(U64 bitboard) {
-  if (!bitboard)
-    return -1;
-
-  return bit_count((bitboard & -bitboard) - 1);
-}
-
 // pseudo random numbers
 
 U32 state = C32(1804289383);
