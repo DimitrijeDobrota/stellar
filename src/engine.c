@@ -92,7 +92,7 @@ typedef U32 Move;
 
 void Move_print(Move move) {
   int promote = Move_promote(move);
-  printf("%5s %5s %6s %10s %10d %10d %10d %10d\n",
+  printf("%5s %5s %5s %5s %4d %4d %4d %4d\n",
          square_to_coordinates[Move_source(move)],
          square_to_coordinates[Move_target(move)],
          Piece_fromInex(Move_piece(move))->unicode,
@@ -118,8 +118,7 @@ void MoveList_add(MoveList_T self, Move move) {
 }
 
 void MoveList_print(MoveList_T self) {
-  printf(" From    To    P    Promote    Capture     Double  Enpassant     "
-         "Castle\n");
+  printf(" From    To  Pi  Prmt  Cap  Dbl  Enp  Cst\n");
   for (int i = 0; i < self->count; i++)
     Move_print(self->moves[i]);
   printf("Total: %d\n", self->count);
@@ -219,122 +218,86 @@ int CBoard_square_isAttack(CBoard_T self, Square square, eColor side) {
   return 0;
 }
 
-int square_index_extractor(U64 btbrd) {
-  static U64 bitboard;
+#define pawn_promotion(color, source)                                          \
+  ((color == WHITE && source >= a7 && source <= h7) ||                         \
+   (color == BLACK && source >= a2 && source <= h2))
 
-  if (btbrd != no_sq)
-    bitboard = btbrd;
+#define pawn_start(color, source)                                              \
+  ((color == BLACK && source >= a7 && source <= h7) ||                         \
+   (color == WHITE && source >= a2 && source <= h2))
 
-  if (bitboard == C64(0))
-    return no_sq;
-
-  int index = bit_lsb_index(bitboard);
-  bit_pop(bitboard, index);
-  return index;
-}
+#define pawn_promote(source, target, index, take)                              \
+  for (int i = 1; i < 6; i++) {                                                \
+    move = Move_encode(source, target, index, Piece_index(&Pieces[color][i]),  \
+                       0, 0, 0, 0);                                            \
+    MoveList_add(moves, move);                                                 \
+  }
 
 MoveList_T CBoard_move_generate(CBoard_T self, eColor color) {
   MoveList_T moves;
   Move       move;
-  Square     source, target;
-  U64        bitboard, attack;
+  Square     src, tgt;
   U64        occupancy = self->colorBB[WHITE] | self->colorBB[BLACK];
 
   moves = MoveList_new();
-  // Generate quiet pawn moves
-  {
+
+  { // pawn moves
     Piece_T Piece = &Pieces[color][PAWN];
     int     index = Piece_index(Piece);
-    bitboard = self->pieceBB[PAWN] & self->colorBB[color];
-    while (bitboard) {
-      // push
-      {
+    U64     bitboard = self->pieceBB[PAWN] & self->colorBB[color];
+    bitboard_for_each_bit(src, bitboard) {
+      { // quiet
         int add = (color == WHITE) ? +8 : -8;
-        target = source = bit_lsb_index(bitboard);
-        target += add;
-        if (target > a1 && target < h8 && !bit_get(occupancy, target)) {
-          // promote
-          if ((color == WHITE && source >= a7 && source <= h7) ||
-              (color == BLACK && source >= a2 && source <= h2)) {
-            for (int i = 1; i < 6; i++) {
-              move = Move_encode(source, target, index,
-                                 Piece_index(&Pieces[color][i]), 0, 0, 0, 0);
-              MoveList_add(moves, move);
-            }
+        tgt = src + add;
+        if (tgt > a1 && tgt < h8 && !bit_get(occupancy, tgt)) {
+          if (pawn_promotion(color, src)) {
+            pawn_promote(src, tgt, index, 0);
           } else {
-            MoveList_add(moves,
-                         Move_encode(source, target, index, 0, 0, 0, 0, 0));
+            MoveList_add(moves, Move_encode(src, tgt, index, 0, 0, 0, 0, 0));
 
             // two ahead
-            target += add;
-            if (((color == BLACK && source >= a7 && source <= h7) ||
-                 (color == WHITE && source >= a2 && source <= h2)) &&
-                !bit_get(occupancy, target)) {
-              MoveList_add(moves,
-                           Move_encode(source, target, index, 0, 0, 1, 0, 0));
-            }
+            if (pawn_start(color, src) && !bit_get(occupancy, tgt += add))
+              MoveList_add(moves, Move_encode(src, tgt, index, 0, 0, 1, 0, 0));
           }
         }
       }
-      // Capture
-      {
-        attack = Piece->attacks(source, occupancy) & self->colorBB[!color];
-        while (attack) {
-          target = bit_lsb_index(attack);
-          bit_pop(attack, target);
-          if ((color == WHITE && source >= a7 && source <= h7) ||
-              (color == BLACK && source >= a2 && source <= h2)) {
-            for (int i = 1; i < 6; i++) {
-              move = Move_encode(source, target, index,
-                                 Piece_index(&Pieces[color][i]), 1, 0, 0, 0);
-              MoveList_add(moves, move);
-            }
+      { // capture
+        U64 attack = Piece->attacks(src, occupancy) & self->colorBB[!color];
+        bitboard_for_each_bit(tgt, attack) {
+          if (pawn_promotion(color, src)) {
+            pawn_promote(src, tgt, index, 1);
           } else {
-            MoveList_add(moves,
-                         Move_encode(source, target, index, 0, 1, 0, 0, 0));
+            MoveList_add(moves, Move_encode(src, tgt, index, 0, 1, 0, 0, 0));
           }
         }
       }
-      // enpassant
-      {
-        if (self->enpassant != no_sq) {
-          attack =
-              Piece->attacks(source, occupancy) & (C64(1) << self->enpassant);
-          if (attack) {
-            target = bit_lsb_index(attack);
-            MoveList_add(moves,
-                         Move_encode(source, target, index, 0, 1, 0, 1, 0));
-          }
-        }
-      }
-      bit_pop(bitboard, source);
-    }
 
-    for (int piece = 1; piece <= 6; piece++) {
-      bitboard = self->pieceBB[piece] & self->colorBB[color];
-      Piece_T Piece = &Pieces[color][piece];
-      int     index = Piece_index(Piece);
-      while (bitboard) {
-        source = bit_lsb_index(bitboard);
-        bit_pop(bitboard, source);
-        attack = Piece->attacks(source, occupancy) & ~self->colorBB[color];
-        while (attack) {
-          target = bit_lsb_index(attack);
-          if (bit_get(self->colorBB[!color], target))
-            MoveList_add(moves,
-                         Move_encode(source, target, index, 0, 1, 0, 0, 0));
-          else
-            MoveList_add(moves,
-                         Move_encode(source, target, index, 0, 0, 0, 0, 0));
-          bit_pop(attack, target);
-        }
+      { // en passant
+        U64 attack = Piece->attacks(src, occupancy);
+        if (self->enpassant != no_sq && attack & (C64(1) << self->enpassant))
+          MoveList_add(moves, Move_encode(src, bit_lsb_index(attack), index, 0,
+                                          1, 0, 1, 0));
+      }
+    }
+  }
+
+  // All piece move
+  for (int piece = 1; piece < 6; piece++) {
+    Piece_T Piece = &Pieces[color][piece];
+    U64     bitboard = self->pieceBB[piece] & self->colorBB[color];
+    bitboard_for_each_bit(src, bitboard) {
+      U64 attack = Piece->attacks(src, occupancy) & ~self->colorBB[color];
+      bitboard_for_each_bit(tgt, attack) {
+        int take = bit_get(self->colorBB[!color], tgt);
+        MoveList_add(
+            moves, Move_encode(src, tgt, Piece_index(Piece), 0, take, 0, 0, 0));
       }
     }
   }
 
   // Castling
   {
-    if (!CBoard_square_isAttack(self, e1, BLACK)) {
+    if (color == WHITE && !CBoard_square_isAttack(self, e1, BLACK)) {
       int index = Piece_index(&Pieces[WHITE][KING]);
       if (self->castle & WK && !bit_get(occupancy, f1) &&
           !bit_get(occupancy, g1)) {
@@ -346,7 +309,7 @@ MoveList_T CBoard_move_generate(CBoard_T self, eColor color) {
       }
     }
 
-    if (!CBoard_square_isAttack(self, e1, WHITE)) {
+    if (color == BLACK && !CBoard_square_isAttack(self, e8, WHITE)) {
       int index = Piece_index(&Pieces[BLACK][KING]);
       if (self->castle & BK && !bit_get(occupancy, f8) &&
           !bit_get(occupancy, g8)) {
@@ -426,7 +389,9 @@ int main(void) {
   CBoard_T   board;
   MoveList_T moves;
 
-  CBoard_print(board = CBoard_fromFEN(NULL, tricky_position));
+  CBoard_print(board = CBoard_fromFEN(NULL,
+                                      "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/"
+                                      "2N2Q1p/PPPBBPPP/R3K2R w KQkq c6 0 1 "));
   MoveList_print(CBoard_move_generate(board, WHITE));
   MoveList_print(CBoard_move_generate(board, BLACK));
 
