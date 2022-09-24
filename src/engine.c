@@ -60,6 +60,8 @@ struct Piece_T Pieces[2][6] = {
     },
 };
 // clang-format on
+//
+int Piece_index(Piece_T self) { return self->color * 8 + self->piece; }
 
 Piece_T Piece_fromCode(char code) {
   int color = (isupper(code)) ? WHITE : BLACK;
@@ -68,6 +70,8 @@ Piece_T Piece_fromCode(char code) {
       return &Pieces[color][i];
   return NULL;
 }
+
+Piece_T Piece_fromInex(int index) { return &Pieces[index / 8][index % 8]; }
 
 enum enumCastle { WK = 1, WQ = 2, BK = 4, BQ = 8 };
 typedef enum enumCastle eCastle;
@@ -355,6 +359,33 @@ void CBoard_print_attacked(CBoard_T self, eColor side) {
   printf("\n");
 }
 
+typedef U32 Move;
+#define move_encode(source, target, piece, promoted, capture, dbl, enpassant,  \
+                    castling)                                                  \
+  (source) | (target << 6) | (piece << 12) | (promoted << 16) |                \
+      (capture << 20) | (dbl << 21) | (enpassant << 22) | (castling << 23)
+
+#define move_source(move)    (((move)&C32(0x00003f)))
+#define move_target(move)    (((move)&C32(0x000fc0)) >> 6)
+#define move_piece(move)     (((move)&C32(0x00f000)) >> 12)
+#define move_promote(move)   (((move)&C32(0x0f0000)) >> 16)
+#define move_capture(move)   (((move)&C32(0x100000)) >> 20)
+#define move_double(move)    (((move)&C32(0x200000)))
+#define move_enpassant(move) (((move)&C32(0x400000)))
+#define move_castle(move)    (((move)&C32(0x800000)))
+
+void move_print(Move move) {
+  printf("Move: %d: %.32b\n", move, move);
+  printf("From: %s; To: %s; Piece: %s; Promote: %s; Capture: %d; Double: %d; "
+         "Enpassant: %d; Castle: %d\n",
+         square_to_coordinates[move_source(move)],
+         square_to_coordinates[move_target(move)],
+         Piece_fromInex(move_piece(move))->unicode,
+         Piece_fromInex(move_promote(move))->unicode,
+         move_capture(move) ? 1 : 0, move_double(move) ? 1 : 0,
+         move_enpassant(move) ? 1 : 0, move_castle(move) ? 1 : 0);
+}
+
 void init_all() {
   init_leapers_attacks();
   init_sliders_attacks();
@@ -363,14 +394,8 @@ void init_all() {
 int main(void) {
   init_all();
 
-  CBoard_T board;
-  board = CBoard_fromFEN(
-      NULL,
-      "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1 ");
-
-  CBoard_print(board);
-  CBoard_move_generate(board);
-
-  FREE(board);
+  Move move =
+      move_encode(e2, e4, Piece_index(&Pieces[WHITE][PAWN]), 0, 0, 0, 1, 1);
+  move_print(move);
   return 0;
 }
