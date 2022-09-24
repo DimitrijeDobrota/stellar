@@ -186,40 +186,84 @@ void CBoard_move_generate(CBoard_T self) {
   for (int color = 0; color < 2; color++) {
     // Generate quiet pawn moves
     {
-      int add = (color == WHITE) ? +8 : -8;
+      Piece_T Piece = &Pieces[color][PAWN];
       bitboard = self->pieceBB[PAWN] & self->colorBB[color];
       while (bitboard) {
-        target = source = bit_lsb_index(bitboard);
-        target += add;
-        if (target > a1 && target < h8 && !bit_get(occupancy, target)) {
-          // promote
-          if ((color == WHITE && source >= a7 && source <= h7) ||
-              (color == BLACK && source >= a2 && source <= h2)) {
-            // add move to move list
-            printf("PROMOTION!!! ");
-          } else {
-            // one ahead
-            // add move to move list
-            printf("SINGLE PUSH!!! ");
+        // push
+        {
+          int add = (color == WHITE) ? +8 : -8;
+          target = source = bit_lsb_index(bitboard);
+          target += add;
+          if (target > a1 && target < h8 && !bit_get(occupancy, target)) {
+            // promote
+            if ((color == WHITE && source >= a7 && source <= h7) ||
+                (color == BLACK && source >= a2 && source <= h2)) {
+              // add move to move list
+              printf("PROMOTION!!! ");
+            } else {
+              // one ahead
+              // add move to move list
+              printf("SINGLE PUSH!!! ");
 
-            // two ahead
-            if (((color == BLACK && source >= a7 && source <= h7) ||
-                 (color == WHITE && source >= a2 && source <= h2)) &&
-                !bit_get(occupancy, target + add)) {
-              // add to move list;
-              printf("DOUBLE PUSH!!! ");
+              // two ahead
+              if (((color == BLACK && source >= a7 && source <= h7) ||
+                   (color == WHITE && source >= a2 && source <= h2)) &&
+                  !bit_get(occupancy, target + add)) {
+                // add to move list;
+                printf("DOUBLE PUSH!!! ");
+              }
+              printf("%s pawn: %s; target: %s\n",
+                     (color == WHITE) ? "white" : "black",
+                     square_to_coordinates[source],
+                     square_to_coordinates[target]);
             }
           }
-          printf("%s pawn: %s; target: %s\n",
-                 (color == WHITE) ? "white" : "black",
-                 square_to_coordinates[source], square_to_coordinates[target]);
+        }
+        // Capture
+        {
+          attack = Piece->attacks(source, occupancy) & self->colorBB[!color];
+          while (attack) {
+            target = bit_lsb_index(attack);
+            bit_pop(attack, target);
+            if ((color == WHITE && source >= a7 && source <= h7) ||
+                (color == BLACK && source >= a2 && source <= h2)) {
+              // add move to move list
+              printf("Capture PROMOTION!!! ");
+            } else {
+              printf("%s pawn: %s; Capture: %s\n",
+                     (color == WHITE) ? "white" : "black",
+                     square_to_coordinates[source],
+                     square_to_coordinates[target]);
+            }
+          }
+        }
+        // enpassant
+        {
+          if (self->enpassant != no_sq) {
+            attack =
+                Piece->attacks(source, occupancy) & (C64(1) << self->enpassant);
+            if (attack) {
+              target = bit_lsb_index(attack);
+              printf("%s enpassand %s\n", square_to_coordinates[source],
+                     square_to_coordinates[target]);
+            }
+          }
         }
         bit_pop(bitboard, source);
       }
 
-      /* for (int piece = 0; piece < 6; piece++) { */
-      /*   bitboard = self->pieceBB[piece] & self->colorBB[color]; */
-      /* } */
+      for (int piece = 1; piece < 6; piece++) {
+        bitboard = self->pieceBB[piece] & self->colorBB[color];
+        Piece_T Piece = &Pieces[color][piece];
+        while (bitboard) {
+          source = bit_lsb_index(bitboard);
+          bit_pop(bitboard, source);
+          attack = Piece->attacks(source, occupancy) &
+                   (C64(-1) ^ self->colorBB[color]);
+          printf("%s: %s; moves: %d\n", Piece->unicode,
+                 square_to_coordinates[source], bit_count(attack));
+        }
+      }
     }
   }
 }
