@@ -258,10 +258,19 @@ void CBoard_move_generate(CBoard_T self) {
         while (bitboard) {
           source = bit_lsb_index(bitboard);
           bit_pop(bitboard, source);
-          attack = Piece->attacks(source, occupancy) &
-                   (C64(-1) ^ self->colorBB[color]);
-          printf("%s: %s; moves: %d\n", Piece->unicode,
-                 square_to_coordinates[source], bit_count(attack));
+          attack = Piece->attacks(source, occupancy) & ~self->colorBB[color];
+          while (attack) {
+            target = bit_lsb_index(attack);
+            if (bit_get(self->colorBB[!color], target))
+              printf("%s from %s capture to %s\n", Piece->unicode,
+                     square_to_coordinates[source],
+                     square_to_coordinates[target]);
+            else
+              printf("%s from %s move %s\n", Piece->unicode,
+                     square_to_coordinates[source],
+                     square_to_coordinates[target]);
+            bit_pop(attack, target);
+          }
         }
       }
     }
