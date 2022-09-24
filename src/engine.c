@@ -266,6 +266,31 @@ void CBoard_move_generate(CBoard_T self) {
       }
     }
   }
+
+  // Castling
+  {
+    if (!CBoard_square_isAttack(self, e1, BLACK)) {
+      if (self->castle & WK && !bit_get(occupancy, f1) &&
+          !bit_get(occupancy, g1)) {
+        printf("CASTLE WHITE KING SIDE\n");
+      }
+      if (self->castle & WQ && !bit_get(occupancy, b1) &&
+          !bit_get(occupancy, c1) && !bit_get(occupancy, d1)) {
+        printf("CASTLE WHITE QUEEN SIDE\n");
+      }
+    }
+
+    if (!CBoard_square_isAttack(self, e1, WHITE)) {
+      if (self->castle & BK && !bit_get(occupancy, f8) &&
+          !bit_get(occupancy, g8)) {
+        printf("CASTLE BLACK KING SIDE\n");
+      }
+      if (self->castle & BQ && !bit_get(occupancy, b8) &&
+          !bit_get(occupancy, c8) && !bit_get(occupancy, d8)) {
+        printf("CASTLE BLACK QUEEN SIDE\n");
+      }
+    }
+  }
 }
 
 void CBoard_print(CBoard_T self) {
@@ -330,7 +355,9 @@ int main(void) {
   init_all();
 
   CBoard_T board;
-  board = CBoard_fromFEN(NULL, tricky_position);
+  board = CBoard_fromFEN(
+      NULL,
+      "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1 ");
 
   CBoard_print(board);
   CBoard_move_generate(board);
