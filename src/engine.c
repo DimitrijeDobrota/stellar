@@ -1,5 +1,6 @@
 #include <ctype.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "attack.h"
@@ -86,9 +87,9 @@ typedef U32 Move;
 #define Move_piece(move)     (((move)&C32(0x00f000)) >> 12)
 #define Move_promote(move)   (((move)&C32(0x0f0000)) >> 16)
 #define Move_capture(move)   (((move)&C32(0x100000)) >> 20)
-#define Move_double(move)    (((move)&C32(0x200000)))
-#define Move_enpassant(move) (((move)&C32(0x400000)))
-#define Move_castle(move)    (((move)&C32(0x800000)))
+#define Move_double(move)    (((move)&C32(0x200000)) >> 21)
+#define Move_enpassant(move) (((move)&C32(0x400000)) >> 22)
+#define Move_castle(move)    (((move)&C32(0x800000)) >> 23)
 
 void Move_print(Move move) {
   int promote = Move_promote(move);
@@ -233,14 +234,14 @@ int CBoard_square_isAttack(CBoard_T self, Square square, eColor side) {
     MoveList_add(moves, move);                                                 \
   }
 
-MoveList_T CBoard_move_generate(CBoard_T self) {
-  MoveList_T moves;
-  Move       move;
-  Square     src, tgt;
-  U64        occupancy = self->colorBB[WHITE] | self->colorBB[BLACK];
-  eColor     color = self->side;
+MoveList_T CBoard_move_generate(CBoard_T self, MoveList_T moves) {
+  Move   move;
+  Square src, tgt;
+  U64    occupancy = self->colorBB[WHITE] | self->colorBB[BLACK];
+  eColor color = self->side;
 
-  moves = MoveList_new();
+  if (!moves)
+    moves = MoveList_new();
 
   { // pawn moves
     Piece_T Piece = &Pieces[color][PAWN];
@@ -274,8 +275,9 @@ MoveList_T CBoard_move_generate(CBoard_T self) {
       }
 
       { // en passant
-        U64 attack = Piece->attacks(src, occupancy);
-        if (self->enpassant != no_sq && attack & (C64(1) << self->enpassant))
+        U64 attack =
+            Piece->attacks(src, occupancy) & (C64(1) << self->enpassant);
+        if (self->enpassant != no_sq && attack)
           MoveList_add(moves, Move_encode(src, bit_lsb_index(attack), index, 0,
                                           1, 0, 1, 0));
       }
@@ -298,27 +300,35 @@ MoveList_T CBoard_move_generate(CBoard_T self) {
 
   // Castling
   {
-    if (color == WHITE && !CBoard_square_isAttack(self, e1, BLACK)) {
+    if (color == WHITE) {
       int index = Piece_index(&Pieces[WHITE][KING]);
-      if (self->castle & WK && !bit_get(occupancy, f1) &&
-          !bit_get(occupancy, g1)) {
-        MoveList_add(moves, Move_encode(e1, g1, index, 0, 0, 0, 0, 1));
+      if (self->castle & WK) {
+        if (!bit_get(occupancy, f1) && !bit_get(occupancy, g1))
+          if (!CBoard_square_isAttack(self, e1, BLACK) &&
+              !CBoard_square_isAttack(self, f1, BLACK))
+            MoveList_add(moves, Move_encode(e1, g1, index, 0, 0, 0, 0, 1));
       }
-      if (self->castle & WQ && !bit_get(occupancy, b1) &&
-          !bit_get(occupancy, c1) && !bit_get(occupancy, d1)) {
-        MoveList_add(moves, Move_encode(e1, c1, index, 0, 0, 0, 0, 1));
+      if (self->castle & WQ) {
+        if (!bit_get(occupancy, d1) && !bit_get(occupancy, c1) &&
+            !bit_get(occupancy, b1))
+          if (!CBoard_square_isAttack(self, e1, BLACK) &&
+              !CBoard_square_isAttack(self, d1, BLACK))
+            MoveList_add(moves, Move_encode(e1, c1, index, 0, 0, 0, 0, 1));
       }
-    }
-
-    if (color == BLACK && !CBoard_square_isAttack(self, e8, WHITE)) {
+    } else {
       int index = Piece_index(&Pieces[BLACK][KING]);
-      if (self->castle & BK && !bit_get(occupancy, f8) &&
-          !bit_get(occupancy, g8)) {
-        MoveList_add(moves, Move_encode(e8, g8, index, 0, 0, 0, 0, 1));
+      if (self->castle & BK) {
+        if (!bit_get(occupancy, f8) && !bit_get(occupancy, g8))
+          if (!CBoard_square_isAttack(self, e8, WHITE) &&
+              !CBoard_square_isAttack(self, f8, WHITE))
+            MoveList_add(moves, Move_encode(e8, g8, index, 0, 0, 0, 0, 1));
       }
-      if (self->castle & BQ && !bit_get(occupancy, b8) &&
-          !bit_get(occupancy, c8) && !bit_get(occupancy, d8)) {
-        MoveList_add(moves, Move_encode(e8, c8, index, 0, 0, 0, 0, 1));
+      if (self->castle & BQ) {
+        if (!bit_get(occupancy, d8) && !bit_get(occupancy, c8) &&
+            !bit_get(occupancy, b8))
+          if (!CBoard_square_isAttack(self, e8, WHITE) &&
+              !CBoard_square_isAttack(self, d8, WHITE))
+            MoveList_add(moves, Move_encode(e8, c8, index, 0, 0, 0, 0, 1));
       }
     }
   }
@@ -342,6 +352,19 @@ void CBoard_piece_move(CBoard_T self, Piece_T Piece, Square source,
   CBoard_piece_set(self, Piece, target);
 }
 
+// clang-format off
+const int castling_rights[64] = {
+    13, 15, 15, 15, 12, 15, 15, 14,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    7,  15, 15, 15, 3,  15, 15, 11,
+};
+// clang-format on
+
 int CBoard_move_make(CBoard_T self, Move move, int flag) {
   if (flag == 0) {
 
@@ -349,16 +372,32 @@ int CBoard_move_make(CBoard_T self, Move move, int flag) {
     Square  target = Move_target(move);
     Piece_T Piece = Piece_fromInex(Move_piece(move));
 
-    if (!Move_castle(move))
-      CBoard_piece_move(self, Piece, source, target);
+    CBoard_piece_move(self, Piece, source, target);
 
     if (Move_capture(move)) {
       bit_pop(self->colorBB[!Piece->color], target);
-      for (ePiece i = 0; i < 6; i++)
+      ePiece i;
+      for (i = 0; i < 6; i++) {
         if (i != Piece->piece && bit_get(self->pieceBB[i], target)) {
           bit_pop(self->pieceBB[i], target);
           break;
         }
+      }
+      if (i == ROOK) {
+        if (self->side != WHITE) {
+          if (target == h1)
+            bit_pop(self->castle, 0);
+          else if (target == a1)
+            bit_pop(self->castle, 1);
+        } else {
+          if (self->side == WHITE) {
+            if (target == h8)
+              bit_pop(self->castle, 2);
+            else if (target == a8)
+              bit_pop(self->castle, 3);
+          }
+        }
+      }
     }
 
     if (Move_promote(move)) {
@@ -368,8 +407,10 @@ int CBoard_move_make(CBoard_T self, Move move, int flag) {
     }
 
     if (Move_enpassant(move)) {
-      target += (Piece->color == WHITE) ? -8 : +8;
-      CBoard_piece_pop(self, &Pieces[!Piece->color][PAWN], source);
+      if (Piece->color == WHITE)
+        CBoard_piece_pop(self, &Pieces[!Piece->color][PAWN], target - 8);
+      else
+        CBoard_piece_pop(self, &Pieces[!Piece->color][PAWN], target + 8);
     }
 
     if (Move_double(move))
@@ -380,64 +421,35 @@ int CBoard_move_make(CBoard_T self, Move move, int flag) {
     if (Move_castle(move)) {
       if (self->side == WHITE) {
         Piece_T Rook = &Pieces[WHITE][ROOK];
-        if (target == g1) {
-          if (CBoard_square_isAttack(self, f1, BLACK) ||
-              CBoard_square_isAttack(self, g1, BLACK))
-            return 0;
+        if (target == g1)
           CBoard_piece_move(self, Rook, h1, f1);
-          CBoard_piece_move(self, Piece, source, target);
-          bit_pop(self->castle, 0);
-          bit_pop(self->castle, 1);
-        } else {
-          if (CBoard_square_isAttack(self, c1, BLACK) ||
-              CBoard_square_isAttack(self, d1, BLACK))
-            return 0;
+        else
           CBoard_piece_move(self, Rook, a1, d1);
-          CBoard_piece_move(self, Piece, source, target);
-          bit_pop(self->castle, 0);
-          bit_pop(self->castle, 1);
-        }
+        bit_pop(self->castle, 0);
+        bit_pop(self->castle, 1);
       } else {
         Piece_T Rook = &Pieces[BLACK][ROOK];
-        if (target == g8) {
-          if (CBoard_square_isAttack(self, f8, WHITE) ||
-              CBoard_square_isAttack(self, g8, WHITE))
-            return 0;
+        if (target == g8)
           CBoard_piece_move(self, Rook, h8, f8);
-          CBoard_piece_move(self, Piece, source, target);
-          bit_pop(self->castle, 2);
-          bit_pop(self->castle, 3);
-        } else {
-          if (CBoard_square_isAttack(self, c8, WHITE) ||
-              CBoard_square_isAttack(self, d8, WHITE))
-            return 0;
+        else
           CBoard_piece_move(self, Rook, a8, d8);
-          CBoard_piece_move(self, Piece, source, target);
-          bit_pop(self->castle, 2);
-          bit_pop(self->castle, 3);
-        }
-      }
-    } else {
-      int add = (self->side == WHITE) ? 0 : 2;
-      switch (Piece->piece) {
-      case ROOK: bit_pop(self->castle, (source == h1 ? 0 : 1) + add); break;
-      case KING:
-        bit_pop(self->castle, 0 + add);
-        bit_pop(self->castle, 1 + add);
-        break;
-      default: break;
+        bit_pop(self->castle, 2);
+        bit_pop(self->castle, 3);
       }
     }
+
+    self->castle &= castling_rights[source];
+    self->castle &= castling_rights[target];
 
     if (!CBoard_square_isAttack(
             self,
             bit_lsb_index(self->pieceBB[KING] & self->colorBB[self->side]),
             !self->side)) {
       self->side = !self->side;
+
       return 1;
     } else
       return 0;
-
   } else {
     if (Move_capture(move)) {
       CBoard_move_make(self, move, 0);
@@ -507,30 +519,68 @@ void init_all() {
   init_sliders_attacks();
 }
 
+long              nodes = 0;
+struct MoveList_T moveList[10];
+
+void CBoard_perft_driver(CBoard_T self, int depth) {
+  if (depth == 0) {
+    nodes++;
+    return;
+  }
+
+  MoveList_T moves;
+
+  moves = CBoard_move_generate(self, &moveList[depth]);
+
+  for (int i = 0; i < moves->count; i++) {
+    struct CBoard_T backup = *self;
+    if (!CBoard_move_make(self, moves->moves[i], 0)) {
+      *self = backup;
+      continue;
+    }
+
+    CBoard_perft_driver(self, depth - 1);
+    *self = backup;
+  }
+  moveList[depth].count = 0;
+}
+
+void CBoard_perft_test(CBoard_T self, int depth) {
+  printf("\n     Performance test\n\n");
+
+  MoveList_T moves;
+  moves = CBoard_move_generate(self, &moveList[depth]);
+  long start = get_time_ms();
+
+  for (int i = 0; i < moves->count; i++) {
+    struct CBoard_T backup = *self;
+    if (!CBoard_move_make(self, moves->moves[i], 0)) {
+      *self = backup;
+      continue;
+    }
+    long cummulative_nodes = nodes;
+    CBoard_perft_driver(self, depth - 1);
+    long old_nodes = nodes - cummulative_nodes;
+    *self = backup;
+    printf("%s%s: %ld\n", square_to_coordinates[Move_source(moves->moves[i])],
+           square_to_coordinates[Move_target(moves->moves[i])], old_nodes);
+  }
+
+  moveList[depth].count = 0;
+
+  // print results
+  printf("\nNodes searched: %ld\n\n", nodes);
+  return;
+  printf("\n    Depth: %d\n", depth);
+  printf("    Nodes: %ld\n", nodes);
+  printf("     Time: %ld\n\n", get_time_ms() - start);
+}
+
 int main(void) {
   init_all();
 
-  CBoard_T   board;
-  MoveList_T moves;
-
-  board = CBoard_fromFEN(NULL, "r3k2r/pP1pqpb1/bn2pnp1/2pPN3/1p2P3/"
-                               "2N2Q1p/PPPBBPpP/R3K2R w KQkq c6 0 1 ");
-  moves = CBoard_move_generate(board);
-
-  int start = get_time_ms();
-  for (int i = 0; i < moves->count; i++) {
-    struct CBoard_T backup = *board;
-    if (!CBoard_move_make(board, moves->moves[i], 0)) {
-      *board = backup;
-      continue;
-    }
-    CBoard_print(board);
-
-    *board = backup;
-    /* CBoard_print(board); */
-    /* getc(stdin); */
-  }
-  printf("Executed in: %dms\n", get_time_ms() - start);
+  CBoard_T board = CBoard_fromFEN(NULL, tricky_position);
+  CBoard_perft_test(board, 4);
 
   return 0;
 }
