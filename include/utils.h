@@ -68,4 +68,6 @@ enum enumPiece { PAWN = 0, KNIGHT, BISHOP, ROOK, QUEEN, KING };
 typedef enum enumColor eColor;
 typedef enum enumPiece ePiece;
 
+int get_time_ms(void);
+
 #endif

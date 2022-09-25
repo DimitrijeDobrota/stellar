@@ -354,7 +354,7 @@ int CBoard_move_make(CBoard_T self, Move move, int flag) {
 
     if (Move_capture(move)) {
       bit_pop(self->colorBB[!Piece->color], target);
-      for (int i = 0; i < 6; i++)
+      for (ePiece i = 0; i < 6; i++)
         if (i != Piece->piece && bit_get(self->pieceBB[i], target)) {
           bit_pop(self->pieceBB[i], target);
           break;
@@ -516,6 +516,8 @@ int main(void) {
   board = CBoard_fromFEN(NULL, "r3k2r/pP1pqpb1/bn2pnp1/2pPN3/1p2P3/"
                                "2N2Q1p/PPPBBPpP/R3K2R w KQkq c6 0 1 ");
   moves = CBoard_move_generate(board);
+
+  int start = get_time_ms();
   for (int i = 0; i < moves->count; i++) {
     struct CBoard_T backup = *board;
     if (!CBoard_move_make(board, moves->moves[i], 0)) {
@@ -523,12 +525,12 @@ int main(void) {
       continue;
     }
     CBoard_print(board);
-    getc(stdin);
 
     *board = backup;
     /* CBoard_print(board); */
     /* getc(stdin); */
   }
+  printf("Executed in: %dms\n", get_time_ms() - start);
 
   return 0;
 }

@@ -1,4 +1,9 @@
 #include <stdio.h>
+#ifdef WIN64
+#include <widnows.h>
+#else
+#include <sys/time.h>
+#endif
 
 #include "utils.h"
 
@@ -65,4 +70,14 @@ void bitboard_print(U64 bitboard) {
 
   printf("\n    A B C D E F G H\n\n");
   printf("    Bitboard: %llud\n\n", bitboard);
+}
+
+int get_time_ms(void) {
+#ifdef WIN64
+  return GetTickCount();
+#else
+  struct timeval time;
+  gettimeofday(&time, NULL);
+  return time.tv_sec * 1000 + time.tv_usec / 1000;
+#endif
 }
