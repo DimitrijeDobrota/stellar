@@ -70,4 +70,6 @@ typedef enum enumPiece ePiece;
 
 int get_time_ms(void);
 
+typedef U64 (*attack_f)(Square square, U64 occupancy);
+
 #endif

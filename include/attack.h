@@ -3,8 +3,6 @@
 
 #include "utils.h"
 
-typedef U64 (*attack_f)(Square square, U64 occupancy);
-
 void init_leapers_attacks(void);
 void init_sliders_attacks(void);
 

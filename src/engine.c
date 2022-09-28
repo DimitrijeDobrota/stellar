@@ -92,7 +92,6 @@ void MoveList_free(MoveList_T *p) { FREE(*p); }
 MoveList_T generate_moves(CBoard_T cboard, MoveList_T moves) {
   Move   move;
   Square src, tgt;
-  U64 occupancy = CBoard_colorBB(cboard, WHITE) | CBoard_colorBB(cboard, BLACK);
   eColor color = CBoard_side(cboard);
 
   if (!moves)
@@ -106,20 +105,21 @@ MoveList_T generate_moves(CBoard_T cboard, MoveList_T moves) {
       { // quiet
         int add = (color == WHITE) ? +8 : -8;
         tgt = src + add;
-        if (tgt > a1 && tgt < h8 && !bit_get(occupancy, tgt)) {
+        if (tgt > a1 && tgt < h8 && !CBoard_square_isOccupied(cboard, tgt)) {
           if (pawn_canPromote(color, src)) {
             pawn_promote(src, tgt, index, 0);
           } else {
             MoveList_add(moves, Move_encode(src, tgt, index, 0, 0, 0, 0, 0));
 
             // two ahead
-            if (pawn_onStart(color, src) && !bit_get(occupancy, tgt += add))
+            if (pawn_onStart(color, src) &&
+                !CBoard_square_isOccupied(cboard, tgt += add))
               MoveList_add(moves, Move_encode(src, tgt, index, 0, 0, 1, 0, 0));
           }
         }
       }
       { // capture
-        U64 attack = Piece_attacks(Piece)(src, occupancy) &
+        U64 attack = CBoard_piece_attacks(cboard, Piece, src) &
                      CBoard_colorBB(cboard, !color);
         bitboard_for_each_bit(tgt, attack) {
           if (pawn_canPromote(color, src)) {
@@ -131,11 +131,11 @@ MoveList_T generate_moves(CBoard_T cboard, MoveList_T moves) {
       }
 
       { // en passant
-        U64 attack = Piece_attacks(Piece)(src, occupancy) &
-                     (C64(1) << CBoard_enpassant(cboard));
-        if (CBoard_enpassant(cboard) != no_sq && attack)
-          MoveList_add(moves, Move_encode(src, bit_lsb_index(attack), index, 0,
-                                          1, 0, 1, 0));
+        if (CBoard_enpassant(cboard) != no_sq &&
+            CBoard_piece_attacks(cboard, Piece, src) &
+                (C64(1) << CBoard_enpassant(cboard)))
+          MoveList_add(moves, Move_encode(src, CBoard_enpassant(cboard), index,
+                                          0, 1, 0, 1, 0));
       }
     }
   }
@@ -145,8 +145,8 @@ MoveList_T generate_moves(CBoard_T cboard, MoveList_T moves) {
     Piece_T Piece = Piece_get(piece, color);
     U64     bitboard = CBoard_getPieceSet(cboard, Piece);
     bitboard_for_each_bit(src, bitboard) {
-      U64 attack =
-          Piece_attacks(Piece)(src, occupancy) & ~CBoard_colorBB(cboard, color);
+      U64 attack = CBoard_piece_attacks(cboard, Piece, src) &
+                   ~CBoard_colorBB(cboard, color);
       bitboard_for_each_bit(tgt, attack) {
         int take = bit_get(CBoard_colorBB(cboard, !color), tgt);
         MoveList_add(
@@ -160,14 +160,16 @@ MoveList_T generate_moves(CBoard_T cboard, MoveList_T moves) {
     if (color == WHITE) {
       int index = Piece_index(Piece_get(KING, WHITE));
       if (CBoard_castle(cboard) & WK) {
-        if (!bit_get(occupancy, f1) && !bit_get(occupancy, g1))
+        if (!CBoard_square_isOccupied(cboard, f1) &&
+            !CBoard_square_isOccupied(cboard, g1))
           if (!CBoard_square_isAttack(cboard, e1, BLACK) &&
               !CBoard_square_isAttack(cboard, f1, BLACK))
             MoveList_add(moves, Move_encode(e1, g1, index, 0, 0, 0, 0, 1));
       }
       if (CBoard_castle(cboard) & WQ) {
-        if (!bit_get(occupancy, d1) && !bit_get(occupancy, c1) &&
-            !bit_get(occupancy, b1))
+        if (!CBoard_square_isOccupied(cboard, d1) &&
+            !CBoard_square_isOccupied(cboard, c1) &&
+            !CBoard_square_isOccupied(cboard, b1))
           if (!CBoard_square_isAttack(cboard, e1, BLACK) &&
               !CBoard_square_isAttack(cboard, d1, BLACK))
             MoveList_add(moves, Move_encode(e1, c1, index, 0, 0, 0, 0, 1));
@@ -175,14 +177,16 @@ MoveList_T generate_moves(CBoard_T cboard, MoveList_T moves) {
     } else {
       int index = Piece_index(Piece_get(KING, BLACK));
       if (CBoard_castle(cboard) & BK) {
-        if (!bit_get(occupancy, f8) && !bit_get(occupancy, g8))
+        if (!CBoard_square_isOccupied(cboard, f8) &&
+            !CBoard_square_isOccupied(cboard, g8))
           if (!CBoard_square_isAttack(cboard, e8, WHITE) &&
               !CBoard_square_isAttack(cboard, f8, WHITE))
             MoveList_add(moves, Move_encode(e8, g8, index, 0, 0, 0, 0, 1));
       }
       if (CBoard_castle(cboard) & BQ) {
-        if (!bit_get(occupancy, d8) && !bit_get(occupancy, c8) &&
-            !bit_get(occupancy, b8))
+        if (!CBoard_square_isOccupied(cboard, d8) &&
+            !CBoard_square_isOccupied(cboard, c8) &&
+            !CBoard_square_isOccupied(cboard, b8))
           if (!CBoard_square_isAttack(cboard, e8, WHITE) &&
               !CBoard_square_isAttack(cboard, d8, WHITE))
             MoveList_add(moves, Move_encode(e8, c8, index, 0, 0, 0, 0, 1));
@@ -206,84 +210,58 @@ const int castling_rights[64] = {
 };
 // clang-format on
 
-int make_move(CBoard_T self, Move move, int flag) {
+int make_move(CBoard_T cboard, Move move, int flag) {
   if (flag == 0) {
 
     Square  source = Move_source(move);
     Square  target = Move_target(move);
     Piece_T Piece = Piece_fromIndex(Move_piece(move));
+    eColor  color = CBoard_side(cboard);
 
-    CBoard_piece_move(self, Piece, source, target);
-
-    if (Move_capture(move)) {
-      CBoard_colorBB_pop(self, !Piece_color(Piece), target);
-      ePiece i;
-      for (i = 0; i < 6; i++) {
-        if (i != Piece_piece(Piece) && CBoard_pieceBB_get(self, i, target)) {
-          CBoard_pieceBB_pop(self, i, target);
-          break;
-        }
-      }
-    }
+    if (!Move_capture(move))
+      CBoard_piece_move(cboard, Piece, source, target);
+    else
+      CBoard_piece_capture(cboard, Piece, source, target);
 
     if (Move_promote(move)) {
       Piece_T Promote = Piece_fromIndex(Move_promote(move));
-      CBoard_pieceBB_pop(self, Piece_piece(Piece), target);
-      CBoard_pieceBB_set(self, Piece_piece(Promote), target);
+      CBoard_piece_pop(cboard, Piece, target);
+      CBoard_piece_set(cboard, Promote, target);
     }
 
-    if (Move_enpassant(move)) {
-      if (Piece_color(Piece) == WHITE)
-        CBoard_piece_pop(self, Piece_get(PAWN, !Piece_color(Piece)),
-                         target - 8);
-      else
-        CBoard_piece_pop(self, Piece_get(PAWN, !Piece_color(Piece)),
-                         target + 8);
-    }
+    {
+      int ntarget = target + (color == WHITE ? -8 : +8);
+      if (Move_enpassant(move))
+        CBoard_piece_pop(cboard, Piece_get(PAWN, !color), ntarget);
 
-    if (Move_double(move))
-      CBoard_enpassant_set(self,
-                           target + (Piece_color(Piece) == WHITE ? -8 : +8));
-    else
-      CBoard_enpassant_set(self, no_sq);
+      CBoard_enpassant_set(cboard, Move_double(move) ? ntarget : no_sq);
+    }
 
     if (Move_castle(move)) {
-      if (CBoard_side(self) == WHITE) {
-        Piece_T Rook = Piece_get(ROOK, WHITE);
-        if (target == g1)
-          CBoard_piece_move(self, Rook, h1, f1);
-        else
-          CBoard_piece_move(self, Rook, a1, d1);
-        CBoard_castle_pop(self, WK);
-        CBoard_castle_pop(self, WQ);
-      } else {
-        Piece_T Rook = Piece_get(ROOK, BLACK);
-        if (target == g8)
-          CBoard_piece_move(self, Rook, h8, f8);
-        else
-          CBoard_piece_move(self, Rook, a8, d8);
-        CBoard_castle_pop(self, BK);
-        CBoard_castle_pop(self, BQ);
+      Piece_T Rook = Piece_get(ROOK, CBoard_side(cboard));
+      switch (target) {
+      case g1: CBoard_piece_move(cboard, Rook, h1, f1); break;
+      case c1: CBoard_piece_move(cboard, Rook, a1, d1); break;
+      case g8: CBoard_piece_move(cboard, Rook, h8, f8); break;
+      case c8: CBoard_piece_move(cboard, Rook, a8, d8); break;
+      default: break;
       }
     }
 
-    CBoard_castle_and(self, castling_rights[source]);
-    CBoard_castle_and(self, castling_rights[target]);
+    CBoard_castle_and(cboard, castling_rights[source]);
+    CBoard_castle_and(cboard, castling_rights[target]);
 
-    if (!CBoard_isCheck(self)) {
-      CBoard_side_switch(self);
+    if (!CBoard_isCheck(cboard)) {
+      CBoard_side_switch(cboard);
       return 1;
     } else
       return 0;
   } else {
-    if (Move_capture(move)) {
-      make_move(self, move, 0);
-      return 1;
-    } else
+    if (Move_capture(move))
+      return make_move(cboard, move, 0);
+    else
       return 0;
   }
-
-  return 0;
 }
 
 long              nodes = 0;
@@ -295,10 +273,8 @@ void perft_driver(CBoard_T self, int depth) {
     return;
   }
 
+  MoveList_T moves = generate_moves(self, &moveList[depth]);
   CBoard_T   backup = CBoard_new();
-  MoveList_T moves;
-
-  moves = generate_moves(self, &moveList[depth]);
 
   for (int i = 0; i < moves->count; i++, CBoard_copy(backup, self)) {
     CBoard_copy(self, backup);
@@ -311,14 +287,11 @@ void perft_driver(CBoard_T self, int depth) {
 }
 
 void perft_test(CBoard_T self, int depth) {
-  CBoard_T backup = CBoard_new();
+  MoveList_T moves = generate_moves(self, &moveList[depth]);
+  CBoard_T   backup = CBoard_new();
+  long       start = get_time_ms();
 
   printf("\n     Performance test\n\n");
-
-  MoveList_T moves;
-  moves = generate_moves(self, &moveList[depth]);
-  long start = get_time_ms();
-
   for (int i = 0; i < moves->count; i++, CBoard_copy(backup, self)) {
     CBoard_copy(self, backup);
     if (!make_move(self, moves->moves[i], 0))
@@ -330,9 +303,6 @@ void perft_test(CBoard_T self, int depth) {
            square_to_coordinates[Move_target(moves->moves[i])], old_nodes);
   }
 
-  moveList[depth].count = 0;
-
-  // print results
   printf("\nNodes searched: %ld\n\n", nodes);
   return;
   printf("\n    Depth: %d\n", depth);
@@ -349,7 +319,7 @@ int main(void) {
   init_all();
 
   CBoard_T board = CBoard_fromFEN(NULL, tricky_position);
-  perft_test(board, 4);
+  perft_test(board, 5);
 
   return 0;
 }
