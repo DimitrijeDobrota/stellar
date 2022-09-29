@@ -8,11 +8,11 @@ typedef enum enumCastle eCastle;
 
 typedef struct Piece_T *Piece_T;
 
-char   Piece_asci(Piece_T pt);
-char   Piece_code(Piece_T pt);
-char  *Piece_unicode(Piece_T pt);
-eColor Piece_color(Piece_T pt);
-ePiece Piece_piece(Piece_T pt);
+char   Piece_asci(Piece_T self);
+char   Piece_code(Piece_T self);
+char  *Piece_unicode(Piece_T self);
+eColor Piece_color(Piece_T self);
+ePiece Piece_piece(Piece_T self);
 int    Piece_index(Piece_T self);
 
 Piece_T Piece_fromCode(char code);

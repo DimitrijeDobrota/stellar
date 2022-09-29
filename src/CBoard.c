@@ -24,30 +24,30 @@ struct Piece_T {
 // clang-format off
 struct Piece_T Pieces[2][6] = {
     {
-     {.color = WHITE, .code = 'P', .asci = 'P', .unicode = "♙ ",   .piece = PAWN,  .attacks = get_wpawn_attacks},
-     {.color = WHITE, .code = 'N', .asci = 'N', .unicode = "♘ ", .piece = KNIGHT, .attacks = get_knight_attacks},
-     {.color = WHITE, .code = 'B', .asci = 'B', .unicode = "♗ ", .piece = BISHOP, .attacks = get_bishop_attacks},
-     {.color = WHITE, .code = 'R', .asci = 'R', .unicode = "♖ ",   .piece = ROOK,   .attacks = get_rook_attacks},
-     {.color = WHITE, .code = 'Q', .asci = 'Q', .unicode = "♕ ",  .piece = QUEEN,  .attacks = get_queen_attacks},
-     {.color = WHITE, .code = 'K', .asci = 'K', .unicode = "♔ ",   .piece = KING,   .attacks = get_king_attacks},
+  [PAWN] = {.color = WHITE, .code = 'P', .asci = 'P', .unicode = "♙ ",   .piece = PAWN,  .attacks = get_wpawn_attacks},
+[KNIGHT] = {.color = WHITE, .code = 'N', .asci = 'N', .unicode = "♘ ", .piece = KNIGHT, .attacks = get_knight_attacks},
+[BISHOP] = {.color = WHITE, .code = 'B', .asci = 'B', .unicode = "♗ ", .piece = BISHOP, .attacks = get_bishop_attacks},
+  [ROOK] = {.color = WHITE, .code = 'R', .asci = 'R', .unicode = "♖ ",   .piece = ROOK,   .attacks = get_rook_attacks},
+ [QUEEN] = {.color = WHITE, .code = 'Q', .asci = 'Q', .unicode = "♕ ",  .piece = QUEEN,  .attacks = get_queen_attacks},
+  [KING] = {.color = WHITE, .code = 'K', .asci = 'K', .unicode = "♔ ",   .piece = KING,   .attacks = get_king_attacks},
     },
     {
-     {.color = BLACK, .code = 'p', .asci = 'p', .unicode = "♟ ",   .piece = PAWN,  .attacks = get_bpawn_attacks},
-     {.color = BLACK, .code = 'n', .asci = 'n', .unicode = "♞ ", .piece = KNIGHT, .attacks = get_knight_attacks},
-     {.color = BLACK, .code = 'b', .asci = 'b', .unicode = "♝ ", .piece = BISHOP, .attacks = get_bishop_attacks},
-     {.color = BLACK, .code = 'r', .asci = 'r', .unicode = "♜ ",   .piece = ROOK,   .attacks = get_rook_attacks},
-     {.color = BLACK, .code = 'q', .asci = 'q', .unicode = "♛ ",  .piece = QUEEN,  .attacks = get_queen_attacks},
-     {.color = BLACK, .code = 'k', .asci = 'k', .unicode = "♚ ",   .piece = KING,   .attacks = get_king_attacks},
+  [PAWN] = {.color = BLACK, .code = 'p', .asci = 'p', .unicode = "♟ ",   .piece = PAWN,   .attacks = get_bpawn_attacks},
+[KNIGHT] = {.color = BLACK, .code = 'n', .asci = 'n', .unicode = "♞ ", .piece = KNIGHT,  .attacks = get_knight_attacks},
+[BISHOP] = {.color = BLACK, .code = 'b', .asci = 'b', .unicode = "♝ ", .piece = BISHOP,  .attacks = get_bishop_attacks},
+  [ROOK] = {.color = BLACK, .code = 'r', .asci = 'r', .unicode = "♜ ",   .piece = ROOK,    .attacks = get_rook_attacks},
+ [QUEEN] = {.color = BLACK, .code = 'q', .asci = 'q', .unicode = "♛ ",  .piece = QUEEN,   .attacks = get_queen_attacks},
+  [KING] = {.color = BLACK, .code = 'k', .asci = 'k', .unicode = "♚ ",   .piece = KING,    .attacks = get_king_attacks},
     },
 };
 // clang-format on
 
-attack_f Piece_attacks(Piece_T pt) { return pt->attacks; }
-char     Piece_asci(Piece_T pt) { return pt->asci; }
-char     Piece_code(Piece_T pt) { return pt->code; }
-char    *Piece_unicode(Piece_T pt) { return pt->unicode; }
-eColor   Piece_color(Piece_T pt) { return pt->color; }
-ePiece   Piece_piece(Piece_T pt) { return pt->piece; }
+attack_f Piece_attacks(Piece_T self) { return self->attacks; }
+char     Piece_asci(Piece_T self) { return self->asci; }
+char     Piece_code(Piece_T self) { return self->code; }
+char    *Piece_unicode(Piece_T self) { return self->unicode; }
+eColor   Piece_color(Piece_T self) { return self->color; }
+ePiece   Piece_piece(Piece_T self) { return self->piece; }
 int      Piece_index(Piece_T self) { return self->color * 8 + self->piece; }
 
 Piece_T Piece_fromCode(char code) {
@@ -215,7 +215,7 @@ CBoard_T CBoard_fromFEN(CBoard_T board, char *fen) {
   if (!board)
     NEW(board);
 
-  memset(board, C64(0), sizeof(*board));
+  memset(board, 0, sizeof(*board));
 
   board->side = -1;
   board->enpassant = no_sq;

@@ -162,35 +162,35 @@ MoveList_T generate_moves(CBoard_T cboard, MoveList_T moves) {
       int index = Piece_index(Piece_get(KING, WHITE));
       if (CBoard_castle(cboard) & WK) {
         if (!CBoard_square_isOccupied(cboard, f1) &&
-            !CBoard_square_isOccupied(cboard, g1))
-          if (!CBoard_square_isAttack(cboard, e1, BLACK) &&
-              !CBoard_square_isAttack(cboard, f1, BLACK))
-            MoveList_add(moves, Move_encode(e1, g1, index, 0, 0, 0, 0, 1));
+            !CBoard_square_isOccupied(cboard, g1) &&
+            !CBoard_square_isAttack(cboard, e1, BLACK) &&
+            !CBoard_square_isAttack(cboard, f1, BLACK))
+          MoveList_add(moves, Move_encode(e1, g1, index, 0, 0, 0, 0, 1));
       }
       if (CBoard_castle(cboard) & WQ) {
         if (!CBoard_square_isOccupied(cboard, d1) &&
             !CBoard_square_isOccupied(cboard, c1) &&
-            !CBoard_square_isOccupied(cboard, b1))
-          if (!CBoard_square_isAttack(cboard, e1, BLACK) &&
-              !CBoard_square_isAttack(cboard, d1, BLACK))
-            MoveList_add(moves, Move_encode(e1, c1, index, 0, 0, 0, 0, 1));
+            !CBoard_square_isOccupied(cboard, b1) &&
+            !CBoard_square_isAttack(cboard, e1, BLACK) &&
+            !CBoard_square_isAttack(cboard, d1, BLACK))
+          MoveList_add(moves, Move_encode(e1, c1, index, 0, 0, 0, 0, 1));
       }
     } else {
       int index = Piece_index(Piece_get(KING, BLACK));
       if (CBoard_castle(cboard) & BK) {
         if (!CBoard_square_isOccupied(cboard, f8) &&
-            !CBoard_square_isOccupied(cboard, g8))
-          if (!CBoard_square_isAttack(cboard, e8, WHITE) &&
-              !CBoard_square_isAttack(cboard, f8, WHITE))
-            MoveList_add(moves, Move_encode(e8, g8, index, 0, 0, 0, 0, 1));
+            !CBoard_square_isOccupied(cboard, g8) &&
+            !CBoard_square_isAttack(cboard, e8, WHITE) &&
+            !CBoard_square_isAttack(cboard, f8, WHITE))
+          MoveList_add(moves, Move_encode(e8, g8, index, 0, 0, 0, 0, 1));
       }
       if (CBoard_castle(cboard) & BQ) {
         if (!CBoard_square_isOccupied(cboard, d8) &&
             !CBoard_square_isOccupied(cboard, c8) &&
-            !CBoard_square_isOccupied(cboard, b8))
-          if (!CBoard_square_isAttack(cboard, e8, WHITE) &&
-              !CBoard_square_isAttack(cboard, d8, WHITE))
-            MoveList_add(moves, Move_encode(e8, c8, index, 0, 0, 0, 0, 1));
+            !CBoard_square_isOccupied(cboard, b8) &&
+            !CBoard_square_isAttack(cboard, e8, WHITE) &&
+            !CBoard_square_isAttack(cboard, d8, WHITE))
+          MoveList_add(moves, Move_encode(e8, c8, index, 0, 0, 0, 0, 1));
       }
     }
   }
@@ -318,34 +318,170 @@ void init_all() {
 
 /* UCI */
 
-typedef struct Position_T *Position_T;
-struct Position_T {
+struct Score_T {
+  int value;
+  int score[64];
+};
+
+// clang-format off
+struct Score_T Scores[] = {
+[PAWN] = { 
+.value = 100,
+.score = {
+             0,   0,   0,   0,   0,   0,   0,   0,
+             0,   0,   0, -10, -10,   0,   0,   0,
+             0,   0,   0,   5,   5,   0,   0,   0,
+             5,   5,  10,  20,  20,   5,   5,   5,
+            10,  10,  10,  20,  20,  10,  10,  10,
+            20,  20,  20,  30,  30,  30,  20,  20,
+            30,  30,  30,  40,  40,  30,  30,  30,
+            90,  90,  90,  90,  90,  90,  90,  90,
+         }},
+[KNIGHT] = {
+.value = 300,
+.score = {
+            -5,  -10 , 0,   0,   0,   0, -10,  -5,
+            -5,   0,   0,   0,   0,   0,   0,  -5,
+            -5,   5,  20,  10,  10,  20,   5,  -5,
+            -5,  10,  20,  30,  30,  20,  10,  -5,
+            -5,  10,  20,  30,  30,  20,  10,  -5,
+            -5,   5,  20,  20,  20,  20,   5,  -5,
+            -5,   0,   0,  10,  10,   0,   0,  -5,
+            -5,   0,   0,   0,   0,   0,   0,  -5,
+         }},
+[BISHOP] = {
+.value = 350,
+.score = {
+             0,   0, -10,   0,   0, -10,   0,   0,
+             0,  30,   0,   0,   0,   0,  30,   0,
+             0,  10,   0,   0,   0,   0,  10,   0,
+             0,   0,  10,  20,  20,  10,   0,   0,
+             0,   0,  10,  20,  20,  10,   0,   0,
+             0,   0,   0,  10,  10,   0,   0,   0,
+             0,   0,   0,   0,   0,   0,   0,   0,
+             0,   0,   0,   0,   0,   0,   0,   0,
+         }},
+[ROOK] = {
+.value = 500,
+.score = {
+             0,   0,   0,  20,  20,   0,   0,   0,
+             0,   0,  10,  20,  20,  10,   0,   0,
+             0,   0,  10,  20,  20,  10,   0,   0,
+             0,   0,  10,  20,  20,  10,   0,   0,
+             0,   0,  10,  20,  20,  10,   0,   0,
+             0,   0,  10,  20,  20,  10,   0,   0,
+            50,  50,  50,  50,  50,  50,  50,  50,
+            50,  50,  50,  50,  50,  50,  50,  50,
+         }},
+[QUEEN] = {
+.value = 1000,
+.score = {
+             0,   0,   0,   0,   0,   0,   0,   0,
+             0,   0,   0,   0,   0,   0,   0,   0,
+             0,   0,   0,   0,   0,   0,   0,   0,
+             0,   0,   0,   0,   0,   0,   0,   0,
+             0,   0,   0,   0,   0,   0,   0,   0,
+             0,   0,   0,   0,   0,   0,   0,   0,
+             0,   0,   0,   0,   0,   0,   0,   0,
+             0,   0,   0,   0,   0,   0,   0,   0,
+         }},
+[KING] = {
+.value = 10000,
+.score = {
+             0,   0,   5,   0, -15,   0,  10,   0,
+             0,   5,   5,  -5,  -5,   0,   5,   0,
+             0,   0,   5,  10,  10,   5,   0,   0,
+             0,   5,  10,  20,  20,  10,   5,   0,
+             0,   5,  10,  20,  20,  10,   5,   0,
+             0,   5,   5,  10,  10,   5,   5,   0,
+             0,   0,   5,   5,   5,   5,   0,   0,
+             0,   0,   0,   0,   0,   0,   0,   0,
+         }},
+};
+
+const int mirror_score[128] =
+{
+	a8, b8, c8, d8, e8, f8, g8, h8,
+	a7, b7, c7, d7, e7, f7, g7, h7,
+	a6, b6, c6, d6, e6, f6, g6, h6,
+	a5, b5, c5, d5, e5, f5, g5, h5,
+	a4, b4, c4, d4, e4, f4, g4, h4,
+	a3, b3, c3, d3, e3, f3, g3, h3,
+	a2, b2, c2, d2, e2, f2, g2, h2,
+	a1, b1, c1, d1, e1, f1, g1, h1, no_sq,
+};
+// clang-format on
+
+int Score_value(ePiece piece) { return Scores[piece].value; }
+
+int Score_score(ePiece piece, eColor color, Square square) {
+  if (color == BLACK)
+    square = mirror_score[square];
+  return Scores[piece].score[square];
+}
+
+int evaluate(CBoard_T board) {
+  Square square;
+  eColor side = CBoard_side(board);
+  U64    occupancy = CBoard_colorBB(board, side);
+
+  int score = 0;
+  for (int i = 0; i < 6; i++) {
+    U64 bitboard = CBoard_pieceBB(board, i);
+    bitboard_for_each_bit(square, bitboard) {
+      if (bit_get(occupancy, square)) {
+        score += Score_value(i);
+        score += Score_score(i, side, square);
+      } else {
+        score -= Score_value(i);
+        score -= Score_score(i, !side, square);
+      }
+    }
+  }
+
+  return side == WHITE ? score : -score;
+}
+
+void search_position(CBoard_T cboard, int depth) {
+  (void)cboard;
+  (void)depth;
+  printf("bestmove d7d5\n");
+}
+
+void print_info(void) {
+  printf("id name chessTrainer\n");
+  printf("id author Dimitrije Dobrota\n");
+  printf("uciok\n");
+}
+
+typedef struct Instruction_T *Instruction_T;
+struct Instruction_T {
   char *command;
   char *token;
   char *crnt;
 };
 
-char *Position_token_next(Position_T self);
+char *Instruction_token_next(Instruction_T self);
 
-Position_T Position_new(char *command) {
-  Position_T p;
+Instruction_T Instruction_new(char *command) {
+  Instruction_T p;
   NEW0(p);
   p->command = ALLOC(strlen(command) + 1);
   p->token = ALLOC(strlen(command) + 1);
   strcpy(p->command, command);
   p->crnt = command;
-  Position_token_next(p);
+  Instruction_token_next(p);
   return p;
 }
 
-void Position_free(Position_T *p) {
+void Instruction_free(Instruction_T *p) {
   FREE((*p)->command);
   FREE((*p)->token);
   FREE(*p);
 }
 
-char *Position_token(Position_T self) { return self->token; }
-char *Position_token_n(Position_T self, int n) {
+char *Instruction_token(Instruction_T self) { return self->token; }
+char *Instruction_token_n(Instruction_T self, int n) {
   while (isspace(*self->crnt) && *self->crnt != '\0')
     self->crnt++;
 
@@ -356,7 +492,7 @@ char *Position_token_n(Position_T self, int n) {
 
   char *p = self->token;
   while (n--) {
-    while (!isspace(*self->crnt) && *self->crnt != '\0')
+    while (!isspace(*self->crnt) && *self->crnt != '\0' && *self->crnt != ';')
       *p++ = *self->crnt++;
     if (*self->crnt == '\0') {
       p++;
@@ -370,7 +506,9 @@ char *Position_token_n(Position_T self, int n) {
   return self->token;
 }
 
-char *Position_token_next(Position_T self) { return Position_token_n(self, 1); }
+char *Instruction_token_next(Instruction_T self) {
+  return Instruction_token_n(self, 1);
+}
 
 Move parse_move(CBoard_T self, char *move_string) {
   Move       result = 0;
@@ -398,62 +536,114 @@ Move parse_move(CBoard_T self, char *move_string) {
   return result;
 }
 
-CBoard_T Position_parse(Position_T self, CBoard_T board) {
-  printf("Commands: %s\n", self->command);
-  int   count = 0;
-  char *token = Position_token(self);
+CBoard_T Instruction_parse(Instruction_T self, CBoard_T board) {
+  char *token = Instruction_token(self);
+
+  if (!board)
+    board = CBoard_new();
+
   do {
-    printf("Token %d: %s\n", ++count, token);
+    if (strcmp(token, "ucinewgame") == 0) {
+      board = CBoard_fromFEN(board, start_position);
+      continue;
+    }
+
+    if (strcmp(token, "quit") == 0)
+      return NULL;
 
     if (strcmp(token, "position") == 0) {
-      printf("FOUND position\n");
-      token = Position_token_next(self);
-      if (strcmp(token, "startpos") == 0) {
-        printf("FOUND startpos\n");
+      token = Instruction_token_next(self);
+      if (token && strcmp(token, "startpos") == 0) {
         board = CBoard_fromFEN(board, start_position);
-      } else if (strcmp(token, "fen") == 0) {
-        token = Position_token_n(self, 6);
-        printf("fen: %s\n", token);
+      } else if (token && strcmp(token, "fen") == 0) {
+        token = Instruction_token_n(self, 6);
         board = CBoard_fromFEN(board, token);
-        continue;
       } else {
         printf("Unknown argument after position\n");
-        assert(0);
       }
+      CBoard_print(board);
+      continue;
     }
 
     if (strcmp(token, "moves") == 0) {
-      printf("FOUND moves\n");
-      CBoard_print(board);
-      while ((token = Position_token_next(self))) {
+      while ((token = Instruction_token_next(self))) {
         Move move = parse_move(board, token);
         if (move) {
           make_move(board, move, 0);
-          CBoard_print(board);
-
         } else {
           printf("Invalid move %s!\n", token);
-          assert(0);
         }
       }
+      CBoard_print(board);
+      return board;
     }
 
-  } while ((token = Position_token_next(self)));
+    if (strcmp(token, "go") == 0) {
+      token = Instruction_token_next(self);
+      if (token && strcmp(token, "depth") == 0) {
+        token = Instruction_token_next(self);
+        search_position(board, atoi(token));
+      } else {
+        search_position(board, 6);
+        printf("Unknown argument after go\n");
+      }
+      continue;
+    }
+
+    if (strcmp(token, "isready") == 0) {
+      printf("readyok\n");
+      continue;
+    }
+
+    if (strcmp(token, "uci") == 0) {
+      print_info();
+      continue;
+    }
+
+  } while ((token = Instruction_token_next(self)));
 
   return board;
 }
 
+void uci_loop(void) {
+  CBoard_T      board = NULL;
+  Instruction_T instruction;
+  char          input[2000];
+
+  setbuf(stdin, NULL);
+  setbuf(stdout, NULL);
+
+  print_info();
+  while (1) {
+    memset(input, 0, sizeof(input));
+    fflush(stdout);
+    if (!fgets(input, sizeof(input), stdin))
+      continue;
+
+    instruction = Instruction_new(input);
+    if (!(board = Instruction_parse(instruction, board)))
+      break;
+    Instruction_free(&instruction);
+  }
+
+  Instruction_free(&instruction);
+  CBoard_free(&board);
+}
+
 int main(void) {
   init_all();
-
-  CBoard_T   board = NULL;
-  Position_T position;
-
-  position =
-      Position_new("   position   \t fen " start_position "   moves e2e4 e7e5");
-  board = Position_parse(position, board);
-  Position_free(&position);
-  CBoard_free(&board);
-
+  int debug = 1;
+  if (debug) {
+    printf("debugging!\n");
+    CBoard_T board = NULL;
+    board = CBoard_fromFEN(board, start_position);
+    make_move(board, parse_move(board, "e2e4"), 0);
+    make_move(board, parse_move(board, "b7b6"), 0);
+    make_move(board, parse_move(board, "d2d4"), 0);
+    make_move(board, parse_move(board, "c8b7"), 0);
+    CBoard_print(board);
+    printf("Evaluation: %d\n", evaluate(board));
+  } else
+    uci_loop();
   return 0;
 }
