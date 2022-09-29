@@ -36,6 +36,10 @@ const char *square_to_coordinates[]={
   "a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8", " "
 };
 // clang-format on
+//
+Square coordinates_to_square(char *cord) {
+  return (cord[1] - '1') * 8 + (cord[0] - 'a');
+}
 
 int bit_count(U64 bitboard) {
   int count = 0;

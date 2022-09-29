@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -100,7 +101,7 @@ MoveList_T generate_moves(CBoard_T cboard, MoveList_T moves) {
   { // pawn moves
     Piece_T Piece = Piece_get(PAWN, color);
     int     index = Piece_index(Piece);
-    U64     bitboard = CBoard_getPieceSet(cboard, Piece);
+    U64     bitboard = CBoard_pieceSet(cboard, Piece);
     bitboard_for_each_bit(src, bitboard) {
       { // quiet
         int add = (color == WHITE) ? +8 : -8;
@@ -143,7 +144,7 @@ MoveList_T generate_moves(CBoard_T cboard, MoveList_T moves) {
   // All piece move
   for (int piece = 1; piece < 6; piece++) {
     Piece_T Piece = Piece_get(piece, color);
-    U64     bitboard = CBoard_getPieceSet(cboard, Piece);
+    U64     bitboard = CBoard_pieceSet(cboard, Piece);
     bitboard_for_each_bit(src, bitboard) {
       U64 attack = CBoard_piece_attacks(cboard, Piece, src) &
                    ~CBoard_colorBB(cboard, color);
@@ -315,11 +316,38 @@ void init_all() {
   init_sliders_attacks();
 }
 
+/* UCI */
+
+Move parse_move(CBoard_T self, char *move_string) {
+  MoveList_T moves = generate_moves(self, NULL);
+  Square     source = coordinates_to_square(move_string);
+  Square     target = coordinates_to_square(move_string + 2);
+
+  for (int i = 0; i < moves->count; i++) {
+    Move move = moves->moves[i];
+    if (Move_source(move) == source && Move_target(move) == target) {
+      if (move_string[4]) {
+        Piece_T promoted = Piece_fromIndex(Move_promote(move));
+        if (tolower(Piece_code(promoted)) != move_string[4])
+          continue;
+      }
+      return move;
+    }
+  }
+
+  return 0;
+}
+
 int main(void) {
   init_all();
 
-  CBoard_T board = CBoard_fromFEN(NULL, tricky_position);
-  perft_test(board, 5);
+  CBoard_T board = CBoard_fromFEN(NULL, start_position);
+  Move     move = parse_move(board, "e2e4");
+  if (move) {
+    make_move(board, move, 0);
+    CBoard_print(board);
+  } else
+    printf("Illegal move!\n");
 
   return 0;
 }

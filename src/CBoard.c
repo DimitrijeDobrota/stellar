@@ -258,7 +258,7 @@ CBoard_T CBoard_fromFEN(CBoard_T board, char *fen) {
 
   fen++;
   if (*fen != '-') {
-    board->enpassant = (*(fen + 1) - '1') * 8 + (*fen - 'a');
+    board->enpassant = coordinates_to_square(fen);
   }
 
   return board;

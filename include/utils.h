@@ -45,6 +45,7 @@ enum enumSquare {
 typedef enum enumSquare Square;
 
 extern const char *square_to_coordinates[];
+Square coordinates_to_square(char * cord);
 
 // board moving
 typedef U64 (*direction_f)(U64);
@@ -71,5 +72,6 @@ typedef enum enumPiece ePiece;
 int get_time_ms(void);
 
 typedef U64 (*attack_f)(Square square, U64 occupancy);
+
 
 #endif
