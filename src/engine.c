@@ -318,11 +318,69 @@ void init_all() {
 
 /* UCI */
 
-Move parse_move(CBoard_T self, char *move_string) {
-  MoveList_T moves = generate_moves(self, NULL);
-  Square     source = coordinates_to_square(move_string);
-  Square     target = coordinates_to_square(move_string + 2);
+typedef struct Position_T *Position_T;
+struct Position_T {
+  char *command;
+  char *token;
+  char *crnt;
+};
 
+char *Position_token_next(Position_T self);
+
+Position_T Position_new(char *command) {
+  Position_T p;
+  NEW0(p);
+  p->command = ALLOC(strlen(command) + 1);
+  p->token = ALLOC(strlen(command) + 1);
+  strcpy(p->command, command);
+  p->crnt = command;
+  Position_token_next(p);
+  return p;
+}
+
+void Position_free(Position_T *p) {
+  FREE((*p)->command);
+  FREE((*p)->token);
+  FREE(*p);
+}
+
+char *Position_token(Position_T self) { return self->token; }
+char *Position_token_n(Position_T self, int n) {
+  while (isspace(*self->crnt) && *self->crnt != '\0')
+    self->crnt++;
+
+  if (*self->crnt == '\0') {
+    *self->token = '\0';
+    return NULL;
+  }
+
+  char *p = self->token;
+  while (n--) {
+    while (!isspace(*self->crnt) && *self->crnt != '\0')
+      *p++ = *self->crnt++;
+    if (*self->crnt == '\0') {
+      p++;
+      break;
+    }
+    self->crnt++;
+    *p++ = ' ';
+  }
+  *--p = '\0';
+
+  return self->token;
+}
+
+char *Position_token_next(Position_T self) { return Position_token_n(self, 1); }
+
+Move parse_move(CBoard_T self, char *move_string) {
+  Move       result = 0;
+  MoveList_T moves;
+  Square     source, target;
+
+  source = coordinates_to_square(move_string);
+  target = coordinates_to_square(move_string + 2);
+
+  moves = generate_moves(self, NULL);
   for (int i = 0; i < moves->count; i++) {
     Move move = moves->moves[i];
     if (Move_source(move) == source && Move_target(move) == target) {
@@ -331,23 +389,71 @@ Move parse_move(CBoard_T self, char *move_string) {
         if (tolower(Piece_code(promoted)) != move_string[4])
           continue;
       }
-      return move;
+      result = move;
+      break;
     }
   }
 
-  return 0;
+  MoveList_free(&moves);
+  return result;
+}
+
+CBoard_T Position_parse(Position_T self, CBoard_T board) {
+  printf("Commands: %s\n", self->command);
+  int   count = 0;
+  char *token = Position_token(self);
+  do {
+    printf("Token %d: %s\n", ++count, token);
+
+    if (strcmp(token, "position") == 0) {
+      printf("FOUND position\n");
+      token = Position_token_next(self);
+      if (strcmp(token, "startpos") == 0) {
+        printf("FOUND startpos\n");
+        board = CBoard_fromFEN(board, start_position);
+      } else if (strcmp(token, "fen") == 0) {
+        token = Position_token_n(self, 6);
+        printf("fen: %s\n", token);
+        board = CBoard_fromFEN(board, token);
+        continue;
+      } else {
+        printf("Unknown argument after position\n");
+        assert(0);
+      }
+    }
+
+    if (strcmp(token, "moves") == 0) {
+      printf("FOUND moves\n");
+      CBoard_print(board);
+      while ((token = Position_token_next(self))) {
+        Move move = parse_move(board, token);
+        if (move) {
+          make_move(board, move, 0);
+          CBoard_print(board);
+
+        } else {
+          printf("Invalid move %s!\n", token);
+          assert(0);
+        }
+      }
+    }
+
+  } while ((token = Position_token_next(self)));
+
+  return board;
 }
 
 int main(void) {
   init_all();
 
-  CBoard_T board = CBoard_fromFEN(NULL, start_position);
-  Move     move = parse_move(board, "e2e4");
-  if (move) {
-    make_move(board, move, 0);
-    CBoard_print(board);
-  } else
-    printf("Illegal move!\n");
+  CBoard_T   board = NULL;
+  Position_T position;
+
+  position =
+      Position_new("   position   \t fen " start_position "   moves e2e4 e7e5");
+  board = Position_parse(position, board);
+  Position_free(&position);
+  CBoard_free(&board);
 
   return 0;
 }

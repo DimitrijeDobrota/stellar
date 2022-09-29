@@ -76,6 +76,8 @@ CBoard_T CBoard_new(void) {
   return p;
 }
 
+void CBoard_free(CBoard_T *p) { FREE(*p); }
+
 void CBoard_copy(CBoard_T self, CBoard_T dest) { *dest = *self; }
 
 Square  CBoard_enpassant(CBoard_T self) { return self->enpassant; }

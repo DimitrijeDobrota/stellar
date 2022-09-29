@@ -22,6 +22,7 @@ Piece_T Piece_get(ePiece piece, eColor color);
 typedef struct CBoard_T *CBoard_T;
 
 CBoard_T CBoard_new(void);
+void     CBoard_free(CBoard_T *p);
 void     CBoard_copy(CBoard_T self, CBoard_T dest);
 
 U64     CBoard_colorBB(CBoard_T self, eColor color);
@@ -35,8 +36,10 @@ void   CBoard_enpassant_set(CBoard_T self, Square target);
 
 U64  CBoard_pieceSet(CBoard_T self, Piece_T piece);
 U64  CBoard_piece_attacks(CBoard_T self, Piece_T Piece, Square src);
-void CBoard_piece_capture(CBoard_T self, Piece_T Piece, Square source, Square target);
-void CBoard_piece_move(CBoard_T self, Piece_T Piece, Square square, Square target);
+void CBoard_piece_capture(CBoard_T self, Piece_T Piece, Square source,
+                          Square target);
+void CBoard_piece_move(CBoard_T self, Piece_T Piece, Square square,
+                       Square target);
 void CBoard_piece_pop(CBoard_T self, Piece_T Piece, Square square);
 void CBoard_piece_set(CBoard_T self, Piece_T Piece, Square square);
 
