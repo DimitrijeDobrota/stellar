@@ -464,8 +464,10 @@ int evaluate(CBoard_T board) {
   return score;
 }
 
+int  pv_length[64];
+Move pv_table[64][64];
+
 int ply;
-int best_move;
 int killer_moves[2][64];
 int history_moves[16][64];
 
@@ -555,9 +557,7 @@ int negamax(CBoard_T board, int alpha, int beta, int depth) {
   CBoard_T   copy;
   int        isCheck = 0;
 
-  // tmp
-  Move best;
-  int  old_alpha = alpha;
+  pv_length[ply] = ply;
 
   if (depth == 0)
     return quiescence(board, alpha, beta);
@@ -571,22 +571,20 @@ int negamax(CBoard_T board, int alpha, int beta, int depth) {
   if (isCheck)
     depth++;
 
-  MoveList_sort(board, list);
-
   int legal_moves = 0;
+  MoveList_sort(board, list);
   for (int i = 0; i < list->count; i++) {
     Move move = list->moves[i];
-    CBoard_copy(board, copy);
     ply++;
 
+    CBoard_copy(board, copy);
     if (make_move(copy, move, 0) == 0) {
       ply--;
       continue;
     }
 
-    legal_moves++;
-
     int score = -negamax(copy, -beta, -alpha, depth - 1);
+    legal_moves++;
     ply--;
 
     if (score >= beta) {
@@ -600,11 +598,15 @@ int negamax(CBoard_T board, int alpha, int beta, int depth) {
     }
 
     if (score > alpha) {
-      /* if (!Move_capture(move)) */
-        history_moves[Piece_index(Move_piece(move))][Move_target(move)] += depth;
+      if (!Move_capture(move))
+        history_moves[Piece_index(Move_piece(move))][Move_target(move)] +=
+            depth;
       alpha = score;
-      if (ply == 0)
-        best = move;
+
+      pv_table[ply][ply] = move;
+      for (int i = ply + 1; i < pv_length[ply + 1]; i++)
+        pv_table[ply][i] = pv_table[ply + 1][i];
+      pv_length[ply] = pv_length[ply + 1];
     }
   }
 
@@ -615,9 +617,6 @@ int negamax(CBoard_T board, int alpha, int beta, int depth) {
       return 0;
   }
 
-  if (old_alpha != alpha)
-    best_move = best;
-
   MoveList_free(&list);
   CBoard_free(&copy);
   return alpha;
@@ -626,12 +625,17 @@ int negamax(CBoard_T board, int alpha, int beta, int depth) {
 void search_position(CBoard_T board, int depth) {
   int score = negamax(board, -50000, 50000, depth);
 
-  if (best_move) {
-    printf("info score cp %d depth %d nodes %ld\n", score, depth, nodes);
-    printf("bestmove ");
-    Move_print_UCI(best_move);
-    printf("\n");
+  printf("info score cp %d depth %d nodes %ld pv ", score, depth, nodes);
+
+  for (int i = 0; i < pv_length[0]; i++) {
+    Move_print_UCI(pv_table[0][i]);
+    printf(" ");
   }
+  printf("\n");
+
+  printf("bestmove ");
+  Move_print_UCI(pv_table[0][0]);
+  printf("\n");
 }
 
 void print_info(void) {
@@ -828,7 +832,7 @@ int main(void) {
     (void)inst;
     (void)list;
 
-    board = CBoard_fromFEN(board, killer_position);
+    board = CBoard_fromFEN(board, tricky_position);
     CBoard_print(board);
     search_position(board, 5);
   } else
