@@ -50,6 +50,15 @@ void Move_print(Move move) {
          Move_enpassant(move) ? 1 : 0, Move_castle(move) ? 1 : 0);
 }
 
+void Move_print_UCI(Move move) {
+  int prom;
+
+  printf("%s%s", square_to_coordinates[Move_source(move)],
+         square_to_coordinates[Move_target(move)]);
+  if ((prom = Move_promote(move)))
+    printf(" %c", Piece_asci(Piece_fromIndex(prom)));
+}
+
 typedef struct MoveList_T *MoveList_T;
 struct MoveList_T {
   Move moves[256];
@@ -439,13 +448,84 @@ int evaluate(CBoard_T board) {
     }
   }
 
-  return side == WHITE ? score : -score;
+  return score;
 }
 
-void search_position(CBoard_T cboard, int depth) {
-  (void)cboard;
-  (void)depth;
-  printf("bestmove d7d5\n");
+int ply;
+int best_move;
+
+int negamax(CBoard_T board, int alpha, int beta, int depth) {
+  MoveList_T moves;
+  CBoard_T   backup;
+
+  // tmp
+  Move best;
+  int  old_alpha = alpha;
+
+  if (depth == 0) {
+    return evaluate(board);
+  }
+
+  nodes++;
+
+  backup = CBoard_new();
+  moves = generate_moves(board, NULL);
+
+  int legal_moves = 0;
+  for (int i = 0; i < moves->count; i++) {
+    CBoard_copy(board, backup);
+    ply++;
+
+    if (make_move(board, moves->moves[i], 0) == 0) {
+      CBoard_copy(backup, board);
+      ply--;
+      continue;
+    }
+
+    legal_moves++;
+
+    int score = -negamax(board, -beta, -alpha, depth - 1);
+    CBoard_copy(backup, board);
+    ply--;
+
+    if (score >= beta) {
+      MoveList_free(&moves);
+      CBoard_free(&backup);
+      return beta;
+    }
+
+    if (score > alpha) {
+      alpha = score;
+      if (ply == 0)
+        best = moves->moves[i];
+    }
+  }
+
+  if (legal_moves == 0) {
+    if (CBoard_isCheck(board))
+      return -49000 + ply;
+    else
+      return 0;
+  }
+
+  if (old_alpha != alpha)
+    best_move = best;
+
+  MoveList_free(&moves);
+  CBoard_free(&backup);
+  return alpha;
+}
+
+void search_position(CBoard_T board, int depth) {
+  best_move = 0;
+  int score = negamax(board, -5000000, 5000000, depth);
+
+  if (best_move) {
+    printf("info score cp %d depth %d nodes %ld\n", score, depth, nodes);
+    printf("bestmove ");
+    Move_print_UCI(best_move);
+    printf("\n");
+  }
 }
 
 void print_info(void) {
@@ -580,13 +660,14 @@ CBoard_T Instruction_parse(Instruction_T self, CBoard_T board) {
 
     if (strcmp(token, "go") == 0) {
       token = Instruction_token_next(self);
+      int depth = 6;
       if (token && strcmp(token, "depth") == 0) {
         token = Instruction_token_next(self);
-        search_position(board, atoi(token));
+        depth = atoi(token);
       } else {
-        search_position(board, 6);
         printf("Unknown argument after go\n");
       }
+      search_position(board, depth);
       continue;
     }
 
@@ -632,17 +713,14 @@ void uci_loop(void) {
 
 int main(void) {
   init_all();
-  int debug = 1;
+  int debug = 0;
   if (debug) {
     printf("debugging!\n");
-    CBoard_T board = NULL;
+    CBoard_T      board = NULL;
+    Instruction_T inst = NULL;
     board = CBoard_fromFEN(board, start_position);
-    make_move(board, parse_move(board, "e2e4"), 0);
-    make_move(board, parse_move(board, "b7b6"), 0);
-    make_move(board, parse_move(board, "d2d4"), 0);
-    make_move(board, parse_move(board, "c8b7"), 0);
     CBoard_print(board);
-    printf("Evaluation: %d\n", evaluate(board));
+    search_position(board, 5);
   } else
     uci_loop();
   return 0;
