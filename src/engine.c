@@ -330,6 +330,7 @@ void init_all() {
 struct Score_T {
   int value;
   int score[64];
+  int capture[6];
 };
 
 // clang-format off
@@ -344,8 +345,10 @@ struct Score_T Scores[] = {
             10,  10,  10,  20,  20,  10,  10,  10,
             20,  20,  20,  30,  30,  30,  20,  20,
             30,  30,  30,  40,  40,  30,  30,  30,
-            90,  90,  90,  90,  90,  90,  90,  90,
-         }},
+            90,  90,  90,  90,  90,  90,  90,  90, },
+.capture = {   [PAWN] = 105, [KNIGHT] = 205,
+             [BISHOP] = 305,   [ROOK] = 405,
+              [QUEEN] = 505,   [KING] = 605} },
 [KNIGHT] = {
 .value = 300,
 .score = {
@@ -356,8 +359,10 @@ struct Score_T Scores[] = {
             -5,  10,  20,  30,  30,  20,  10,  -5,
             -5,   5,  20,  20,  20,  20,   5,  -5,
             -5,   0,   0,  10,  10,   0,   0,  -5,
-            -5,   0,   0,   0,   0,   0,   0,  -5,
-         }},
+            -5,   0,   0,   0,   0,   0,   0,  -5, },
+.capture = {   [PAWN] = 104, [KNIGHT] = 204,
+             [BISHOP] = 304,   [ROOK] = 404,
+              [QUEEN] = 504,   [KING] = 604} },
 [BISHOP] = {
 .value = 350,
 .score = {
@@ -368,8 +373,10 @@ struct Score_T Scores[] = {
              0,   0,  10,  20,  20,  10,   0,   0,
              0,   0,   0,  10,  10,   0,   0,   0,
              0,   0,   0,   0,   0,   0,   0,   0,
-             0,   0,   0,   0,   0,   0,   0,   0,
-         }},
+             0,   0,   0,   0,   0,   0,   0,   0, },
+.capture = {   [PAWN] = 103, [KNIGHT] = 203,
+             [BISHOP] = 303,   [ROOK] = 403,
+              [QUEEN] = 503,   [KING] = 603} },
 [ROOK] = {
 .value = 500,
 .score = {
@@ -380,8 +387,10 @@ struct Score_T Scores[] = {
              0,   0,  10,  20,  20,  10,   0,   0,
              0,   0,  10,  20,  20,  10,   0,   0,
             50,  50,  50,  50,  50,  50,  50,  50,
-            50,  50,  50,  50,  50,  50,  50,  50,
-         }},
+            50,  50,  50,  50,  50,  50,  50,  50, },
+.capture = {   [PAWN] = 102, [KNIGHT] = 202,
+             [BISHOP] = 302,   [ROOK] = 402,
+              [QUEEN] = 502,   [KING] = 602} },
 [QUEEN] = {
 .value = 1000,
 .score = {
@@ -392,8 +401,10 @@ struct Score_T Scores[] = {
              0,   0,   0,   0,   0,   0,   0,   0,
              0,   0,   0,   0,   0,   0,   0,   0,
              0,   0,   0,   0,   0,   0,   0,   0,
-             0,   0,   0,   0,   0,   0,   0,   0,
-         }},
+             0,   0,   0,   0,   0,   0,   0,   0, },
+.capture = {   [PAWN] = 101, [KNIGHT] = 201,
+             [BISHOP] = 301,   [ROOK] = 401,
+              [QUEEN] = 501,   [KING] = 601} },
 [KING] = {
 .value = 10000,
 .score = {
@@ -404,8 +415,10 @@ struct Score_T Scores[] = {
              0,   5,  10,  20,  20,  10,   5,   0,
              0,   5,   5,  10,  10,   5,   5,   0,
              0,   0,   5,   5,   5,   5,   0,   0,
-             0,   0,   0,   0,   0,   0,   0,   0,
-         }},
+             0,   0,   0,   0,   0,   0,   0,   0, },
+.capture = {   [PAWN] = 100, [KNIGHT] = 200,
+             [BISHOP] = 300,   [ROOK] = 400,
+              [QUEEN] = 500,   [KING] = 600} },
 };
 
 const int mirror_score[128] =
@@ -454,22 +467,109 @@ int evaluate(CBoard_T board) {
 int ply;
 int best_move;
 
+int move_score(CBoard_T board, Move move) {
+  if (Move_capture(move)) {
+    return Scores[CBoard_piece_get(board, Move_source(move))]
+        .capture[CBoard_piece_get(board, Move_target(move))];
+  } else {
+  }
+
+  return 0;
+}
+
+void MoveList_sort(CBoard_T board, MoveList_T list) {
+  int score[list->count];
+  for (int i = 0; i < list->count; i++)
+    score[i] = move_score(board, list->moves[i]);
+
+  for (int i = 0; i < list->count; i++)
+    for (int j = i + 1; j < list->count; j++)
+      if (score[i] < score[j]) {
+        Move t = list->moves[i];
+        list->moves[i] = list->moves[j];
+        list->moves[j] = t;
+
+        int s = score[i];
+        score[i] = score[j];
+        score[j] = s;
+      }
+}
+
+int quiescence(CBoard_T board, int alpha, int beta) {
+  MoveList_T moves;
+  CBoard_T   backup;
+
+  int eval = evaluate(board);
+  nodes++;
+
+  if (eval >= beta) {
+    MoveList_free(&moves);
+    CBoard_free(&backup);
+    return beta;
+  }
+
+  if (eval > alpha) {
+    alpha = eval;
+  }
+
+  backup = CBoard_new();
+  moves = generate_moves(board, NULL);
+  MoveList_sort(board, moves);
+
+  int legal_moves = 0;
+  for (int i = 0; i < moves->count; i++) {
+    CBoard_copy(board, backup);
+    ply++;
+
+    if (make_move(board, moves->moves[i], 1) == 0) {
+      CBoard_copy(backup, board);
+      ply--;
+      continue;
+    }
+
+    int score = -quiescence(board, -beta, -alpha);
+    CBoard_copy(backup, board);
+    ply--;
+
+    if (score >= beta) {
+      MoveList_free(&moves);
+      CBoard_free(&backup);
+      return beta;
+    }
+
+    if (score > alpha) {
+      alpha = score;
+    }
+  }
+
+  MoveList_free(&moves);
+  CBoard_free(&backup);
+  return alpha;
+}
+
 int negamax(CBoard_T board, int alpha, int beta, int depth) {
   MoveList_T moves;
   CBoard_T   backup;
+  int        isCheck = 0;
 
   // tmp
   Move best;
   int  old_alpha = alpha;
 
   if (depth == 0) {
-    return evaluate(board);
+    return quiescence(board, alpha, beta);
   }
 
   nodes++;
 
   backup = CBoard_new();
   moves = generate_moves(board, NULL);
+  isCheck = CBoard_isCheck(board);
+
+  if (isCheck)
+    depth++;
+
+  MoveList_sort(board, moves);
 
   int legal_moves = 0;
   for (int i = 0; i < moves->count; i++) {
@@ -502,7 +602,7 @@ int negamax(CBoard_T board, int alpha, int beta, int depth) {
   }
 
   if (legal_moves == 0) {
-    if (CBoard_isCheck(board))
+    if (isCheck)
       return -49000 + ply;
     else
       return 0;
@@ -718,9 +818,15 @@ int main(void) {
     printf("debugging!\n");
     CBoard_T      board = NULL;
     Instruction_T inst = NULL;
-    board = CBoard_fromFEN(board, start_position);
+    MoveList_T    list = NULL;
+    board = CBoard_fromFEN(board, tricky_position);
+    list = generate_moves(board, list);
+    MoveList_print(list);
+    MoveList_sort(board, list);
+    MoveList_print(list);
+
     CBoard_print(board);
-    search_position(board, 5);
+    search_position(board, 7);
   } else
     uci_loop();
   return 0;

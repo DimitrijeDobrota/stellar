@@ -15,9 +15,10 @@ eColor Piece_color(Piece_T self);
 ePiece Piece_piece(Piece_T self);
 int    Piece_index(Piece_T self);
 
+Piece_T Piece_get(ePiece piece, eColor color);
 Piece_T Piece_fromCode(char code);
 Piece_T Piece_fromIndex(int index);
-Piece_T Piece_get(ePiece piece, eColor color);
+ePiece  Piece_piece_fromCode(int index);
 
 typedef struct CBoard_T *CBoard_T;
 
@@ -42,6 +43,7 @@ void CBoard_piece_move(CBoard_T self, Piece_T Piece, Square square,
                        Square target);
 void CBoard_piece_pop(CBoard_T self, Piece_T Piece, Square square);
 void CBoard_piece_set(CBoard_T self, Piece_T Piece, Square square);
+int  CBoard_piece_get(CBoard_T self, Square square);
 
 U64  CBoard_colorBB_get(CBoard_T self, eColor color, Square target);
 void CBoard_colorBB_pop(CBoard_T self, eColor color, Square target);

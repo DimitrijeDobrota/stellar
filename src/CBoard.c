@@ -58,6 +58,10 @@ Piece_T Piece_fromCode(char code) {
   return NULL;
 }
 
+ePiece Piece_piece_fromCode(int index) {
+  return Pieces[WHITE][index % 8].piece;
+}
+
 Piece_T Piece_fromIndex(int index) { return &Pieces[index / 8][index % 8]; }
 Piece_T Piece_get(ePiece piece, eColor color) { return &Pieces[color][piece]; }
 
@@ -109,6 +113,15 @@ void CBoard_colorBB_set(CBoard_T self, eColor color, Square target) {
 }
 U64 CBoard_colorBB_get(CBoard_T self, eColor color, Square target) {
   return bit_get(self->colorBB[color], target);
+}
+
+int CBoard_piece_get(CBoard_T self, Square square) {
+  for (int i = 0; i < 6; i++) {
+    if (bit_get(self->pieceBB[i], square)) {
+      return i;
+    }
+  }
+  return -1;
 }
 
 void CBoard_piece_pop(CBoard_T self, Piece_T Piece, Square square) {
