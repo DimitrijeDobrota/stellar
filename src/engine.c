@@ -32,7 +32,7 @@ typedef U32 Move;
 
 #define Move_source(move)    (((move)&C32(0x00003f)))
 #define Move_target(move)    (((move)&C32(0x000fc0)) >> 6)
-#define Move_piece(move)     (((move)&C32(0x00f000)) >> 12)
+#define Move_piece(move)     Piece_fromIndex((((move)&C32(0x00f000)) >> 12))
 #define Move_promote(move)   (((move)&C32(0x0f0000)) >> 16)
 #define Move_capture(move)   (((move)&C32(0x100000)) >> 20)
 #define Move_double(move)    (((move)&C32(0x200000)) >> 21)
@@ -44,7 +44,7 @@ void Move_print(Move move) {
   printf("%5s %5s %5s %5c %4d %4d %4d %4d\n",
          square_to_coordinates[Move_source(move)],
          square_to_coordinates[Move_target(move)],
-         Piece_unicode(Piece_fromIndex(Move_piece(move))),
+         Piece_unicode(Move_piece(move)),
          promote ? Piece_asci(Piece_fromIndex(promote)) : 'X',
          Move_capture(move) ? 1 : 0, Move_double(move) ? 1 : 0,
          Move_enpassant(move) ? 1 : 0, Move_castle(move) ? 1 : 0);
@@ -225,7 +225,7 @@ int make_move(CBoard_T cboard, Move move, int flag) {
 
     Square  source = Move_source(move);
     Square  target = Move_target(move);
-    Piece_T Piece = Piece_fromIndex(Move_piece(move));
+    Piece_T Piece = Move_piece(move);
     eColor  color = CBoard_side(cboard);
 
     if (!Move_capture(move))
@@ -284,30 +284,30 @@ void perft_driver(CBoard_T self, int depth) {
   }
 
   MoveList_T moves = generate_moves(self, &moveList[depth]);
-  CBoard_T   backup = CBoard_new();
+  CBoard_T   copy = CBoard_new();
 
-  for (int i = 0; i < moves->count; i++, CBoard_copy(backup, self)) {
-    CBoard_copy(self, backup);
-    if (!make_move(self, moves->moves[i], 0))
+  for (int i = 0; i < moves->count; i++) {
+    CBoard_copy(self, copy);
+    if (!make_move(copy, moves->moves[i], 0))
       continue;
 
-    perft_driver(self, depth - 1);
+    perft_driver(copy, depth - 1);
   }
   moveList[depth].count = 0;
 }
 
 void perft_test(CBoard_T self, int depth) {
   MoveList_T moves = generate_moves(self, &moveList[depth]);
-  CBoard_T   backup = CBoard_new();
+  CBoard_T   copy = CBoard_new();
   long       start = get_time_ms();
 
   printf("\n     Performance test\n\n");
-  for (int i = 0; i < moves->count; i++, CBoard_copy(backup, self)) {
-    CBoard_copy(self, backup);
-    if (!make_move(self, moves->moves[i], 0))
+  for (int i = 0; i < moves->count; i++) {
+    CBoard_copy(self, copy);
+    if (!make_move(copy, moves->moves[i], 0))
       continue;
     long cummulative_nodes = nodes;
-    perft_driver(self, depth - 1);
+    perft_driver(copy, depth - 1);
     long old_nodes = nodes - cummulative_nodes;
     printf("%s%s: %ld\n", square_to_coordinates[Move_source(moves->moves[i])],
            square_to_coordinates[Move_target(moves->moves[i])], old_nodes);
@@ -466,12 +466,20 @@ int evaluate(CBoard_T board) {
 
 int ply;
 int best_move;
+int killer_moves[2][64];
+int history_moves[16][64];
 
 int move_score(CBoard_T board, Move move) {
   if (Move_capture(move)) {
     return Scores[CBoard_piece_get(board, Move_source(move))]
         .capture[CBoard_piece_get(board, Move_target(move))];
   } else {
+    if (killer_moves[0][ply] == move)
+      return 9000;
+    else if (killer_moves[1][ply] == move)
+      return 8000;
+    else
+      return history_moves[Piece_index(Move_piece(move))][Move_target(move)];
   }
 
   return 0;
@@ -497,14 +505,12 @@ void MoveList_sort(CBoard_T board, MoveList_T list) {
 
 int quiescence(CBoard_T board, int alpha, int beta) {
   MoveList_T moves;
-  CBoard_T   backup;
+  CBoard_T   copy;
 
   int eval = evaluate(board);
   nodes++;
 
   if (eval >= beta) {
-    MoveList_free(&moves);
-    CBoard_free(&backup);
     return beta;
   }
 
@@ -512,28 +518,25 @@ int quiescence(CBoard_T board, int alpha, int beta) {
     alpha = eval;
   }
 
-  backup = CBoard_new();
+  copy = CBoard_new();
   moves = generate_moves(board, NULL);
   MoveList_sort(board, moves);
 
-  int legal_moves = 0;
   for (int i = 0; i < moves->count; i++) {
-    CBoard_copy(board, backup);
+    CBoard_copy(board, copy);
     ply++;
 
-    if (make_move(board, moves->moves[i], 1) == 0) {
-      CBoard_copy(backup, board);
+    if (make_move(copy, moves->moves[i], 1) == 0) {
       ply--;
       continue;
     }
 
-    int score = -quiescence(board, -beta, -alpha);
-    CBoard_copy(backup, board);
+    int score = -quiescence(copy, -beta, -alpha);
     ply--;
 
     if (score >= beta) {
       MoveList_free(&moves);
-      CBoard_free(&backup);
+      CBoard_free(&copy);
       return beta;
     }
 
@@ -543,61 +546,65 @@ int quiescence(CBoard_T board, int alpha, int beta) {
   }
 
   MoveList_free(&moves);
-  CBoard_free(&backup);
+  CBoard_free(&copy);
   return alpha;
 }
 
 int negamax(CBoard_T board, int alpha, int beta, int depth) {
-  MoveList_T moves;
-  CBoard_T   backup;
+  MoveList_T list;
+  CBoard_T   copy;
   int        isCheck = 0;
 
   // tmp
   Move best;
   int  old_alpha = alpha;
 
-  if (depth == 0) {
+  if (depth == 0)
     return quiescence(board, alpha, beta);
-  }
 
   nodes++;
 
-  backup = CBoard_new();
-  moves = generate_moves(board, NULL);
+  copy = CBoard_new();
+  list = generate_moves(board, NULL);
   isCheck = CBoard_isCheck(board);
 
   if (isCheck)
     depth++;
 
-  MoveList_sort(board, moves);
+  MoveList_sort(board, list);
 
   int legal_moves = 0;
-  for (int i = 0; i < moves->count; i++) {
-    CBoard_copy(board, backup);
+  for (int i = 0; i < list->count; i++) {
+    Move move = list->moves[i];
+    CBoard_copy(board, copy);
     ply++;
 
-    if (make_move(board, moves->moves[i], 0) == 0) {
-      CBoard_copy(backup, board);
+    if (make_move(copy, move, 0) == 0) {
       ply--;
       continue;
     }
 
     legal_moves++;
 
-    int score = -negamax(board, -beta, -alpha, depth - 1);
-    CBoard_copy(backup, board);
+    int score = -negamax(copy, -beta, -alpha, depth - 1);
     ply--;
 
     if (score >= beta) {
-      MoveList_free(&moves);
-      CBoard_free(&backup);
+      if (!Move_capture(move)) {
+        killer_moves[1][ply] = killer_moves[0][ply];
+        killer_moves[0][ply] = move;
+      }
+      MoveList_free(&list);
+      CBoard_free(&copy);
       return beta;
     }
 
     if (score > alpha) {
+      /* if (!Move_capture(move)) */
+        history_moves[Piece_index(Move_piece(move))][Move_target(move)] += depth;
       alpha = score;
       if (ply == 0)
-        best = moves->moves[i];
+        best = move;
     }
   }
 
@@ -611,14 +618,13 @@ int negamax(CBoard_T board, int alpha, int beta, int depth) {
   if (old_alpha != alpha)
     best_move = best;
 
-  MoveList_free(&moves);
-  CBoard_free(&backup);
+  MoveList_free(&list);
+  CBoard_free(&copy);
   return alpha;
 }
 
 void search_position(CBoard_T board, int depth) {
-  best_move = 0;
-  int score = negamax(board, -5000000, 5000000, depth);
+  int score = negamax(board, -50000, 50000, depth);
 
   if (best_move) {
     printf("info score cp %d depth %d nodes %ld\n", score, depth, nodes);
@@ -817,16 +823,14 @@ int main(void) {
   if (debug) {
     printf("debugging!\n");
     CBoard_T      board = NULL;
-    Instruction_T inst = NULL;
     MoveList_T    list = NULL;
-    board = CBoard_fromFEN(board, tricky_position);
-    list = generate_moves(board, list);
-    MoveList_print(list);
-    MoveList_sort(board, list);
-    MoveList_print(list);
+    Instruction_T inst = NULL;
+    (void)inst;
+    (void)list;
 
+    board = CBoard_fromFEN(board, killer_position);
     CBoard_print(board);
-    search_position(board, 7);
+    search_position(board, 5);
   } else
     uci_loop();
   return 0;
