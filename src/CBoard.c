@@ -116,11 +116,9 @@ U64 CBoard_colorBB_get(CBoard_T self, eColor color, Square target) {
 }
 
 int CBoard_piece_get(CBoard_T self, Square square) {
-  for (int i = 0; i < 6; i++) {
-    if (bit_get(self->pieceBB[i], square)) {
+  for (int i = 0; i < 6; i++)
+    if (bit_get(self->pieceBB[i], square))
       return i;
-    }
-  }
   return -1;
 }
 
