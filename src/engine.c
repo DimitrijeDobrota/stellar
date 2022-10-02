@@ -8,7 +8,6 @@
 #include "utils.h"
 
 #include <cii/assert.h>
-#include <cii/except.h>
 #include <cii/mem.h>
 
 /* DEBUGGING */
@@ -179,26 +178,36 @@ int Score_capture(ePiece src, ePiece tgt) { return Scores[src].capture[tgt]; }
 
 #define MAX_PLY 64
 
-long nodes = 0;
+typedef struct Stats_T *Stats_T;
+struct Stats_T {
+  long nodes;
+  int  ply;
+  int  pv_length[MAX_PLY];
+  Move pv_table[MAX_PLY][MAX_PLY];
+  Move killer_moves[2][MAX_PLY];
+  Move history_moves[16][64];
+};
 
-int  pv_length[MAX_PLY];
-Move pv_table[MAX_PLY][MAX_PLY];
+Stats_T Stats_new(void) {
+  Stats_T p;
+  NEW0(p);
+  return p;
+}
 
-int  ply;
-Move killer_moves[2][MAX_PLY];
-Move history_moves[16][64];
+void Stats_free(Stats_T *p) { FREE(*p); }
 
-int Move_score(CBoard_T board, Move move) {
+int Move_score(Stats_T stats, CBoard_T board, Move move) {
   if (Move_capture(move)) {
     return Score_capture(CBoard_piece_get(board, Move_source(move)),
                          CBoard_piece_get(board, Move_target(move)));
   } else {
-    if (killer_moves[0][ply] == move)
+    if (stats->killer_moves[0][stats->ply] == move)
       return 9000;
-    else if (killer_moves[1][ply] == move)
+    else if (stats->killer_moves[1][stats->ply] == move)
       return 8000;
     else
-      return history_moves[Piece_index(Move_piece(move))][Move_target(move)];
+      return stats
+          ->history_moves[Piece_index(Move_piece(move))][Move_target(move)];
   }
 
   return 0;
@@ -243,10 +252,10 @@ void MoveList_print(MoveList_T self) {
   printf("Total: %d\n", self->count);
 }
 
-void MoveList_sort(CBoard_T board, MoveList_T list) {
+void MoveList_sort(Stats_T stats, CBoard_T board, MoveList_T list) {
   int score[list->count];
   for (int i = 0; i < list->count; i++)
-    score[i] = Move_score(board, list->moves[i]);
+    score[i] = Move_score(stats, board, list->moves[i]);
 
   for (int i = 0; i < list->count; i++)
     for (int j = i + 1; j < list->count; j++)
@@ -459,12 +468,12 @@ int evaluate(CBoard_T board) {
   return score;
 }
 
-int quiescence(CBoard_T board, int alpha, int beta) {
+int quiescence(Stats_T stats, CBoard_T board, int alpha, int beta) {
   MoveList_T moves;
   CBoard_T   copy;
 
   int eval = evaluate(board);
-  nodes++;
+  stats->nodes++;
 
   if (eval >= beta) {
     return beta;
@@ -476,19 +485,17 @@ int quiescence(CBoard_T board, int alpha, int beta) {
 
   copy = CBoard_new();
   moves = MoveList_generate(NULL, board);
-  MoveList_sort(board, moves);
+  MoveList_sort(stats, board, moves);
 
   for (int i = 0; i < MoveList_size(moves); i++) {
     CBoard_copy(board, copy);
-    ply++;
 
-    if (Move_make(MoveList_move(moves, i), copy, 1) == 0) {
-      ply--;
+    if (Move_make(MoveList_move(moves, i), copy, 1) == 0)
       continue;
-    }
 
-    int score = -quiescence(copy, -beta, -alpha);
-    ply--;
+    stats->ply++;
+    int score = -quiescence(stats, copy, -beta, -alpha);
+    stats->ply--;
 
     if (score >= beta) {
       MoveList_free(&moves);
@@ -506,20 +513,21 @@ int quiescence(CBoard_T board, int alpha, int beta) {
   return alpha;
 }
 
-int negamax(CBoard_T board, int alpha, int beta, int depth) {
+int negamax(Stats_T stats, CBoard_T board, int alpha, int beta, int depth) {
   MoveList_T list;
   CBoard_T   copy;
   int        isCheck = 0;
+  int        ply = stats->ply;
 
-  pv_length[ply] = ply;
+  stats->pv_length[ply] = ply;
 
   if (depth == 0)
-    return quiescence(board, alpha, beta);
+    return quiescence(stats, board, alpha, beta);
 
   if (ply > MAX_PLY - 1)
     return evaluate(board);
 
-  nodes++;
+  stats->nodes++;
 
   copy = CBoard_new();
   list = MoveList_generate(NULL, board);
@@ -529,25 +537,24 @@ int negamax(CBoard_T board, int alpha, int beta, int depth) {
     depth++;
 
   int legal_moves = 0;
-  MoveList_sort(board, list);
+  MoveList_sort(stats, board, list);
   for (int i = 0; i < MoveList_size(list); i++) {
     Move move = MoveList_move(list, i);
-    ply++;
 
     CBoard_copy(board, copy);
     if (Move_make(move, copy, 0) == 0) {
-      ply--;
       continue;
     }
 
-    int score = -negamax(copy, -beta, -alpha, depth - 1);
+    stats->ply++;
+    int score = -negamax(stats, copy, -beta, -alpha, depth - 1);
+    stats->ply--;
     legal_moves++;
-    ply--;
 
     if (score >= beta) {
       if (!Move_capture(move)) {
-        killer_moves[1][ply] = killer_moves[0][ply];
-        killer_moves[0][ply] = move;
+        stats->killer_moves[1][ply] = stats->killer_moves[0][ply];
+        stats->killer_moves[0][ply] = move;
       }
       MoveList_free(&list);
       CBoard_free(&copy);
@@ -556,20 +563,21 @@ int negamax(CBoard_T board, int alpha, int beta, int depth) {
 
     if (score > alpha) {
       if (!Move_capture(move))
-        history_moves[Piece_index(Move_piece(move))][Move_target(move)] +=
+        stats
+            ->history_moves[Piece_index(Move_piece(move))][Move_target(move)] +=
             depth;
       alpha = score;
 
-      pv_table[ply][ply] = move;
-      for (int i = ply + 1; i < pv_length[ply + 1]; i++)
-        pv_table[ply][i] = pv_table[ply + 1][i];
-      pv_length[ply] = pv_length[ply + 1];
+      stats->pv_table[ply][ply] = move;
+      for (int i = stats->ply + 1; i < stats->pv_length[ply + 1]; i++)
+        stats->pv_table[ply][i] = stats->pv_table[ply + 1][i];
+      stats->pv_length[ply] = stats->pv_length[ply + 1];
     }
   }
 
   if (legal_moves == 0) {
     if (isCheck)
-      return -49000 + ply;
+      return -49000 + stats->ply;
     else
       return 0;
   }
@@ -589,27 +597,26 @@ void Move_print_UCI(Move move) {
 }
 
 void search_position(CBoard_T board, int depth) {
-  memset(killer_moves, 0, sizeof(killer_moves));
-  memset(history_moves, 0, sizeof(history_moves));
-  memset(pv_table, 0, sizeof(pv_table));
-  memset(pv_length, 0, sizeof(pv_length));
-  nodes = 0;
+  Stats_T stats = Stats_new();
 
   for (int crnt = 1; crnt <= depth; crnt++) {
-    int score = negamax(board, -50000, 50000, crnt);
+    int score = negamax(stats, board, -50000, 50000, crnt);
 
-    printf("info score cp %d depth %d nodes %ld pv ", score, crnt, nodes);
+    printf("info score cp %d depth %d nodes %ld pv ", score, crnt,
+           stats->nodes);
 
-    for (int i = 0; i < pv_length[0]; i++) {
-      Move_print_UCI(pv_table[0][i]);
+    for (int i = 0; i < stats->pv_length[0]; i++) {
+      Move_print_UCI(stats->pv_table[0][i]);
       printf(" ");
     }
     printf("\n");
   }
 
   printf("bestmove ");
-  Move_print_UCI(pv_table[0][0]);
+  Move_print_UCI(stats->pv_table[0][0]);
   printf("\n");
+
+  Stats_free(&stats);
 }
 
 void print_info(void) {
@@ -797,6 +804,7 @@ void uci_loop(void) {
 /* PERFT */
 
 struct MoveList_T moveList[10];
+long              nodes;
 
 void perft_driver(CBoard_T board, int depth) {
   if (depth == 0) {
@@ -822,6 +830,8 @@ void perft_test(CBoard_T board, int depth) {
   long       start = get_time_ms();
 
   printf("\n     Performance test\n\n");
+
+  nodes = 0;
   for (int i = 0; i < MoveList_size(list); i++) {
     CBoard_copy(board, copy);
     Move move = MoveList_move(list, i);
