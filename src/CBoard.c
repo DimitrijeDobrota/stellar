@@ -32,12 +32,12 @@ struct Piece_T Pieces[2][6] = {
   [KING] = {.color = WHITE, .code = 'K', .asci = 'K', .unicode = "♔ ",   .piece = KING,   .attacks = get_king_attacks},
     },
     {
-  [PAWN] = {.color = BLACK, .code = 'p', .asci = 'p', .unicode = "♟ ",   .piece = PAWN,   .attacks = get_bpawn_attacks},
-[KNIGHT] = {.color = BLACK, .code = 'n', .asci = 'n', .unicode = "♞ ", .piece = KNIGHT,  .attacks = get_knight_attacks},
-[BISHOP] = {.color = BLACK, .code = 'b', .asci = 'b', .unicode = "♝ ", .piece = BISHOP,  .attacks = get_bishop_attacks},
-  [ROOK] = {.color = BLACK, .code = 'r', .asci = 'r', .unicode = "♜ ",   .piece = ROOK,    .attacks = get_rook_attacks},
- [QUEEN] = {.color = BLACK, .code = 'q', .asci = 'q', .unicode = "♛ ",  .piece = QUEEN,   .attacks = get_queen_attacks},
-  [KING] = {.color = BLACK, .code = 'k', .asci = 'k', .unicode = "♚ ",   .piece = KING,    .attacks = get_king_attacks},
+  [PAWN] = {.color = BLACK, .code = 'p', .asci = 'p', .unicode = "♟ ",   .piece = PAWN,  .attacks = get_bpawn_attacks},
+[KNIGHT] = {.color = BLACK, .code = 'n', .asci = 'n', .unicode = "♞ ", .piece = KNIGHT, .attacks = get_knight_attacks},
+[BISHOP] = {.color = BLACK, .code = 'b', .asci = 'b', .unicode = "♝ ", .piece = BISHOP, .attacks = get_bishop_attacks},
+  [ROOK] = {.color = BLACK, .code = 'r', .asci = 'r', .unicode = "♜ ",   .piece = ROOK,   .attacks = get_rook_attacks},
+ [QUEEN] = {.color = BLACK, .code = 'q', .asci = 'q', .unicode = "♛ ",  .piece = QUEEN,  .attacks = get_queen_attacks},
+  [KING] = {.color = BLACK, .code = 'k', .asci = 'k', .unicode = "♚ ",   .piece = KING,   .attacks = get_king_attacks},
     },
 };
 // clang-format on
@@ -142,12 +142,11 @@ U64 CBoard_piece_attacks(CBoard_T self, Piece_T Piece, Square src) {
   return Piece_attacks(Piece)(src, CBoard_occupancy(self));
 }
 
-void CBoard_piece_capture(CBoard_T self, Piece_T Piece, Square source,
-                          Square target) {
-  Piece_T taken;
+void CBoard_piece_capture(CBoard_T self, Piece_T Piece, Piece_T Taken,
+                          Square source, Square target) {
   CBoard_piece_pop(self, Piece, source);
-  if ((taken = CBoard_square_piece(self, target, !self->side)))
-    CBoard_piece_pop(self, taken, target);
+  if (Taken)
+    CBoard_piece_pop(self, Taken, target);
   CBoard_piece_set(self, Piece, target);
 }
 

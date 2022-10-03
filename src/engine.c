@@ -25,28 +25,37 @@
 
 typedef U32 Move;
 
-Move Move_encode(Square src, Square tgt, Piece_T Piece, Piece_T Promotion,
-                 int capture, int dbl, int enpassant, int castle) {
-  assert(Piece);
-  int prom = (Promotion == 0) ? 0 : Piece_index(Promotion);
-  return (src) | (tgt << 6) | (Piece_index(Piece) << 12) | (prom << 16) |
-         (capture << 20) | (dbl << 21) | (enpassant << 22) | (castle << 23);
+Move Move_encode(Square src, Square tgt, Piece_T Piece, Piece_T Capture,
+                 Piece_T Promote, int dbl, int enpassant, int castle) {
+  Move move = C32(0);
+  move |= (src) | (tgt << 6) | (dbl << 27) | (enpassant << 28) | (castle << 29);
+  move |= (Piece_index(Piece) << 12);
+  if (Capture != NULL) {
+    move |= (Piece_index(Capture) << 17);
+    move |= (1 << 30);
+  }
+
+  if (Promote != NULL) {
+    move |= (Piece_index(Promote) << 22);
+    move |= (1 << 31);
+  }
+
+  return move;
 }
 
-#define Move_source(move)    (((move)&C32(0x00003f)))
-#define Move_target(move)    (((move)&C32(0x000fc0)) >> 6)
-#define Move_piece(move)     Piece_fromIndex((((move)&C32(0x00f000)) >> 12))
-#define Move_capture(move)   (((move)&C32(0x100000)) >> 20)
-#define Move_double(move)    (((move)&C32(0x200000)) >> 21)
-#define Move_enpassant(move) (((move)&C32(0x400000)) >> 22)
-#define Move_castle(move)    (((move)&C32(0x800000)) >> 23)
+#define Move_source(move)    (((move)&C32(0x0000003f)))
+#define Move_target(move)    (((move)&C32(0x00000fc0)) >> 6)
+#define Move_double(move)    (((move)&C32(0x08000000)) >> 27)
+#define Move_enpassant(move) (((move)&C32(0x10000000)) >> 28)
+#define Move_castle(move)    (((move)&C32(0x20000000)) >> 29)
+#define Move_capture(move)   (((move)&C32(0x40000000)) >> 30)
+#define Move_promote(move)   (((move)&C32(0x80000000)) >> 31)
 
-Piece_T Move_promote(Move move) {
-  int index = (move & C32(0x0f0000)) >> 16;
-  if (!index)
-    return NULL;
-  return Piece_fromIndex(index);
-}
+#define Move_piece(move) (Piece_fromIndex(((move)&C32(0x0001F000)) >> 12))
+#define Move_piece_capture(move)                                               \
+  (assert(Move_capture(move)), Piece_fromIndex(((move)&C32(0x003E0000)) >> 17))
+#define Move_piece_promote(move)                                               \
+  (assert(Move_promote(move)), Piece_fromIndex(((move)&C32(0x07C00000)) >> 22))
 
 // clang-format off
 const int castling_rights[64] = {
@@ -196,10 +205,10 @@ Stats_T Stats_new(void) {
 
 void Stats_free(Stats_T *p) { FREE(*p); }
 
-int Move_score(Stats_T stats, CBoard_T board, Move move) {
+int Move_score(Stats_T stats, Move move) {
   if (Move_capture(move)) {
-    return Score_capture(CBoard_piece_get(board, Move_source(move)),
-                         CBoard_piece_get(board, Move_target(move)));
+    return Score_capture(Piece_piece(Move_piece(move)),
+                         Piece_piece(Move_piece_capture(move)));
   } else {
     if (stats->killer_moves[0][stats->ply] == move)
       return 9000;
@@ -214,13 +223,15 @@ int Move_score(Stats_T stats, CBoard_T board, Move move) {
 }
 
 void Move_print(Move move) {
-  printf("%5s %5s %5s %5c %4d %4d %4d %4d\n",
+  printf("%5s %5s  %2s  %2s   %2s %4d %4d %4d %4d %4d\n",
          square_to_coordinates[Move_source(move)],
          square_to_coordinates[Move_target(move)],
          Piece_unicode(Move_piece(move)),
-         Move_promote(move) ? Piece_asci(Move_promote(move)) : 'X',
-         Move_capture(move) ? 1 : 0, Move_double(move) ? 1 : 0,
-         Move_enpassant(move) ? 1 : 0, Move_castle(move) ? 1 : 0);
+         Move_capture(move) ? Piece_unicode(Move_piece_capture(move)) : "X ",
+         Move_promote(move) ? Piece_unicode(Move_piece_promote(move)) : "X ",
+         Move_double(move) ? 1 : 0, Move_enpassant(move) ? 1 : 0,
+         Move_castle(move) ? 1 : 0, Move_capture(move) ? 1 : 0,
+         Move_promote(move) ? 1 : 0);
 }
 
 typedef struct MoveList_T *MoveList_T;
@@ -246,16 +257,16 @@ void MoveList_add(MoveList_T self, Move move) {
 }
 
 void MoveList_print(MoveList_T self) {
-  printf(" From    To  Pi  Prmt  Cap  Dbl  Enp  Cst\n");
+  printf(" From    To  Pi  Cap  Prmt  Dbl  Enp  Cst  C   P\n");
   for (int i = 0; i < self->count; i++)
     Move_print(self->moves[i]);
   printf("Total: %d\n", self->count);
 }
 
-void MoveList_sort(Stats_T stats, CBoard_T board, MoveList_T list) {
+void MoveList_sort(Stats_T stats, MoveList_T list) {
   int score[list->count];
   for (int i = 0; i < list->count; i++)
-    score[i] = Move_score(stats, board, list->moves[i]);
+    score[i] = Move_score(stats, list->moves[i]);
 
   for (int i = 0; i < list->count; i++)
     for (int j = i + 1; j < list->count; j++)
@@ -278,9 +289,9 @@ void MoveList_sort(Stats_T stats, CBoard_T board, MoveList_T list) {
   ((color == BLACK && source >= a7 && source <= h7) ||                         \
    (color == WHITE && source >= a2 && source <= h2))
 
-#define pawn_promote(source, target, index, capture)                           \
+#define pawn_promote(source, target, Piece, Capture)                           \
   for (int i = 1; i < 5; i++) {                                                \
-    move = Move_encode(source, target, index, Piece_get(i, color), capture, 0, \
+    move = Move_encode(source, target, Piece, Capture, Piece_get(i, color), 0, \
                        0, 0);                                                  \
     MoveList_add(moves, move);                                                 \
   }
@@ -318,9 +329,13 @@ MoveList_T MoveList_generate(MoveList_T moves, CBoard_T board) {
                      CBoard_colorBB(board, !color);
         bitboard_for_each_bit(tgt, attack) {
           if (pawn_canPromote(color, src)) {
-            pawn_promote(src, tgt, Piece, 1);
+            pawn_promote(src, tgt, Piece,
+                         CBoard_square_piece(board, tgt, !color));
           } else {
-            MoveList_add(moves, Move_encode(src, tgt, Piece, 0, 1, 0, 0, 0));
+            MoveList_add(moves,
+                         Move_encode(src, tgt, Piece,
+                                     CBoard_square_piece(board, tgt, !color), 0,
+                                     0, 0, 0));
           }
         }
       }
@@ -329,8 +344,10 @@ MoveList_T MoveList_generate(MoveList_T moves, CBoard_T board) {
         if (CBoard_enpassant(board) != no_sq &&
             CBoard_piece_attacks(board, Piece, src) &
                 (C64(1) << CBoard_enpassant(board)))
-          MoveList_add(moves, Move_encode(src, CBoard_enpassant(board), Piece,
-                                          0, 1, 0, 1, 0));
+          MoveList_add(moves,
+                       Move_encode(src, CBoard_enpassant(board), Piece,
+                                   CBoard_square_piece(board, tgt, !color), 0,
+                                   0, 1, 0));
       }
     }
   }
@@ -343,8 +360,10 @@ MoveList_T MoveList_generate(MoveList_T moves, CBoard_T board) {
       U64 attack = CBoard_piece_attacks(board, Piece, src) &
                    ~CBoard_colorBB(board, color);
       bitboard_for_each_bit(tgt, attack) {
-        int take = bit_get(CBoard_colorBB(board, !color), tgt);
-        MoveList_add(moves, Move_encode(src, tgt, Piece, 0, take, 0, 0, 0));
+        /* int take = bit_get(CBoard_colorBB(board, !color), tgt); */
+        MoveList_add(moves, Move_encode(src, tgt, Piece,
+                                        CBoard_square_piece(board, tgt, !color),
+                                        0, 0, 0, 0));
       }
     }
   }
@@ -402,11 +421,12 @@ int Move_make(Move move, CBoard_T board, int flag) {
     if (!Move_capture(move))
       CBoard_piece_move(board, Piece, source, target);
     else
-      CBoard_piece_capture(board, Piece, source, target);
+      CBoard_piece_capture(board, Piece, Move_piece_capture(move), source,
+                           target);
 
     if (Move_promote(move)) {
       CBoard_piece_pop(board, Piece, target);
-      CBoard_piece_set(board, Move_promote(move), target);
+      CBoard_piece_set(board, Move_piece_promote(move), target);
     }
 
     {
@@ -485,7 +505,7 @@ int quiescence(Stats_T stats, CBoard_T board, int alpha, int beta) {
 
   copy = CBoard_new();
   moves = MoveList_generate(NULL, board);
-  MoveList_sort(stats, board, moves);
+  MoveList_sort(stats, moves);
 
   for (int i = 0; i < MoveList_size(moves); i++) {
     CBoard_copy(board, copy);
@@ -537,7 +557,7 @@ int negamax(Stats_T stats, CBoard_T board, int alpha, int beta, int depth) {
     depth++;
 
   int legal_moves = 0;
-  MoveList_sort(stats, board, list);
+  MoveList_sort(stats, list);
   for (int i = 0; i < MoveList_size(list); i++) {
     Move move = MoveList_move(list, i);
 
@@ -593,7 +613,7 @@ void Move_print_UCI(Move move) {
   printf("%s%s", square_to_coordinates[Move_source(move)],
          square_to_coordinates[Move_target(move)]);
   if (Move_promote(move))
-    printf(" %c", Piece_asci(Move_promote(move)));
+    printf(" %c", Piece_asci(Move_piece_promote(move)));
 }
 
 void search_position(CBoard_T board, int depth) {
@@ -694,7 +714,7 @@ Move parse_move(CBoard_T board, char *move_string) {
     Move move = moves->moves[i];
     if (Move_source(move) == source && Move_target(move) == target) {
       if (move_string[4]) {
-        if (tolower(Piece_code(Move_promote(move))) != move_string[4])
+        if (tolower(Piece_code(Move_piece_promote(move))) != move_string[4])
           continue;
       }
       result = move;
@@ -822,6 +842,7 @@ void perft_driver(CBoard_T board, int depth) {
     perft_driver(copy, depth - 1);
   }
   MoveList_reset(list);
+  CBoard_free(&copy);
 }
 
 void perft_test(CBoard_T board, int depth) {
@@ -844,6 +865,7 @@ void perft_test(CBoard_T board, int depth) {
            square_to_coordinates[Move_target(move)], old_nodes);
   }
   MoveList_reset(list);
+  CBoard_free(&copy);
 
   printf("\nNodes searched: %ld\n\n", nodes);
   return;
@@ -863,7 +885,6 @@ int main(void) {
   init_all();
   int debug = 1;
   if (debug) {
-    printf("debugging!\n");
     CBoard_T      board = NULL;
     MoveList_T    list = NULL;
     Instruction_T inst = NULL;
@@ -872,7 +893,10 @@ int main(void) {
 
     board = CBoard_fromFEN(board, tricky_position);
     CBoard_print(board);
-    search_position(board, 5);
+    /* MoveList_print(MoveList_generate(NULL, board)); */
+    perft_test(board, 5);
+    /* search_position(board, 5); */
+    CBoard_free(&board);
   } else
     uci_loop();
   return 0;

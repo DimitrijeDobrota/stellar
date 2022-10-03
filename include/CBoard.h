@@ -37,8 +37,7 @@ void   CBoard_enpassant_set(CBoard_T self, Square target);
 
 U64  CBoard_pieceSet(CBoard_T self, Piece_T piece);
 U64  CBoard_piece_attacks(CBoard_T self, Piece_T Piece, Square src);
-void CBoard_piece_capture(CBoard_T self, Piece_T Piece, Square source,
-                          Square target);
+void CBoard_piece_capture(CBoard_T self, Piece_T Piece, Piece_T Taken, Square source, Square target);
 void CBoard_piece_move(CBoard_T self, Piece_T Piece, Square square,
                        Square target);
 void CBoard_piece_pop(CBoard_T self, Piece_T Piece, Square square);
