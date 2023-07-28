@@ -7,8 +7,8 @@
 #include "attack.h"
 #include "utils.h"
 
-#include <cii/assert.h>
-#include <cii/mem.h>
+#include <cul/assert.h>
+#include <cul/mem.h>
 
 /* DEBUGGING */
 

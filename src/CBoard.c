@@ -2,8 +2,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <cii/assert.h>
-#include <cii/mem.h>
+#include <cul/assert.h>
+#include <cul/mem.h>
 
 #include "CBoard.h"
 #include "attack.h"
