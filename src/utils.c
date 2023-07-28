@@ -38,50 +38,48 @@ const char *square_to_coordinates[]={
 // clang-format on
 //
 Square coordinates_to_square(char *cord) {
-  return (cord[1] - '1') * 8 + (cord[0] - 'a');
+    return (cord[1] - '1') * 8 + (cord[0] - 'a');
 }
 
 int bit_count(U64 bitboard) {
-  int count = 0;
+    int count = 0;
 
-  while (bitboard > 0) {
-    count++;
-    bitboard &= bitboard - 1;
-  }
+    while (bitboard > 0) {
+        count++;
+        bitboard &= bitboard - 1;
+    }
 
-  return count;
+    return count;
 }
 
 int bit_lsb_index(U64 bitboard) {
-  if (!bitboard)
-    return -1;
+    if (!bitboard) return -1;
 
-  return bit_count((bitboard & -bitboard) - 1);
+    return bit_count((bitboard & -bitboard) - 1);
 }
 
 void bitboard_print(U64 bitboard) {
-  for (int rank = 0; rank < 8; rank++) {
-    for (int file = 0; file < 8; file++) {
-      Square square = (7 - rank) * 8 + file;
+    for (int rank = 0; rank < 8; rank++) {
+        for (int file = 0; file < 8; file++) {
+            Square square = (7 - rank) * 8 + file;
 
-      if (!file)
-        printf(" %d  ", 8 - rank);
+            if (!file) printf(" %d  ", 8 - rank);
 
-      printf("%d ", bit_get(bitboard, square) ? 1 : 0);
+            printf("%d ", bit_get(bitboard, square) ? 1 : 0);
+        }
+        printf("\n");
     }
-    printf("\n");
-  }
 
-  printf("\n    A B C D E F G H\n\n");
-  printf("    Bitboard: %llud\n\n", bitboard);
+    printf("\n    A B C D E F G H\n\n");
+    printf("    Bitboard: %llud\n\n", bitboard);
 }
 
 int get_time_ms(void) {
 #ifdef WIN64
-  return GetTickCount();
+    return GetTickCount();
 #else
-  struct timeval time;
-  gettimeofday(&time, NULL);
-  return time.tv_sec * 1000 + time.tv_usec / 1000;
+    struct timeval time;
+    gettimeofday(&time, NULL);
+    return time.tv_sec * 1000 + time.tv_usec / 1000;
 #endif
 }
