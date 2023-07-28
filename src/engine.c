@@ -1,4 +1,5 @@
 #include <ctype.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -23,42 +24,49 @@
 #define cmk_position                                                           \
     "r2q1rk1/ppp2ppp/2n1bn2/2b1p3/3pP3/3P1NPP/PPP1NPB1/R1BQ1RK1 b - - 0 9 "
 
-typedef U32 Move;
+typedef struct Move Move;
+struct Move {
+    unsigned source : 6;
+    unsigned target : 6;
+    unsigned piece : 5;
+    unsigned piece_capture : 5;
+    unsigned piece_promote : 5;
+    unsigned dbl : 1;
+    unsigned enpassant : 1;
+    unsigned castle : 1;
+    unsigned capture : 1;
+    unsigned promote : 1;
+};
+
+int Move_cmp(Move a, Move b) { return *(uint32_t *)&a == *(uint32_t *)&b; }
 
 Move Move_encode(Square src, Square tgt, Piece_T Piece, Piece_T Capture,
                  Piece_T Promote, int dbl, int enpassant, int castle) {
-    Move move = C32(0);
-    move |=
-        (src) | (tgt << 6) | (dbl << 27) | (enpassant << 28) | (castle << 29);
-    move |= (Piece_index(Piece) << 12);
-    if (Capture != NULL) {
-        move |= (Piece_index(Capture) << 17);
-        move |= (1 << 30);
-    }
-
-    if (Promote != NULL) {
-        move |= (Piece_index(Promote) << 22);
-        move |= (1 << 31);
-    }
-
-    return move;
+    return (Move){
+        .source = src,
+        .target = tgt,
+        .dbl = dbl,
+        .enpassant = enpassant,
+        .castle = castle,
+        .capture = Capture != NULL,
+        .promote = Promote != NULL,
+        .piece = Piece_index(Piece),
+        .piece_capture = Capture ? Piece_index(Capture) : 0,
+        .piece_promote = Promote ? Piece_index(Promote) : 0,
+    };
 }
 
-#define Move_source(move) (((move)&C32(0x0000003f)))
-#define Move_target(move) (((move)&C32(0x00000fc0)) >> 6)
-#define Move_double(move) (((move)&C32(0x08000000)) >> 27)
-#define Move_enpassant(move) (((move)&C32(0x10000000)) >> 28)
-#define Move_castle(move) (((move)&C32(0x20000000)) >> 29)
-#define Move_capture(move) (((move)&C32(0x40000000)) >> 30)
-#define Move_promote(move) (((move)&C32(0x80000000)) >> 31)
+#define Move_source(move) (move.source)
+#define Move_target(move) (move.target)
+#define Move_double(move) (move.dbl)
+#define Move_enpassant(move) (move.enpassant)
+#define Move_castle(move) (move.castle)
+#define Move_capture(move) (move.capture)
+#define Move_promote(move) (move.promote)
 
-#define Move_piece(move) (Piece_fromIndex(((move)&C32(0x0001F000)) >> 12))
-#define Move_piece_capture(move)                                               \
-    (assert(Move_capture(move)),                                               \
-     Piece_fromIndex(((move)&C32(0x003E0000)) >> 17))
-#define Move_piece_promote(move)                                               \
-    (assert(Move_promote(move)),                                               \
-     Piece_fromIndex(((move)&C32(0x07C00000)) >> 22))
+#define Move_piece(move) (Piece_fromIndex(move.piece))
+#define Move_piece_capture(move) (Piece_fromIndex(move.piece_capture))
+#define Move_piece_promote(move) (Piece_fromIndex(move.piece_promote))
 
 // clang-format off
 const int castling_rights[64] = {
@@ -196,7 +204,7 @@ struct Stats_T {
     int pv_length[MAX_PLY];
     Move pv_table[MAX_PLY][MAX_PLY];
     Move killer_moves[2][MAX_PLY];
-    Move history_moves[16][64];
+    U32 history_moves[16][64];
 };
 
 Stats_T Stats_new(void) {
@@ -212,9 +220,9 @@ int Move_score(Stats_T stats, Move move) {
         return Score_capture(Piece_piece(Move_piece(move)),
                              Piece_piece(Move_piece_capture(move)));
     } else {
-        if (stats->killer_moves[0][stats->ply] == move)
+        if (!Move_cmp(stats->killer_moves[0][stats->ply], move))
             return 9000;
-        else if (stats->killer_moves[1][stats->ply] == move)
+        else if (!Move_cmp(stats->killer_moves[1][stats->ply], move))
             return 8000;
         else
             return stats->history_moves[Piece_index(Move_piece(move))]
@@ -716,7 +724,7 @@ char *Instruction_token_next(Instruction_T self) {
 }
 
 Move parse_move(CBoard_T board, char *move_string) {
-    Move result = 0;
+    Move result = {0};
     MoveList_T moves;
     Square source, target;
 
@@ -771,7 +779,7 @@ CBoard_T Instruction_parse(Instruction_T self, CBoard_T board) {
         if (strcmp(token, "moves") == 0) {
             while ((token = Instruction_token_next(self))) {
                 Move move = parse_move(board, token);
-                if (move) {
+                if (!Move_cmp(move, (Move){0})) {
                     Move_make(move, board, 0);
                 } else {
                     printf("Invalid move %s!\n", token);
@@ -969,10 +977,10 @@ int main(void) {
     init_all();
 
     CBoard_T board = NULL;
-    board = CBoard_fromFEN(board, start_position);
+    board = CBoard_fromFEN(board, tricky_position);
     CBoard_print(board);
-    // perft_test(board, 7);
-    perft_test_threaded(board, 7);
+    // perft_test(board, 6);
+    perft_test_threaded(board, 5);
     CBoard_free(&board);
     return 0;
 }
