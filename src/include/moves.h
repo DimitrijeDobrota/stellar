@@ -1,5 +1,5 @@
-#ifndef MOVES_H
-#define MOVES_H
+#ifndef STELLAR_MOVES_H
+#define STELLAR_MOVES_H
 
 #include <stdint.h>
 

@@ -1,5 +1,5 @@
-#ifndef ATTACK_H
-#define ATTACK_H
+#ifndef STELLAR_ATTACK_H
+#define STELLAR_ATTACK_H
 
 #include "utils.h"
 

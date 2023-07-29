@@ -1,5 +1,5 @@
-#ifndef __UTILS_H
-#define __UTILS_H
+#ifndef STELLAR_UTILS_H
+#define STELLAR_UTILS_H
 
 // useful macros
 #define MAX(a, b) ((a > b) ? a : b)

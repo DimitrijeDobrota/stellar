@@ -1,5 +1,5 @@
-#ifndef PIECE_H
-#define PIECE_H
+#ifndef STELLAR_PIECE_H
+#define STELLAR_PIECE_H
 
 #include "attack.h"
 

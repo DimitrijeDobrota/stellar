@@ -1,5 +1,5 @@
-#ifndef PERFT_H
-#define PERFT_H
+#ifndef STELLAR_PERFT_H
+#define STELLAR_PERFT_H
 
 #include "board.h"
 

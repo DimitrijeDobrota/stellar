@@ -1,5 +1,5 @@
-#ifndef BOARD_H
-#define BOARD_H
+#ifndef STELLAR_BOARD_H
+#define STELLAR_BOARD_H
 
 #include "piece.h"
 

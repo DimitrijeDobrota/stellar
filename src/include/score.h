@@ -1,5 +1,5 @@
-#ifndef SCORE_H
-#define SCORE_H
+#ifndef STELLAR_SCORE_H
+#define STELLAR_SCORE_H
 
 #include "board.h"
 
