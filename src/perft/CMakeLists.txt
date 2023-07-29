@@ -1,7 +1,7 @@
 add_executable(perft perft.c)
 
 target_link_libraries(perft
-    PRIVATE attack
+    PRIVATE attacks
     PRIVATE board
     PRIVATE moves
     PRIVATE piece

@@ -1,7 +1,7 @@
 #ifndef STELLAR_PIECE_H
 #define STELLAR_PIECE_H
 
-#include "attack.h"
+#include "attacks.h"
 
 typedef const struct Piece *Piece;
 

@@ -2,7 +2,7 @@
 #include <semaphore.h>
 #include <stdio.h>
 
-#include "attack.h"
+#include "attacks.h"
 #include "board.h"
 #include "moves.h"
 #include "perft.h"
@@ -138,7 +138,7 @@ void perft_test_threaded(Board board, int depth) {
     "r2q1rk1/ppp2ppp/2n1bn2/2b1p3/3pP3/3P1NPP/PPP1NPB1/R1BQ1RK1 b - - 0 9 "
 
 int main(void) {
-    init_attacks();
+    attacks_init();
     Board board = board_new();
     board_from_FEN(board, tricky_position);
     perft_test_threaded(board, 5);

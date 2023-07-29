@@ -1,7 +1,7 @@
-#include "string.h"
+#include "attacks.h"
+#include "piece.h" // BLACK, WHITE
 
-#include "attack.h"
-#include "piece.h"
+#include <string.h>
 
 #define UNUSED(x) (void)(x)
 
@@ -113,68 +113,68 @@ U64 get_random_U64_number() {
 }
 
 // pawn attack table [side][square]
-U64 pawn_attacks[2][64];
+U64 attacks_pawn[2][64];
 
 // knight attack table [square]
-U64 knight_attacks[64];
+U64 attacks_knight[64];
 
 // king attack table [square]
-U64 king_attacks[64];
+U64 attacks_king[64];
 
 // bishop attack mask
-U64 bishop_masks[64];
+U64 attakcs_bishop_masks[64];
 
 // rook attack mask
-U64 rook_masks[64];
+U64 attacks_rook_masks[64];
 
 // bishop attack table [square][occupancies]
-U64 bishop_attacks[64][512]; // 256 K
+U64 attacks_bishop[64][512]; // 256 K
 
 // rook attack table [square][occupancies]
-U64 rook_attacks[64][4096]; // 2048K
+U64 attacks_rook[64][4096]; // 2048K
 
-U64 get_wpawn_attacks(Square square, U64 occupancy){
+U64 attacks_wpawn_get(Square square, U64 occupancy){
   UNUSED(occupancy);
-  return pawn_attacks[WHITE][square];
+  return attacks_pawn[WHITE][square];
 }
 
-U64 get_bpawn_attacks(Square square, U64 occupancy){
+U64 attacks_bpawn_get(Square square, U64 occupancy){
   UNUSED(occupancy);
-  return pawn_attacks[BLACK][square];
+  return attacks_pawn[BLACK][square];
 }
 
-U64 get_knight_attacks(Square square, U64 occupancy){
+U64 attacks_knight_get(Square square, U64 occupancy){
   UNUSED(occupancy);
-  return knight_attacks[square];
+  return attacks_knight[square];
 }
 
-U64 get_king_attacks(Square square, U64 occupancy){
+U64 attakcs_king_get(Square square, U64 occupancy){
   UNUSED(occupancy);
-  return king_attacks[square];
+  return attacks_king[square];
 }
 
-U64 get_bishop_attacks(Square square, U64 occupancy){
-  occupancy &= bishop_masks[square];
+U64 attacks_bishop_get(Square square, U64 occupancy){
+  occupancy &= attakcs_bishop_masks[square];
   occupancy = hash(occupancy, bishop_magic_numbers[square],
                    bishop_relevant_bits[square]);
-  return bishop_attacks[square][occupancy];
+  return attacks_bishop[square][occupancy];
 }
 
-U64 get_rook_attacks(Square square, U64 occupancy){
-  occupancy &= rook_masks[square];
+U64 attacks_rook_get(Square square, U64 occupancy){
+  occupancy &= attacks_rook_masks[square];
   occupancy =
       hash(occupancy, rook_magic_numbers[square], rook_relevant_bits[square]);
-  return rook_attacks[square][occupancy];
+  return attacks_rook[square][occupancy];
 }
 
-U64 get_queen_attacks(Square square, U64 occupancy){
-  return (get_bishop_attacks(square, occupancy) |
-          get_rook_attacks(square, occupancy));
+U64 attacks_queen_get(Square square, U64 occupancy){
+  return (attacks_bishop_get(square, occupancy) |
+          attacks_rook_get(square, occupancy));
 }
 
 
 // generate pawn attack
-U64 mask_pawn_attacks(int side, Square square) {
+U64 attacks_pawn_mask(int side, Square square) {
   U64 bitboard = C64(0);
 
   bit_set(bitboard, square);
@@ -184,7 +184,7 @@ U64 mask_pawn_attacks(int side, Square square) {
     return soWeOne(bitboard) | soEaOne(bitboard);
 }
 
-U64 mask_knight_attacks(Square square) {
+U64 attacks_knight_mask(Square square) {
   U64 bitboard = C64(0), attacks = C64(0), tmp;
 
   bit_set(bitboard, square);
@@ -200,7 +200,7 @@ U64 mask_knight_attacks(Square square) {
   return attacks;
 }
 
-U64 mask_king_attacks(Square square) {
+U64 attacks_king_mask(Square square) {
   U64 bitboard = C64(0), attacks = C64(0);
 
   bit_set(bitboard, square);
@@ -213,7 +213,7 @@ U64 mask_king_attacks(Square square) {
   return attacks;
 }
 
-U64 mask_slide_attacks(Square square, U64 block, const direction_f dir[4],
+U64 attacks_slide_mask(Square square, U64 block, const direction_f dir[4],
                        int len[4]) {
   U64 bitboard = C64(0), attacks = C64(0), tmp;
   int i, j;
@@ -229,44 +229,44 @@ U64 mask_slide_attacks(Square square, U64 block, const direction_f dir[4],
   return attacks;
 }
 
-const direction_f bishop_direction[4] = {noEaOne, noWeOne, soEaOne, soWeOne};
-const direction_f rook_direction[4] = {westOne, soutOne, eastOne, nortOne};
+const direction_f attacks_bishop_direction[4] = { noEaOne, noWeOne, soEaOne, soWeOne };
+const direction_f attacks_rook_direction[4] = { westOne, soutOne, eastOne, nortOne };
 
-U64 mask_bishop_attacks(Square square) {
+U64 attacks_bishop_mask(Square square) {
   int tr = square / 8, tf = square % 8;
   int len[4] = {MIN(7 - tf, 7 - tr) - 1, MIN(tf, 7 - tr) - 1,
                 MIN(7 - tf, tr) - 1, MIN(tf, tr) - 1};
-  return mask_slide_attacks(square, C64(0), bishop_direction, len);
+  return attacks_slide_mask(square, C64(0), attacks_bishop_direction, len);
 }
 
-U64 mask_rook_attacks(Square square) {
+U64 attacks_rook_mask(Square square) {
   int tr = square / 8, tf = square % 8;
   int len[4] = {tf - 1, tr - 1, 6 - tf, 6 - tr};
 
-  return mask_slide_attacks(square, C64(0), rook_direction, len);
+  return attacks_slide_mask(square, C64(0), attacks_rook_direction, len);
 }
 
-U64 bishop_attacks_on_the_fly(Square square, U64 block) {
+U64 attacks_bishop_on_the_fly(Square square, U64 block) {
   int tr = square / 8, tf = square % 8;
   int len[4] = {MIN(7 - tf, 7 - tr), MIN(tf, 7 - tr), MIN(7 - tf, tr),
                 MIN(tf, tr)};
 
-  return mask_slide_attacks(square, block, bishop_direction, len);
+  return attacks_slide_mask(square, block, attacks_bishop_direction, len);
 }
 
-U64 rook_attacks_on_the_fly(Square square, U64 block) {
+U64 attacks_rook_on_the_fly(Square square, U64 block) {
   int tr = square / 8, tf = square % 8;
   int len[4] = {tf, tr, 7 - tf, 7 - tr};
 
-  return mask_slide_attacks(square, block, rook_direction, len);
+  return attacks_slide_mask(square, block, attacks_rook_direction, len);
 }
 
-void init_leapers_attacks(void) {
+void attacks_init_leapers(void) {
   for (Square square = 0; square < 64; square++) {
-    pawn_attacks[WHITE][square] = mask_pawn_attacks(WHITE, square);
-    pawn_attacks[BLACK][square] = mask_pawn_attacks(BLACK, square);
-    knight_attacks[square] = mask_knight_attacks(square);
-    king_attacks[square] = mask_king_attacks(square);
+    attacks_pawn[WHITE][square] = attacks_pawn_mask(WHITE, square);
+    attacks_pawn[BLACK][square] = attacks_pawn_mask(BLACK, square);
+    attacks_knight[square] = attacks_knight_mask(square);
+    attacks_king[square] = attacks_king_mask(square);
   }
 }
 
@@ -284,16 +284,16 @@ U64 set_occupancy(int index, int bits_in_mask, U64 attack_mask) {
   return occupancy;
 }
 
-void init_sliders_attacks_internal(int bishop) {
+void attacks_init_sliders(int bishop) {
   for (Square square = 0; square < 64; square++) {
     U64 attack_mask;
 
     if (bishop) {
-      bishop_masks[square] = mask_bishop_attacks(square);
-      attack_mask = bishop_masks[square];
+      attakcs_bishop_masks[square] = attacks_bishop_mask(square);
+      attack_mask = attakcs_bishop_masks[square];
     } else {
-      rook_masks[square] = mask_rook_attacks(square);
-      attack_mask = rook_masks[square];
+      attacks_rook_masks[square] = attacks_rook_mask(square);
+      attack_mask = attacks_rook_masks[square];
     }
 
     int relevant_bits = bit_count(attack_mask);
@@ -304,21 +304,22 @@ void init_sliders_attacks_internal(int bishop) {
       if (bishop) {
         int magic_index = (occupancy * bishop_magic_numbers[square]) >>
                           (64 - bishop_relevant_bits[square]);
-        bishop_attacks[square][magic_index] =
-            bishop_attacks_on_the_fly(square, occupancy);
+        attacks_bishop[square][magic_index] =
+            attacks_bishop_on_the_fly(square, occupancy);
       } else {
         int magic_index = hash(occupancy, rook_magic_numbers[square],
                                rook_relevant_bits[square]);
-        rook_attacks[square][magic_index] =
-            rook_attacks_on_the_fly(square, occupancy);
+        attacks_rook[square][magic_index] =
+            attacks_rook_on_the_fly(square, occupancy);
       }
     }
   }
 }
 
-void init_sliders_attacks(void) {
-  init_sliders_attacks_internal(0);
-  init_sliders_attacks_internal(1);
+void attacks_init(void) {
+    attacks_init_leapers();
+    attacks_init_sliders(WHITE);
+    attacks_init_sliders(BLACK);
 }
 
 // magic numbers
@@ -331,14 +332,14 @@ U64 generate_magic_number() {
 U64 find_magic_number(Square square, int relevant_bits, int bishop) {
   U64 occupancies[4096], attacks[4096], used_attacks[4096];
   U64 attack_mask =
-      bishop ? mask_bishop_attacks(square) : mask_rook_attacks(square);
+      bishop ? attacks_bishop_mask(square) : attacks_rook_mask(square);
   int occupancy_indicies = 1 << relevant_bits;
 
   for (int index = 0; index < occupancy_indicies; index++) {
     occupancies[index] = set_occupancy(index, relevant_bits, attack_mask);
     attacks[index] = bishop
-                         ? bishop_attacks_on_the_fly(square, occupancies[index])
-                         : rook_attacks_on_the_fly(square, occupancies[index]);
+                         ? attacks_bishop_on_the_fly(square, occupancies[index])
+                         : attacks_rook_on_the_fly(square, occupancies[index]);
   }
 
   for (int random_count = 0; random_count < 100000000; random_count++) {
@@ -363,9 +364,4 @@ U64 find_magic_number(Square square, int relevant_bits, int bishop) {
   }
 
   return C64(0);
-}
-
-void init_attacks(void) {
-    init_leapers_attacks();
-    init_sliders_attacks();
 }

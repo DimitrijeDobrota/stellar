@@ -1,7 +1,7 @@
 add_executable(engine engine.c)
 
 target_link_libraries(engine
-    PRIVATE attack
+    PRIVATE attacks
     PRIVATE board
     PRIVATE moves
     PRIVATE piece

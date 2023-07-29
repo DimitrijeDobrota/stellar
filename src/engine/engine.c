@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "attack.h"
+#include "attacks.h"
 #include "board.h"
 #include "moves.h"
 #include "perft.h"
@@ -418,7 +418,7 @@ void uci_loop(void) {
 /* MAIN */
 
 int main(void) {
-    init_attacks();
+    attacks_init();
     uci_loop();
     return 0;
 }
