@@ -249,7 +249,7 @@ void search_position(CBoard_T board, int depth) {
 }
 
 void print_info(void) {
-    printf("id name chessTrainer\n");
+    printf("id name Stellar\n");
     printf("id author Dimitrije Dobrota\n");
     printf("uciok\n");
 }
@@ -360,7 +360,7 @@ CBoard_T Instruction_parse(Instruction_T self, CBoard_T board) {
             } else {
                 printf("Unknown argument after position\n");
             }
-            CBoard_print(board);
+            // CBoard_print(board);
             continue;
         }
 
@@ -373,13 +373,13 @@ CBoard_T Instruction_parse(Instruction_T self, CBoard_T board) {
                     printf("Invalid move %s!\n", token);
                 }
             }
-            CBoard_print(board);
+            // CBoard_print(board);
             return board;
         }
 
         if (strcmp(token, "go") == 0) {
             token = Instruction_token_next(self);
-            int depth = 6;
+            int depth = 5;
             if (token && strcmp(token, "depth") == 0) {
                 token = Instruction_token_next(self);
                 depth = atoi(token);
@@ -408,7 +408,7 @@ CBoard_T Instruction_parse(Instruction_T self, CBoard_T board) {
 void uci_loop(void) {
     CBoard_T board = NULL;
     Instruction_T instruction;
-    char input[2000];
+    char input[200000];
 
     setbuf(stdin, NULL);
     setbuf(stdout, NULL);
@@ -437,12 +437,6 @@ void init_all() {
 
 int main(void) {
     init_all();
-
-    CBoard_T board = NULL;
-    board = CBoard_fromFEN(board, tricky_position);
-    CBoard_print(board);
-    // perft_test(board, 6);
-    perft_test_threaded(board, 5);
-    CBoard_free(&board);
+    uci_loop();
     return 0;
 }

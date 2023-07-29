@@ -2,10 +2,10 @@ cmake_minimum_required(VERSION 3.25.2)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 project(
-    Engine
+    Stellar
 	VERSION 0.0.0
-    DESCRIPTION "Chess engine and utilities"
-	HOMEPAGE_URL https://git.dimitrijedobrota.com/engine.git
+    DESCRIPTION "Chess engine written in C"
+	HOMEPAGE_URL https://git.dimitrijedobrota.com/stellar.git
 	LANGUAGES C
 )
 
