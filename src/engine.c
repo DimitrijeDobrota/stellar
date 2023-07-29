@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "CBoard.h"
+#include "board.h"
 #include "attack.h"
 #include "moves.h"
 #include "perft.h"
@@ -46,27 +46,27 @@ Stats_T Stats_new(void) {
 
 void Stats_free(Stats_T *p) { FREE(*p); }
 
-int Move_score(Stats_T stats, Move move) {
-    if (Move_capture(move)) {
-        return Score_capture(Piece_piece(Move_piece(move)),
-                             Piece_piece(Move_piece_capture(move)));
+int move_score(Stats_T stats, Move move) {
+    if (move_capture(move)) {
+        return Score_capture(Piece_piece(move_piece(move)),
+                             Piece_piece(move_piece_capture(move)));
     } else {
-        if (!Move_cmp(stats->killer_moves[0][stats->ply], move))
+        if (!move_cmp(stats->killer_moves[0][stats->ply], move))
             return 9000;
-        else if (!Move_cmp(stats->killer_moves[1][stats->ply], move))
+        else if (!move_cmp(stats->killer_moves[1][stats->ply], move))
             return 8000;
         else
-            return stats->history_moves[Piece_index(Move_piece(move))]
-                                       [Move_target(move)];
+            return stats->history_moves[Piece_index(move_piece(move))]
+                                       [move_target(move)];
     }
 
     return 0;
 }
 
-void MoveList_sort(Stats_T stats, MoveList_T list) {
+void move_list_sort(Stats_T stats, MoveList list) {
     int score[list->count];
     for (int i = 0; i < list->count; i++)
-        score[i] = Move_score(stats, list->moves[i]);
+        score[i] = move_score(stats, list->moves[i]);
 
     for (int i = 0; i < list->count; i++)
         for (int j = i + 1; j < list->count; j++)
@@ -83,14 +83,14 @@ void MoveList_sort(Stats_T stats, MoveList_T list) {
 
 /* SEARCHING */
 
-int evaluate(CBoard_T board) {
+int evaluate(Board board) {
     Square square;
-    eColor side = CBoard_side(board);
-    U64 occupancy = CBoard_colorBB(board, side);
+    eColor side = board_side(board);
+    U64 occupancy = board_colorBB(board, side);
 
     int score = 0;
     for (int i = 0; i < 6; i++) {
-        U64 bitboard = CBoard_pieceBB(board, i);
+        U64 bitboard = board_pieceBB(board, i);
         bitboard_for_each_bit(square, bitboard) {
             if (bit_get(occupancy, square)) {
                 score += Score_value(i);
@@ -105,9 +105,9 @@ int evaluate(CBoard_T board) {
     return score;
 }
 
-int quiescence(Stats_T stats, CBoard_T board, int alpha, int beta) {
-    MoveList_T moves;
-    CBoard_T copy;
+int quiescence(Stats_T stats, Board board, int alpha, int beta) {
+    MoveList moves;
+    Board copy;
 
     int eval = evaluate(board);
     stats->nodes++;
@@ -120,22 +120,22 @@ int quiescence(Stats_T stats, CBoard_T board, int alpha, int beta) {
         alpha = eval;
     }
 
-    copy = CBoard_new();
-    moves = MoveList_generate(NULL, board);
-    MoveList_sort(stats, moves);
+    copy = board_new();
+    moves = move_list_generate(NULL, board);
+    move_list_sort(stats, moves);
 
-    for (int i = 0; i < MoveList_size(moves); i++) {
-        CBoard_copy(board, copy);
+    for (int i = 0; i < move_list_size(moves); i++) {
+        board_copy(board, copy);
 
-        if (Move_make(MoveList_move(moves, i), copy, 1) == 0) continue;
+        if (move_make(move_list_move(moves, i), copy, 1) == 0) continue;
 
         stats->ply++;
         int score = -quiescence(stats, copy, -beta, -alpha);
         stats->ply--;
 
         if (score >= beta) {
-            MoveList_free(&moves);
-            CBoard_free(&copy);
+            move_list_free(&moves);
+            board_free(&copy);
             return beta;
         }
 
@@ -144,14 +144,14 @@ int quiescence(Stats_T stats, CBoard_T board, int alpha, int beta) {
         }
     }
 
-    MoveList_free(&moves);
-    CBoard_free(&copy);
+    move_list_free(&moves);
+    board_free(&copy);
     return alpha;
 }
 
-int negamax(Stats_T stats, CBoard_T board, int alpha, int beta, int depth) {
-    MoveList_T list;
-    CBoard_T copy;
+int negamax(Stats_T stats, Board board, int alpha, int beta, int depth) {
+    MoveList list;
+    Board copy;
     int isCheck = 0;
     int ply = stats->ply;
 
@@ -163,19 +163,19 @@ int negamax(Stats_T stats, CBoard_T board, int alpha, int beta, int depth) {
 
     stats->nodes++;
 
-    copy = CBoard_new();
-    list = MoveList_generate(NULL, board);
-    isCheck = CBoard_isCheck(board);
+    copy = board_new();
+    list = move_list_generate(NULL, board);
+    isCheck = board_isCheck(board);
 
     if (isCheck) depth++;
 
     int legal_moves = 0;
-    MoveList_sort(stats, list);
-    for (int i = 0; i < MoveList_size(list); i++) {
-        Move move = MoveList_move(list, i);
+    move_list_sort(stats, list);
+    for (int i = 0; i < move_list_size(list); i++) {
+        Move move = move_list_move(list, i);
 
-        CBoard_copy(board, copy);
-        if (Move_make(move, copy, 0) == 0) {
+        board_copy(board, copy);
+        if (move_make(move, copy, 0) == 0) {
             continue;
         }
 
@@ -185,19 +185,19 @@ int negamax(Stats_T stats, CBoard_T board, int alpha, int beta, int depth) {
         legal_moves++;
 
         if (score >= beta) {
-            if (!Move_capture(move)) {
+            if (!move_capture(move)) {
                 stats->killer_moves[1][ply] = stats->killer_moves[0][ply];
                 stats->killer_moves[0][ply] = move;
             }
-            MoveList_free(&list);
-            CBoard_free(&copy);
+            move_list_free(&list);
+            board_free(&copy);
             return beta;
         }
 
         if (score > alpha) {
-            if (!Move_capture(move))
-                stats->history_moves[Piece_index(Move_piece(move))]
-                                    [Move_target(move)] += depth;
+            if (!move_capture(move))
+                stats->history_moves[Piece_index(move_piece(move))]
+                                    [move_target(move)] += depth;
             alpha = score;
 
             stats->pv_table[ply][ply] = move;
@@ -214,18 +214,18 @@ int negamax(Stats_T stats, CBoard_T board, int alpha, int beta, int depth) {
             return 0;
     }
 
-    MoveList_free(&list);
-    CBoard_free(&copy);
+    move_list_free(&list);
+    board_free(&copy);
     return alpha;
 }
 
-void Move_print_UCI(Move move) {
-    printf("%s%s", square_to_coordinates[Move_source(move)],
-           square_to_coordinates[Move_target(move)]);
-    if (Move_promote(move)) printf(" %c", Piece_asci(Move_piece_promote(move)));
+void move_print_UCI(Move move) {
+    printf("%s%s", square_to_coordinates[move_source(move)],
+           square_to_coordinates[move_target(move)]);
+    if (move_promote(move)) printf(" %c", Piece_asci(move_piece_promote(move)));
 }
 
-void search_position(CBoard_T board, int depth) {
+void search_position(Board board, int depth) {
     Stats_T stats = Stats_new();
 
     for (int crnt = 1; crnt <= depth; crnt++) {
@@ -235,14 +235,14 @@ void search_position(CBoard_T board, int depth) {
                stats->nodes);
 
         for (int i = 0; i < stats->pv_length[0]; i++) {
-            Move_print_UCI(stats->pv_table[0][i]);
+            move_print_UCI(stats->pv_table[0][i]);
             printf(" ");
         }
         printf("\n");
     }
 
     printf("bestmove ");
-    Move_print_UCI(stats->pv_table[0][0]);
+    move_print_UCI(stats->pv_table[0][0]);
     printf("\n");
 
     Stats_free(&stats);
@@ -311,20 +311,20 @@ char *Instruction_token_next(Instruction_T self) {
     return Instruction_token_n(self, 1);
 }
 
-Move parse_move(CBoard_T board, char *move_string) {
+Move parse_move(Board board, char *move_string) {
     Move result = {0};
-    MoveList_T moves;
+    MoveList moves;
     Square source, target;
 
     source = coordinates_to_square(move_string);
     target = coordinates_to_square(move_string + 2);
 
-    moves = MoveList_generate(NULL, board);
+    moves = move_list_generate(NULL, board);
     for (int i = 0; i < moves->count; i++) {
         Move move = moves->moves[i];
-        if (Move_source(move) == source && Move_target(move) == target) {
+        if (move_source(move) == source && move_target(move) == target) {
             if (move_string[4]) {
-                if (tolower(Piece_code(Move_piece_promote(move))) !=
+                if (tolower(Piece_code(move_piece_promote(move))) !=
                     move_string[4])
                     continue;
             }
@@ -333,18 +333,18 @@ Move parse_move(CBoard_T board, char *move_string) {
         }
     }
 
-    MoveList_free(&moves);
+    move_list_free(&moves);
     return result;
 }
 
-CBoard_T Instruction_parse(Instruction_T self, CBoard_T board) {
+Board Instruction_parse(Instruction_T self, Board board) {
     char *token = Instruction_token(self);
 
-    if (!board) board = CBoard_new();
+    if (!board) board = board_new();
 
     do {
         if (strcmp(token, "ucinewgame") == 0) {
-            board = CBoard_fromFEN(board, start_position);
+            board = board_fromFEN(board, start_position);
             continue;
         }
 
@@ -353,27 +353,27 @@ CBoard_T Instruction_parse(Instruction_T self, CBoard_T board) {
         if (strcmp(token, "position") == 0) {
             token = Instruction_token_next(self);
             if (token && strcmp(token, "startpos") == 0) {
-                board = CBoard_fromFEN(board, start_position);
+                board = board_fromFEN(board, start_position);
             } else if (token && strcmp(token, "fen") == 0) {
                 token = Instruction_token_n(self, 6);
-                board = CBoard_fromFEN(board, token);
+                board = board_fromFEN(board, token);
             } else {
                 printf("Unknown argument after position\n");
             }
-            // CBoard_print(board);
+            // board_print(board);
             continue;
         }
 
         if (strcmp(token, "moves") == 0) {
             while ((token = Instruction_token_next(self))) {
                 Move move = parse_move(board, token);
-                if (!Move_cmp(move, (Move){0})) {
-                    Move_make(move, board, 0);
+                if (!move_cmp(move, (Move){0})) {
+                    move_make(move, board, 0);
                 } else {
                     printf("Invalid move %s!\n", token);
                 }
             }
-            // CBoard_print(board);
+            // board_print(board);
             return board;
         }
 
@@ -406,7 +406,7 @@ CBoard_T Instruction_parse(Instruction_T self, CBoard_T board) {
 }
 
 void uci_loop(void) {
-    CBoard_T board = NULL;
+    Board board = NULL;
     Instruction_T instruction;
     char input[200000];
 
@@ -425,7 +425,7 @@ void uci_loop(void) {
     }
 
     Instruction_free(&instruction);
-    CBoard_free(&board);
+    board_free(&board);
 }
 
 /* MAIN */

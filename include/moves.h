@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#include "CBoard.h"
+#include "board.h"
 
 typedef struct Move Move;
 struct Move {
@@ -19,36 +19,36 @@ struct Move {
     unsigned promote : 1;
 };
 
-typedef struct MoveList_T *MoveList_T;
-struct MoveList_T {
+typedef struct MoveList *MoveList;
+struct MoveList {
     Move moves[256];
     int count;
 };
 
-int Move_cmp(Move a, Move b);
-Move Move_encode(Square src, Square tgt, Piece_T Piece, Piece_T Capture,
-                 Piece_T Promote, int dbl, int enpassant, int castle);
-void Move_print(Move move);
-MoveList_T MoveList_new(void);
-void MoveList_free(MoveList_T *p);
-Move MoveList_move(MoveList_T self, int index);
-int MoveList_size(MoveList_T self);
-void MoveList_reset(MoveList_T self);
-void MoveList_add(MoveList_T self, Move move);
-void MoveList_print(MoveList_T self);
-MoveList_T MoveList_generate(MoveList_T moves, CBoard_T board);
-int Move_make(Move move, CBoard_T board, int flag);
+int move_cmp(Move a, Move b);
+Move move_encode(Square src, Square tgt, Piece piece, Piece capture,
+                 Piece promote, int dbl, int enpassant, int castle);
+void move_print(Move move);
+MoveList move_list_new(void);
+void move_list_free(MoveList *p);
+Move move_list_move(MoveList self, int index);
+int move_list_size(MoveList self);
+void move_list_reset(MoveList self);
+void move_list_add(MoveList self, Move move);
+void move_list_print(MoveList self);
+MoveList move_list_generate(MoveList moves, Board board);
+int move_make(Move move, Board board, int flag);
 
-#define Move_source(move) (move.source)
-#define Move_target(move) (move.target)
-#define Move_double(move) (move.dbl)
-#define Move_enpassant(move) (move.enpassant)
-#define Move_castle(move) (move.castle)
-#define Move_capture(move) (move.capture)
-#define Move_promote(move) (move.promote)
+#define move_source(move) (move.source)
+#define move_target(move) (move.target)
+#define move_double(move) (move.dbl)
+#define move_enpassant(move) (move.enpassant)
+#define move_castle(move) (move.castle)
+#define move_capture(move) (move.capture)
+#define move_promote(move) (move.promote)
 
-#define Move_piece(move) (Piece_fromIndex(move.piece))
-#define Move_piece_capture(move) (Piece_fromIndex(move.piece_capture))
-#define Move_piece_promote(move) (Piece_fromIndex(move.piece_promote))
+#define move_piece(move) (Piece_fromIndex(move.piece))
+#define move_piece_capture(move) (Piece_fromIndex(move.piece_capture))
+#define move_piece_promote(move) (Piece_fromIndex(move.piece_promote))
 
 #endif

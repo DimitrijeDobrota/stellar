@@ -1,7 +1,7 @@
 #ifndef SCORE_H
 #define SCORE_H
 
-#include "CBoard.h"
+#include "board.h"
 
 int Score_capture(ePiece src, ePiece tgt);
 int Score_position(ePiece piece, eColor color, Square square);

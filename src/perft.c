@@ -5,49 +5,49 @@
 #include "moves.h"
 #include "perft.h"
 
-struct MoveList_T moveList[10];
+struct MoveList moveList[10];
 long nodes;
 
-void perft_driver(CBoard_T board, struct MoveList_T *moveList, int depth,
+void perft_driver(Board board, struct MoveList *moveList, int depth,
                   unsigned long long *nodes) {
     if (depth == 0) {
         (*nodes)++;
         return;
     }
 
-    MoveList_T list = MoveList_generate(&moveList[depth], board);
-    CBoard_T copy = CBoard_new();
+    MoveList list = move_list_generate(&moveList[depth], board);
+    Board copy = board_new();
 
-    for (int i = 0; i < MoveList_size(list); i++) {
-        CBoard_copy(board, copy);
-        if (!Move_make(MoveList_move(list, i), copy, 0)) continue;
+    for (int i = 0; i < move_list_size(list); i++) {
+        board_copy(board, copy);
+        if (!move_make(move_list_move(list, i), copy, 0)) continue;
         perft_driver(copy, moveList, depth - 1, nodes);
     }
 
-    MoveList_reset(list);
-    CBoard_free(&copy);
+    move_list_reset(list);
+    board_free(&copy);
 }
 
-void perft_test(CBoard_T board, int depth) {
-    MoveList_T list = MoveList_generate(&moveList[depth], board);
-    CBoard_T copy = CBoard_new();
+void perft_test(Board board, int depth) {
+    MoveList list = move_list_generate(&moveList[depth], board);
+    Board copy = board_new();
     long start = get_time_ms();
 
     printf("\n     Performance test\n\n");
 
     nodes = 0;
-    for (int i = 0; i < MoveList_size(list); i++) {
-        CBoard_copy(board, copy);
-        Move move = MoveList_move(list, i);
-        if (!Move_make(MoveList_move(list, i), copy, 0)) continue;
+    for (int i = 0; i < move_list_size(list); i++) {
+        board_copy(board, copy);
+        Move move = move_list_move(list, i);
+        if (!move_make(move_list_move(list, i), copy, 0)) continue;
         unsigned long long node = 0;
         perft_driver(copy, moveList, depth - 1, &node);
-        printf("%s%s: %llu\n", square_to_coordinates[Move_source(move)],
-               square_to_coordinates[Move_target(move)], node);
+        printf("%s%s: %llu\n", square_to_coordinates[move_source(move)],
+               square_to_coordinates[move_target(move)], node);
         nodes += node;
     }
-    MoveList_reset(list);
-    CBoard_free(&copy);
+    move_list_reset(list);
+    board_free(&copy);
 
     printf("\nNodes searched: %ld\n\n", nodes);
     printf("\n    Depth: %d\n", depth);
@@ -57,8 +57,8 @@ void perft_test(CBoard_T board, int depth) {
 
 typedef struct perf_shared perf_shared;
 struct perf_shared {
-    CBoard_T board;
-    MoveList_T list;
+    Board board;
+    MoveList list;
     int depth;
     sem_t *mutex;
     int *index;
@@ -68,36 +68,36 @@ struct perf_shared {
 
 void *perft_thread(void *arg) {
     perf_shared *shared = (perf_shared *)arg;
-    CBoard_T board = CBoard_new();
+    Board board = board_new();
     unsigned long long node_count = 0;
 
-    struct MoveList_T moveList[10];
+    struct MoveList moveList[10];
 
     while (1) {
         sem_wait(shared->mutex);
         *shared->total += node_count;
-        if (*shared->index >= MoveList_size(shared->list)) {
+        if (*shared->index >= move_list_size(shared->list)) {
             sem_post(shared->mutex);
             break;
         }
-        Move move = MoveList_move(shared->list, (*shared->index)++);
+        Move move = move_list_move(shared->list, (*shared->index)++);
         sem_post(shared->mutex);
 
-        CBoard_copy(shared->board, board);
-        if (!Move_make(move, board, 0)) continue;
+        board_copy(shared->board, board);
+        if (!move_make(move, board, 0)) continue;
 
         node_count = 0;
         perft_driver(board, moveList, shared->depth, &node_count);
-        printf("%s%s: %llu\n", square_to_coordinates[Move_source(move)],
-               square_to_coordinates[Move_target(move)], node_count);
+        printf("%s%s: %llu\n", square_to_coordinates[move_source(move)],
+               square_to_coordinates[move_target(move)], node_count);
     }
-    CBoard_free(&board);
+    board_free(&board);
     sem_post(shared->finish);
     return NULL;
 }
 
-void perft_test_threaded(CBoard_T board, int depth) {
-    MoveList_T list = MoveList_generate(NULL, board);
+void perft_test_threaded(Board board, int depth) {
+    MoveList list = move_list_generate(NULL, board);
     int size = 8;
 
     unsigned long long total = 0;
@@ -121,7 +121,7 @@ void perft_test_threaded(CBoard_T board, int depth) {
 
     for (int i = 0; i < size; i++)
         sem_wait(&finish);
-    MoveList_free(&list);
+    move_list_free(&list);
 
     printf("Nodes processed: %llu\n", total);
 }

@@ -5,14 +5,14 @@
 #include <cul/assert.h>
 #include <cul/mem.h>
 
-#include "CBoard.h"
 #include "attack.h"
+#include "board.h"
 #include "utils.h"
 
-U64 CBoard_pieceBB_get(CBoard_T self, ePiece piece, Square target);
+U64 board_pieceBB_get(Board self, ePiece piece, Square target);
 
 // PIECE
-struct Piece_T {
+struct Piece {
     ePiece piece;
     eColor color;
     char code;
@@ -22,7 +22,7 @@ struct Piece_T {
 };
 
 // clang-format off
-struct Piece_T Pieces[2][6] = {
+struct Piece Pieces[2][6] = {
     {
   [PAWN] = {.color = WHITE, .code = 'P', .asci = 'P', .unicode = "♙ ",   .piece = PAWN,  .attacks = get_wpawn_attacks},
 [KNIGHT] = {.color = WHITE, .code = 'N', .asci = 'N', .unicode = "♘ ", .piece = KNIGHT, .attacks = get_knight_attacks},
@@ -42,15 +42,15 @@ struct Piece_T Pieces[2][6] = {
 };
 // clang-format on
 
-attack_f Piece_attacks(Piece_T self) { return self->attacks; }
-char Piece_asci(Piece_T self) { return self->asci; }
-char Piece_code(Piece_T self) { return self->code; }
-char *Piece_unicode(Piece_T self) { return self->unicode; }
-eColor Piece_color(Piece_T self) { return self->color; }
-ePiece Piece_piece(Piece_T self) { return self->piece; }
-int Piece_index(Piece_T self) { return self->color * 8 + self->piece; }
+attack_f Piece_attacks(Piece self) { return self->attacks; }
+char Piece_asci(Piece self) { return self->asci; }
+char Piece_code(Piece self) { return self->code; }
+char *Piece_unicode(Piece self) { return self->unicode; }
+eColor Piece_color(Piece self) { return self->color; }
+ePiece Piece_piece(Piece self) { return self->piece; }
+int Piece_index(Piece self) { return self->color * 8 + self->piece; }
 
-Piece_T Piece_fromCode(char code) {
+Piece Piece_fromCode(char code) {
     int color = (isupper(code)) ? WHITE : BLACK;
     for (int i = 0; i < 6; i++)
         if (Pieces[color][i].code == code) return &Pieces[color][i];
@@ -61,11 +61,11 @@ ePiece Piece_piece_fromCode(int index) {
     return Pieces[WHITE][index % 8].piece;
 }
 
-Piece_T Piece_fromIndex(int index) { return &Pieces[index / 8][index % 8]; }
-Piece_T Piece_get(ePiece piece, eColor color) { return &Pieces[color][piece]; }
+Piece Piece_fromIndex(int index) { return &Pieces[index / 8][index % 8]; }
+Piece Piece_get(ePiece piece, eColor color) { return &Pieces[color][piece]; }
 
 // CBOARD
-struct CBoard_T {
+struct Board {
     U64 colorBB[2];
     U64 pieceBB[6];
     eColor side;
@@ -73,97 +73,96 @@ struct CBoard_T {
     eCastle castle;
 };
 
-CBoard_T CBoard_new(void) {
-    CBoard_T p;
+Board board_new(void) {
+    Board p;
     NEW0(p);
     return p;
 }
 
-void CBoard_free(CBoard_T *p) { FREE(*p); }
+void board_free(Board *p) { FREE(*p); }
 
-void CBoard_copy(CBoard_T self, CBoard_T dest) { *dest = *self; }
+void board_copy(Board self, Board dest) { *dest = *self; }
 
-Square CBoard_enpassant(CBoard_T self) { return self->enpassant; }
-eCastle CBoard_castle(CBoard_T self) { return self->castle; }
-eColor CBoard_side(CBoard_T self) { return self->side; }
-U64 CBoard_colorBB(CBoard_T self, eColor color) { return self->colorBB[color]; }
-U64 CBoard_pieceBB(CBoard_T self, ePiece piece) { return self->pieceBB[piece]; }
-U64 CBoard_occupancy(CBoard_T self) {
+Square board_enpassant(Board self) { return self->enpassant; }
+eCastle board_castle(Board self) { return self->castle; }
+eColor board_side(Board self) { return self->side; }
+U64 board_colorBB(Board self, eColor color) { return self->colorBB[color]; }
+U64 board_pieceBB(Board self, ePiece piece) { return self->pieceBB[piece]; }
+U64 board_occupancy(Board self) {
     return self->colorBB[WHITE] | self->colorBB[BLACK];
 }
 
-U64 CBoard_pieceBB_get(CBoard_T self, ePiece piece, Square target) {
+U64 board_pieceBB_get(Board self, ePiece piece, Square target) {
     return bit_get(self->pieceBB[piece], target);
 }
 
-U64 CBoard_pieceSet(CBoard_T self, Piece_T piece) {
+U64 board_pieceSet(Board self, Piece piece) {
     return self->pieceBB[Piece_piece(piece)] &
            self->colorBB[Piece_color(piece)];
 }
 
-void CBoard_enpassant_set(CBoard_T self, Square target) {
+void board_enpassant_set(Board self, Square target) {
     self->enpassant = target;
 }
 
-void CBoard_colorBB_pop(CBoard_T self, eColor color, Square target) {
+void board_colorBB_pop(Board self, eColor color, Square target) {
     bit_pop(self->colorBB[color], target);
 }
-void CBoard_colorBB_set(CBoard_T self, eColor color, Square target) {
+void board_colorBB_set(Board self, eColor color, Square target) {
     bit_set(self->colorBB[color], target);
 }
-U64 CBoard_colorBB_get(CBoard_T self, eColor color, Square target) {
+U64 board_colorBB_get(Board self, eColor color, Square target) {
     return bit_get(self->colorBB[color], target);
 }
 
-int CBoard_piece_get(CBoard_T self, Square square) {
+int board_piece_get(Board self, Square square) {
     for (int i = 0; i < 6; i++)
         if (bit_get(self->pieceBB[i], square)) return i;
     return -1;
 }
 
-void CBoard_piece_pop(CBoard_T self, Piece_T Piece, Square square) {
+void board_piece_pop(Board self, Piece Piece, Square square) {
     bit_pop(self->pieceBB[Piece->piece], square);
     bit_pop(self->colorBB[Piece->color], square);
 }
 
-void CBoard_piece_set(CBoard_T self, Piece_T Piece, Square square) {
+void board_piece_set(Board self, Piece Piece, Square square) {
     bit_set(self->pieceBB[Piece->piece], square);
     bit_set(self->colorBB[Piece->color], square);
 }
 
-void CBoard_piece_move(CBoard_T self, Piece_T Piece, Square source,
-                       Square target) {
-    CBoard_piece_pop(self, Piece, source);
-    CBoard_piece_set(self, Piece, target);
+void board_piece_move(Board self, Piece Piece, Square source, Square target) {
+    board_piece_pop(self, Piece, source);
+    board_piece_set(self, Piece, target);
 }
 
-U64 CBoard_piece_attacks(CBoard_T self, Piece_T Piece, Square src) {
-    return Piece_attacks(Piece)(src, CBoard_occupancy(self));
+U64 board_piece_attacks(Board self, Piece Piece, Square src) {
+    return Piece_attacks(Piece)(src, board_occupancy(self));
 }
 
-void CBoard_piece_capture(CBoard_T self, Piece_T Piece, Piece_T Taken,
-                          Square source, Square target) {
-    CBoard_piece_pop(self, Piece, source);
-    if (Taken) CBoard_piece_pop(self, Taken, target);
-    CBoard_piece_set(self, Piece, target);
+void board_piece_capture(Board self, Piece piece, Piece taken, Square source,
+                         Square target) {
+    board_piece_pop(self, piece, source);
+    if (taken) board_piece_pop(self, taken, target);
+    board_piece_set(self, piece, target);
 }
 
-void CBoard_castle_pop(CBoard_T self, eCastle castle) {
+void board_castle_pop(Board self, eCastle castle) {
     bit_pop(self->castle, bit_lsb_index(castle));
 }
 
-void CBoard_castle_and(CBoard_T self, int exp) { self->castle &= exp; }
-void CBoard_side_switch(CBoard_T self) { self->side = !self->side; }
+void board_castle_and(Board self, int exp) { self->castle &= exp; }
+void board_side_switch(Board self) { self->side = !self->side; }
 
-int CBoard_isCheck(CBoard_T self) {
+int board_isCheck(Board self) {
     U64 king = self->pieceBB[KING] & self->colorBB[self->side];
-    return CBoard_square_isAttack(self, bit_lsb_index(king), !self->side);
+    return board_square_isAttack(self, bit_lsb_index(king), !self->side);
 }
-int CBoard_square_isOccupied(CBoard_T self, Square square) {
-    return bit_get(CBoard_occupancy(self), square);
+int board_square_isOccupied(Board self, Square square) {
+    return bit_get(board_occupancy(self), square);
 }
 
-int CBoard_square_isAttack(CBoard_T self, Square square, eColor side) {
+int board_square_isAttack(Board self, Square square, eColor side) {
     U64 occupancy = self->colorBB[WHITE] | self->colorBB[BLACK];
 
     for (int i = 0; i < 6; i++) {
@@ -175,17 +174,17 @@ int CBoard_square_isAttack(CBoard_T self, Square square, eColor side) {
     return 0;
 }
 
-Piece_T CBoard_square_piece(CBoard_T self, Square square, eColor color) {
+Piece board_square_piece(Board self, Square square, eColor color) {
     for (ePiece i = 0; i < 6; i++)
-        if (CBoard_pieceBB_get(self, i, square)) return Piece_get(i, color);
+        if (board_pieceBB_get(self, i, square)) return Piece_get(i, color);
     return NULL;
 }
 
-void CBoard_print(CBoard_T self) {
+void board_print(Board self) {
     for (int rank = 0; rank < 8; rank++) {
         for (int file = 0; file < 8; file++) {
             Square square = (7 - rank) * 8 + file;
-            Piece_T piece = NULL;
+            Piece piece = NULL;
 
             int color = -1;
             if (bit_get(self->colorBB[WHITE], square))
@@ -217,7 +216,7 @@ void CBoard_print(CBoard_T self) {
     printf("\n");
 }
 
-CBoard_T CBoard_fromFEN(CBoard_T board, char *fen) {
+Board board_fromFEN(Board board, char *fen) {
     if (!board) NEW(board);
 
     memset(board, 0, sizeof(*board));
@@ -227,7 +226,7 @@ CBoard_T CBoard_fromFEN(CBoard_T board, char *fen) {
     board->castle = 0;
 
     int file = 0, rank = 7;
-    for (Piece_T piece; *fen != ' '; fen++) {
+    for (Piece piece; *fen != ' '; fen++) {
         Square square = rank * 8 + file;
         if (isalpha(*fen)) {
             if (!(piece = Piece_fromCode(*fen))) assert(0);

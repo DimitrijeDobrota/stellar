@@ -5,56 +5,56 @@
 
 #include "moves.h"
 
-int Move_cmp(Move a, Move b) { return *(uint32_t *)&a == *(uint32_t *)&b; }
+int move_cmp(Move a, Move b) { return *(uint32_t *)&a == *(uint32_t *)&b; }
 
-Move Move_encode(Square src, Square tgt, Piece_T Piece, Piece_T Capture,
-                 Piece_T Promote, int dbl, int enpassant, int castle) {
+Move move_encode(Square src, Square tgt, Piece piece, Piece capture,
+                 Piece promote, int dbl, int enpassant, int castle) {
     return (Move){
         .source = src,
         .target = tgt,
         .dbl = dbl,
         .enpassant = enpassant,
         .castle = castle,
-        .capture = Capture != NULL,
-        .promote = Promote != NULL,
-        .piece = Piece_index(Piece),
-        .piece_capture = Capture ? Piece_index(Capture) : 0,
-        .piece_promote = Promote ? Piece_index(Promote) : 0,
+        .capture = capture != NULL,
+        .promote = promote != NULL,
+        .piece = Piece_index(piece),
+        .piece_capture = capture ? Piece_index(capture) : 0,
+        .piece_promote = promote ? Piece_index(promote) : 0,
     };
 }
 
-void Move_print(Move move) {
+void move_print(Move move) {
     printf("%5s %5s  %2s  %2s   %2s %4d %4d %4d %4d %4d\n",
-           square_to_coordinates[Move_source(move)],
-           square_to_coordinates[Move_target(move)],
-           Piece_unicode(Move_piece(move)),
-           Move_capture(move) ? Piece_unicode(Move_piece_capture(move)) : "X ",
-           Move_promote(move) ? Piece_unicode(Move_piece_promote(move)) : "X ",
-           Move_double(move) ? 1 : 0, Move_enpassant(move) ? 1 : 0,
-           Move_castle(move) ? 1 : 0, Move_capture(move) ? 1 : 0,
-           Move_promote(move) ? 1 : 0);
+           square_to_coordinates[move_source(move)],
+           square_to_coordinates[move_target(move)],
+           Piece_unicode(move_piece(move)),
+           move_capture(move) ? Piece_unicode(move_piece_capture(move)) : "X ",
+           move_promote(move) ? Piece_unicode(move_piece_promote(move)) : "X ",
+           move_double(move) ? 1 : 0, move_enpassant(move) ? 1 : 0,
+           move_castle(move) ? 1 : 0, move_capture(move) ? 1 : 0,
+           move_promote(move) ? 1 : 0);
 }
 
-MoveList_T MoveList_new(void) {
-    MoveList_T p;
+MoveList move_list_new(void) {
+    MoveList p;
     NEW0(p);
     return p;
 }
 
-void MoveList_free(MoveList_T *p) { FREE(*p); }
+void move_list_free(MoveList *p) { FREE(*p); }
 
-Move MoveList_move(MoveList_T self, int index) { return self->moves[index]; }
-int MoveList_size(MoveList_T self) { return self->count; }
-void MoveList_reset(MoveList_T self) { self->count = 0; }
+Move move_list_move(MoveList self, int index) { return self->moves[index]; }
+int move_list_size(MoveList self) { return self->count; }
+void move_list_reset(MoveList self) { self->count = 0; }
 
-void MoveList_add(MoveList_T self, Move move) {
+void move_list_add(MoveList self, Move move) {
     self->moves[self->count++] = move;
 }
 
-void MoveList_print(MoveList_T self) {
+void move_list_print(MoveList self) {
     printf(" From    To  Pi  Cap  Prmt  Dbl  Enp  Cst  C   P\n");
     for (int i = 0; i < self->count; i++)
-        Move_print(self->moves[i]);
+        move_print(self->moves[i]);
     printf("Total: %d\n", self->count);
 }
 
@@ -68,65 +68,66 @@ void MoveList_print(MoveList_T self) {
 
 #define pawn_promote(source, target, Piece, Capture)                           \
     for (int i = 1; i < 5; i++) {                                              \
-        move = Move_encode(source, target, Piece, Capture,                     \
+        move = move_encode(source, target, Piece, Capture,                     \
                            Piece_get(i, color), 0, 0, 0);                      \
-        MoveList_add(moves, move);                                             \
+        move_list_add(moves, move);                                            \
     }
 
-MoveList_T MoveList_generate(MoveList_T moves, CBoard_T board) {
+MoveList move_list_generate(MoveList moves, Board board) {
     Move move;
     Square src, tgt;
-    eColor color = CBoard_side(board);
+    eColor color = board_side(board);
 
-    if (!moves) moves = MoveList_new();
+    if (!moves) moves = move_list_new();
 
     { // pawn moves
-        Piece_T Piece = Piece_get(PAWN, color);
-        U64 bitboard = CBoard_pieceSet(board, Piece);
+        Piece Piece = Piece_get(PAWN, color);
+        U64 bitboard = board_pieceSet(board, Piece);
         bitboard_for_each_bit(src, bitboard) {
             { // quiet
                 int add = (color == WHITE) ? +8 : -8;
                 tgt = src + add;
                 if (tgt > a1 && tgt < h8 &&
-                    !CBoard_square_isOccupied(board, tgt)) {
+                    !board_square_isOccupied(board, tgt)) {
                     if (pawn_canPromote(color, src)) {
                         pawn_promote(src, tgt, Piece, 0);
                     } else {
-                        MoveList_add(
-                            moves, Move_encode(src, tgt, Piece, 0, 0, 0, 0, 0));
+                        move_list_add(
+                            moves, move_encode(src, tgt, Piece, 0, 0, 0, 0, 0));
 
                         // two ahead
                         if (pawn_onStart(color, src) &&
-                            !CBoard_square_isOccupied(board, tgt += add))
-                            MoveList_add(moves, Move_encode(src, tgt, Piece, 0,
-                                                            0, 1, 0, 0));
+                            !board_square_isOccupied(board, tgt += add))
+                            move_list_add(moves, move_encode(src, tgt, Piece, 0,
+                                                             0, 1, 0, 0));
                     }
                 }
             }
             { // capture
-                U64 attack = CBoard_piece_attacks(board, Piece, src) &
-                             CBoard_colorBB(board, !color);
+                U64 attack = board_piece_attacks(board, Piece, src) &
+                             board_colorBB(board, !color);
                 bitboard_for_each_bit(tgt, attack) {
                     if (pawn_canPromote(color, src)) {
                         pawn_promote(src, tgt, Piece,
-                                     CBoard_square_piece(board, tgt, !color));
+                                     board_square_piece(board, tgt, !color));
                     } else {
-                        MoveList_add(moves, Move_encode(src, tgt, Piece,
-                                                        CBoard_square_piece(
-                                                            board, tgt, !color),
-                                                        0, 0, 0, 0));
+                        move_list_add(
+                            moves,
+                            move_encode(src, tgt, Piece,
+                                        board_square_piece(board, tgt, !color),
+                                        0, 0, 0, 0));
                     }
                 }
             }
 
             { // en passant
-                if (CBoard_enpassant(board) != no_sq &&
-                    CBoard_piece_attacks(board, Piece, src) &
-                        (C64(1) << CBoard_enpassant(board)))
-                    MoveList_add(
+                if (board_enpassant(board) != no_sq &&
+                    board_piece_attacks(board, Piece, src) &
+                        (C64(1) << board_enpassant(board)))
+                    move_list_add(
                         moves,
-                        Move_encode(src, CBoard_enpassant(board), Piece,
-                                    CBoard_square_piece(board, tgt, !color), 0,
+                        move_encode(src, board_enpassant(board), Piece,
+                                    board_square_piece(board, tgt, !color), 0,
                                     0, 1, 0));
             }
         }
@@ -134,16 +135,16 @@ MoveList_T MoveList_generate(MoveList_T moves, CBoard_T board) {
 
     // All piece move
     for (int piece = 1; piece < 6; piece++) {
-        Piece_T Piece = Piece_get(piece, color);
-        U64 bitboard = CBoard_pieceSet(board, Piece);
+        Piece Piece = Piece_get(piece, color);
+        U64 bitboard = board_pieceSet(board, Piece);
         bitboard_for_each_bit(src, bitboard) {
-            U64 attack = CBoard_piece_attacks(board, Piece, src) &
-                         ~CBoard_colorBB(board, color);
+            U64 attack = board_piece_attacks(board, Piece, src) &
+                         ~board_colorBB(board, color);
             bitboard_for_each_bit(tgt, attack) {
-                /* int take = bit_get(CBoard_colorBB(board, !color), tgt); */
-                MoveList_add(
-                    moves, Move_encode(src, tgt, Piece,
-                                       CBoard_square_piece(board, tgt, !color),
+                /* int take = bit_get(board_colorBB(board, !color), tgt); */
+                move_list_add(
+                    moves, move_encode(src, tgt, Piece,
+                                       board_square_piece(board, tgt, !color),
                                        0, 0, 0, 0));
             }
         }
@@ -152,42 +153,42 @@ MoveList_T MoveList_generate(MoveList_T moves, CBoard_T board) {
     // Castling
     {
         if (color == WHITE) {
-            Piece_T Piece = Piece_get(KING, WHITE);
-            if (CBoard_castle(board) & WK) {
-                if (!CBoard_square_isOccupied(board, f1) &&
-                    !CBoard_square_isOccupied(board, g1) &&
-                    !CBoard_square_isAttack(board, e1, BLACK) &&
-                    !CBoard_square_isAttack(board, f1, BLACK))
-                    MoveList_add(moves,
-                                 Move_encode(e1, g1, Piece, 0, 0, 0, 0, 1));
+            Piece Piece = Piece_get(KING, WHITE);
+            if (board_castle(board) & WK) {
+                if (!board_square_isOccupied(board, f1) &&
+                    !board_square_isOccupied(board, g1) &&
+                    !board_square_isAttack(board, e1, BLACK) &&
+                    !board_square_isAttack(board, f1, BLACK))
+                    move_list_add(moves,
+                                  move_encode(e1, g1, Piece, 0, 0, 0, 0, 1));
             }
-            if (CBoard_castle(board) & WQ) {
-                if (!CBoard_square_isOccupied(board, d1) &&
-                    !CBoard_square_isOccupied(board, c1) &&
-                    !CBoard_square_isOccupied(board, b1) &&
-                    !CBoard_square_isAttack(board, e1, BLACK) &&
-                    !CBoard_square_isAttack(board, d1, BLACK))
-                    MoveList_add(moves,
-                                 Move_encode(e1, c1, Piece, 0, 0, 0, 0, 1));
+            if (board_castle(board) & WQ) {
+                if (!board_square_isOccupied(board, d1) &&
+                    !board_square_isOccupied(board, c1) &&
+                    !board_square_isOccupied(board, b1) &&
+                    !board_square_isAttack(board, e1, BLACK) &&
+                    !board_square_isAttack(board, d1, BLACK))
+                    move_list_add(moves,
+                                  move_encode(e1, c1, Piece, 0, 0, 0, 0, 1));
             }
         } else {
-            Piece_T Piece = Piece_get(KING, BLACK);
-            if (CBoard_castle(board) & BK) {
-                if (!CBoard_square_isOccupied(board, f8) &&
-                    !CBoard_square_isOccupied(board, g8) &&
-                    !CBoard_square_isAttack(board, e8, WHITE) &&
-                    !CBoard_square_isAttack(board, f8, WHITE))
-                    MoveList_add(moves,
-                                 Move_encode(e8, g8, Piece, 0, 0, 0, 0, 1));
+            Piece Piece = Piece_get(KING, BLACK);
+            if (board_castle(board) & BK) {
+                if (!board_square_isOccupied(board, f8) &&
+                    !board_square_isOccupied(board, g8) &&
+                    !board_square_isAttack(board, e8, WHITE) &&
+                    !board_square_isAttack(board, f8, WHITE))
+                    move_list_add(moves,
+                                  move_encode(e8, g8, Piece, 0, 0, 0, 0, 1));
             }
-            if (CBoard_castle(board) & BQ) {
-                if (!CBoard_square_isOccupied(board, d8) &&
-                    !CBoard_square_isOccupied(board, c8) &&
-                    !CBoard_square_isOccupied(board, b8) &&
-                    !CBoard_square_isAttack(board, e8, WHITE) &&
-                    !CBoard_square_isAttack(board, d8, WHITE))
-                    MoveList_add(moves,
-                                 Move_encode(e8, c8, Piece, 0, 0, 0, 0, 1));
+            if (board_castle(board) & BQ) {
+                if (!board_square_isOccupied(board, d8) &&
+                    !board_square_isOccupied(board, c8) &&
+                    !board_square_isOccupied(board, b8) &&
+                    !board_square_isAttack(board, e8, WHITE) &&
+                    !board_square_isAttack(board, d8, WHITE))
+                    move_list_add(moves,
+                                  move_encode(e8, c8, Piece, 0, 0, 0, 0, 1));
             }
         }
     }
@@ -208,64 +209,64 @@ const int castling_rights[64] = {
 };
 // clang-format on
 
-int Move_make(Move move, CBoard_T board, int flag) {
+int move_make(Move move, Board board, int flag) {
     if (flag == 0) {
 
-        Square source = Move_source(move);
-        Square target = Move_target(move);
-        Piece_T Piece = Move_piece(move);
-        eColor color = CBoard_side(board);
+        Square source = move_source(move);
+        Square target = move_target(move);
+        Piece piece = move_piece(move);
+        eColor color = board_side(board);
 
-        if (!Move_capture(move))
-            CBoard_piece_move(board, Piece, source, target);
+        if (!move_capture(move))
+            board_piece_move(board, piece, source, target);
         else
-            CBoard_piece_capture(board, Piece, Move_piece_capture(move), source,
-                                 target);
+            board_piece_capture(board, piece, move_piece_capture(move), source,
+                                target);
 
-        if (Move_promote(move)) {
-            CBoard_piece_pop(board, Piece, target);
-            CBoard_piece_set(board, Move_piece_promote(move), target);
+        if (move_promote(move)) {
+            board_piece_pop(board, piece, target);
+            board_piece_set(board, move_piece_promote(move), target);
         }
 
         {
             int ntarget = target + (color == WHITE ? -8 : +8);
-            if (Move_enpassant(move))
-                CBoard_piece_pop(board, Piece_get(PAWN, !color), ntarget);
+            if (move_enpassant(move))
+                board_piece_pop(board, Piece_get(PAWN, !color), ntarget);
 
-            CBoard_enpassant_set(board, Move_double(move) ? ntarget : no_sq);
+            board_enpassant_set(board, move_double(move) ? ntarget : no_sq);
         }
 
-        if (Move_castle(move)) {
-            Piece_T Rook = Piece_get(ROOK, CBoard_side(board));
+        if (move_castle(move)) {
+            Piece Rook = Piece_get(ROOK, board_side(board));
             switch (target) {
             case g1:
-                CBoard_piece_move(board, Rook, h1, f1);
+                board_piece_move(board, Rook, h1, f1);
                 break;
             case c1:
-                CBoard_piece_move(board, Rook, a1, d1);
+                board_piece_move(board, Rook, a1, d1);
                 break;
             case g8:
-                CBoard_piece_move(board, Rook, h8, f8);
+                board_piece_move(board, Rook, h8, f8);
                 break;
             case c8:
-                CBoard_piece_move(board, Rook, a8, d8);
+                board_piece_move(board, Rook, a8, d8);
                 break;
             default:
                 break;
             }
         }
 
-        CBoard_castle_and(board, castling_rights[source]);
-        CBoard_castle_and(board, castling_rights[target]);
+        board_castle_and(board, castling_rights[source]);
+        board_castle_and(board, castling_rights[target]);
 
-        if (!CBoard_isCheck(board)) {
-            CBoard_side_switch(board);
+        if (!board_isCheck(board)) {
+            board_side_switch(board);
             return 1;
         } else
             return 0;
     } else {
-        if (Move_capture(move))
-            return Move_make(move, board, 0);
+        if (move_capture(move))
+            return move_make(move, board, 0);
         else
             return 0;
     }

@@ -25,7 +25,7 @@ int bit_count(U64 bitboard);
 int bit_lsb_index(U64 bitboard);
 
 #define bitboard_for_each_bit(var, bb)                                         \
-  for (var = bit_lsb_index(bb); bb; bit_pop(bb, var), var = bit_lsb_index(bb))
+    for (var = bit_lsb_index(bb); bb; bit_pop(bb, var), var = bit_lsb_index(bb))
 
 void bitboard_print(U64 bitboard);
 
@@ -45,7 +45,7 @@ enum enumSquare {
 typedef enum enumSquare Square;
 
 extern const char *square_to_coordinates[];
-Square coordinates_to_square(char * cord);
+Square coordinates_to_square(char *cord);
 
 // board moving
 typedef U64 (*direction_f)(U64);
@@ -63,8 +63,18 @@ U64 rotateLeft(U64 x, int s);
 U64 rotateRight(U64 x, int s);
 
 // enum types for color and piece type
-enum enumColor { WHITE = 0, BLACK };
-enum enumPiece { PAWN = 0, KNIGHT, BISHOP, ROOK, QUEEN, KING };
+enum enumColor {
+    WHITE = 0,
+    BLACK
+};
+enum enumPiece {
+    PAWN = 0,
+    KNIGHT,
+    BISHOP,
+    ROOK,
+    QUEEN,
+    KING
+};
 
 typedef enum enumColor eColor;
 typedef enum enumPiece ePiece;
@@ -72,6 +82,5 @@ typedef enum enumPiece ePiece;
 int get_time_ms(void);
 
 typedef U64 (*attack_f)(Square square, U64 occupancy);
-
 
 #endif
