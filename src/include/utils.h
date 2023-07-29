@@ -62,23 +62,6 @@ U64 noWeOne(U64 b);
 U64 rotateLeft(U64 x, int s);
 U64 rotateRight(U64 x, int s);
 
-// enum types for color and piece type
-enum enumColor {
-    WHITE = 0,
-    BLACK
-};
-enum enumPiece {
-    PAWN = 0,
-    KNIGHT,
-    BISHOP,
-    ROOK,
-    QUEEN,
-    KING
-};
-
-typedef enum enumColor eColor;
-typedef enum enumPiece ePiece;
-
 int get_time_ms(void);
 
 typedef U64 (*attack_f)(Square square, U64 occupancy);

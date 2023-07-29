@@ -47,8 +47,8 @@ int move_make(Move move, Board board, int flag);
 #define move_capture(move) (move.capture)
 #define move_promote(move) (move.promote)
 
-#define move_piece(move) (Piece_fromIndex(move.piece))
-#define move_piece_capture(move) (Piece_fromIndex(move.piece_capture))
-#define move_piece_promote(move) (Piece_fromIndex(move.piece_promote))
+#define move_piece(move) (piece_from_index(move.piece))
+#define move_piece_capture(move) (piece_from_index(move.piece_capture))
+#define move_piece_promote(move) (piece_from_index(move.piece_promote))
 
 #endif

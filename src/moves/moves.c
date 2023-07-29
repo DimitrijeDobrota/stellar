@@ -17,9 +17,9 @@ Move move_encode(Square src, Square tgt, Piece piece, Piece capture,
         .castle = castle,
         .capture = capture != NULL,
         .promote = promote != NULL,
-        .piece = Piece_index(piece),
-        .piece_capture = capture ? Piece_index(capture) : 0,
-        .piece_promote = promote ? Piece_index(promote) : 0,
+        .piece = piece_index(piece),
+        .piece_capture = capture ? piece_index(capture) : 0,
+        .piece_promote = promote ? piece_index(promote) : 0,
     };
 }
 
@@ -27,9 +27,9 @@ void move_print(Move move) {
     printf("%5s %5s  %2s  %2s   %2s %4d %4d %4d %4d %4d\n",
            square_to_coordinates[move_source(move)],
            square_to_coordinates[move_target(move)],
-           Piece_unicode(move_piece(move)),
-           move_capture(move) ? Piece_unicode(move_piece_capture(move)) : "X ",
-           move_promote(move) ? Piece_unicode(move_piece_promote(move)) : "X ",
+           piece_unicode(move_piece(move)),
+           move_capture(move) ? piece_unicode(move_piece_capture(move)) : "X ",
+           move_promote(move) ? piece_unicode(move_piece_promote(move)) : "X ",
            move_double(move) ? 1 : 0, move_enpassant(move) ? 1 : 0,
            move_castle(move) ? 1 : 0, move_capture(move) ? 1 : 0,
            move_promote(move) ? 1 : 0);
@@ -69,7 +69,7 @@ void move_list_print(MoveList self) {
 #define pawn_promote(source, target, Piece, Capture)                           \
     for (int i = 1; i < 5; i++) {                                              \
         move = move_encode(source, target, Piece, Capture,                     \
-                           Piece_get(i, color), 0, 0, 0);                      \
+                           piece_get(i, color), 0, 0, 0);                      \
         move_list_add(moves, move);                                            \
     }
 
@@ -81,7 +81,7 @@ MoveList move_list_generate(MoveList moves, Board board) {
     if (!moves) moves = move_list_new();
 
     { // pawn moves
-        Piece Piece = Piece_get(PAWN, color);
+        Piece Piece = piece_get(PAWN, color);
         U64 bitboard = board_pieceSet(board, Piece);
         bitboard_for_each_bit(src, bitboard) {
             { // quiet
@@ -135,7 +135,7 @@ MoveList move_list_generate(MoveList moves, Board board) {
 
     // All piece move
     for (int piece = 1; piece < 6; piece++) {
-        Piece Piece = Piece_get(piece, color);
+        Piece Piece = piece_get(piece, color);
         U64 bitboard = board_pieceSet(board, Piece);
         bitboard_for_each_bit(src, bitboard) {
             U64 attack = board_piece_attacks(board, Piece, src) &
@@ -153,7 +153,7 @@ MoveList move_list_generate(MoveList moves, Board board) {
     // Castling
     {
         if (color == WHITE) {
-            Piece Piece = Piece_get(KING, WHITE);
+            Piece Piece = piece_get(KING, WHITE);
             if (board_castle(board) & WK) {
                 if (!board_square_isOccupied(board, f1) &&
                     !board_square_isOccupied(board, g1) &&
@@ -172,7 +172,7 @@ MoveList move_list_generate(MoveList moves, Board board) {
                                   move_encode(e1, c1, Piece, 0, 0, 0, 0, 1));
             }
         } else {
-            Piece Piece = Piece_get(KING, BLACK);
+            Piece Piece = piece_get(KING, BLACK);
             if (board_castle(board) & BK) {
                 if (!board_square_isOccupied(board, f8) &&
                     !board_square_isOccupied(board, g8) &&
@@ -231,13 +231,13 @@ int move_make(Move move, Board board, int flag) {
         {
             int ntarget = target + (color == WHITE ? -8 : +8);
             if (move_enpassant(move))
-                board_piece_pop(board, Piece_get(PAWN, !color), ntarget);
+                board_piece_pop(board, piece_get(PAWN, !color), ntarget);
 
             board_enpassant_set(board, move_double(move) ? ntarget : no_sq);
         }
 
         if (move_castle(move)) {
-            Piece Rook = Piece_get(ROOK, board_side(board));
+            Piece Rook = piece_get(ROOK, board_side(board));
             switch (target) {
             case g1:
                 board_piece_move(board, Rook, h1, f1);

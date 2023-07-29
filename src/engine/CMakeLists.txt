@@ -4,6 +4,7 @@ target_link_libraries(engine
     PRIVATE attack
     PRIVATE board
     PRIVATE moves
+    PRIVATE piece
     PRIVATE score
     PRIVATE utils
 )

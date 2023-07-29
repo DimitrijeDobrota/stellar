@@ -1,7 +1,7 @@
 #include "string.h"
 
 #include "attack.h"
-#include "utils.h"
+#include "piece.h"
 
 #define UNUSED(x) (void)(x)
 

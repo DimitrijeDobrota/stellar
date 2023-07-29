@@ -13,7 +13,6 @@
 #include <cul/assert.h>
 #include <cul/mem.h>
 
-
 #define MAX_PLY 64
 
 typedef struct Stats_T *Stats_T;
@@ -36,15 +35,15 @@ void Stats_free(Stats_T *p) { FREE(*p); }
 
 int move_score(Stats_T stats, Move move) {
     if (move_capture(move)) {
-        return Score_capture(Piece_piece(move_piece(move)),
-                             Piece_piece(move_piece_capture(move)));
+        return Score_capture(piece_piece(move_piece(move)),
+                             piece_piece(move_piece_capture(move)));
     } else {
         if (!move_cmp(stats->killer_moves[0][stats->ply], move))
             return 9000;
         else if (!move_cmp(stats->killer_moves[1][stats->ply], move))
             return 8000;
         else
-            return stats->history_moves[Piece_index(move_piece(move))]
+            return stats->history_moves[piece_index(move_piece(move))]
                                        [move_target(move)];
     }
 
@@ -184,7 +183,7 @@ int negamax(Stats_T stats, Board board, int alpha, int beta, int depth) {
 
         if (score > alpha) {
             if (!move_capture(move))
-                stats->history_moves[Piece_index(move_piece(move))]
+                stats->history_moves[piece_index(move_piece(move))]
                                     [move_target(move)] += depth;
             alpha = score;
 
@@ -210,7 +209,7 @@ int negamax(Stats_T stats, Board board, int alpha, int beta, int depth) {
 void move_print_UCI(Move move) {
     printf("%s%s", square_to_coordinates[move_source(move)],
            square_to_coordinates[move_target(move)]);
-    if (move_promote(move)) printf(" %c", Piece_asci(move_piece_promote(move)));
+    if (move_promote(move)) printf(" %c", piece_asci(move_piece_promote(move)));
 }
 
 void search_position(Board board, int depth) {
@@ -312,7 +311,7 @@ Move parse_move(Board board, char *move_string) {
         Move move = moves->moves[i];
         if (move_source(move) == source && move_target(move) == target) {
             if (move_string[4]) {
-                if (tolower(Piece_code(move_piece_promote(move))) !=
+                if (tolower(piece_code(move_piece_promote(move))) !=
                     move_string[4])
                     continue;
             }
@@ -332,7 +331,7 @@ Board Instruction_parse(Instruction_T self, Board board) {
 
     do {
         if (strcmp(token, "ucinewgame") == 0) {
-            board = board_fromFEN(board, start_position);
+            board = board_from_FEN(board, start_position);
             continue;
         }
 
@@ -341,10 +340,10 @@ Board Instruction_parse(Instruction_T self, Board board) {
         if (strcmp(token, "position") == 0) {
             token = Instruction_token_next(self);
             if (token && strcmp(token, "startpos") == 0) {
-                board = board_fromFEN(board, start_position);
+                board = board_from_FEN(board, start_position);
             } else if (token && strcmp(token, "fen") == 0) {
                 token = Instruction_token_n(self, 6);
-                board = board_fromFEN(board, token);
+                board = board_from_FEN(board, token);
             } else {
                 printf("Unknown argument after position\n");
             }

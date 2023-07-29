@@ -1,7 +1,7 @@
-#ifndef CBOARD_H
-#define CBOARD_H
+#ifndef BOARD_H
+#define BOARD_H
 
-#include "utils.h"
+#include "piece.h"
 
 enum enumCastle {
     WK = 1,
@@ -10,20 +10,6 @@ enum enumCastle {
     BQ = 8
 };
 typedef enum enumCastle eCastle;
-
-typedef struct Piece *Piece;
-
-char Piece_asci(Piece self);
-char Piece_code(Piece self);
-char *Piece_unicode(Piece self);
-eColor Piece_color(Piece self);
-ePiece Piece_piece(Piece self);
-int Piece_index(Piece self);
-
-Piece Piece_get(ePiece piece, eColor color);
-Piece Piece_fromCode(char code);
-Piece Piece_fromIndex(int index);
-ePiece Piece_piece_fromCode(int index);
 
 typedef struct Board *Board;
 
@@ -60,7 +46,7 @@ Piece board_square_piece(Board self, Square square, eColor side);
 int board_square_isAttack(Board self, Square square, eColor side);
 int board_square_isOccupied(Board self, Square square);
 
-Board board_fromFEN(Board board, char *fen);
+Board board_from_FEN(Board board, char *fen);
 int board_isCheck(Board self);
 void board_print(Board self);
 void board_side_switch(Board self);

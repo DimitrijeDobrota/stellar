@@ -140,6 +140,6 @@ void perft_test_threaded(Board board, int depth) {
 int main(void) {
     init_attacks();
     Board board = board_new();
-    board_fromFEN(board, tricky_position);
+    board_from_FEN(board, tricky_position);
     perft_test_threaded(board, 5);
 }
