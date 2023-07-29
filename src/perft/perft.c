@@ -2,8 +2,11 @@
 #include <semaphore.h>
 #include <stdio.h>
 
+#include "attack.h"
+#include "board.h"
 #include "moves.h"
 #include "perft.h"
+#include "utils.h"
 
 struct MoveList moveList[10];
 long nodes;
@@ -124,4 +127,19 @@ void perft_test_threaded(Board board, int depth) {
     move_list_free(&list);
 
     printf("Nodes processed: %llu\n", total);
+}
+
+// FEN debug positions
+#define tricky_position                                                        \
+    "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1 "
+#define killer_position                                                        \
+    "rnbqkb1r/pp1p1pPp/8/2p1pP2/1P1P4/3P3P/P1P1P3/RNBQKBNR w KQkq e6 0 1"
+#define cmk_position                                                           \
+    "r2q1rk1/ppp2ppp/2n1bn2/2b1p3/3pP3/3P1NPP/PPP1NPB1/R1BQ1RK1 b - - 0 9 "
+
+int main(void) {
+    init_attacks();
+    Board board = board_new();
+    board_fromFEN(board, tricky_position);
+    perft_test_threaded(board, 5);
 }

@@ -3,6 +3,7 @@
 
 #include "utils.h"
 
+void init_attacks(void);
 void init_leapers_attacks(void);
 void init_sliders_attacks(void);
 

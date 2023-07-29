@@ -364,3 +364,8 @@ U64 find_magic_number(Square square, int relevant_bits, int bishop) {
 
   return C64(0);
 }
+
+void init_attacks(void) {
+    init_leapers_attacks();
+    init_sliders_attacks();
+}

@@ -83,4 +83,8 @@ int get_time_ms(void);
 
 typedef U64 (*attack_f)(Square square, U64 occupancy);
 
+#define empty_board "8/8/8/8/8/8/8/8 w - - "
+#define start_position                                                         \
+    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 "
+
 #endif
