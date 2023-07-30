@@ -1,133 +1,17 @@
 #include <pthread.h>
 #include <semaphore.h>
+#include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+#include <cul/assert.h>
 
 #include "attacks.h"
 #include "board.h"
 #include "moves.h"
 #include "perft.h"
 #include "utils.h"
-
-struct MoveList moveList[10];
-long nodes;
-
-void perft_driver(Board board, struct MoveList *moveList, int depth,
-                  unsigned long long *nodes) {
-    if (depth == 0) {
-        (*nodes)++;
-        return;
-    }
-
-    MoveList list = move_list_generate(&moveList[depth], board);
-    Board copy = board_new();
-
-    for (int i = 0; i < move_list_size(list); i++) {
-        board_copy(board, copy);
-        if (!move_make(move_list_move(list, i), copy, 0)) continue;
-        perft_driver(copy, moveList, depth - 1, nodes);
-    }
-
-    move_list_reset(list);
-    board_free(&copy);
-}
-
-void perft_test(Board board, int depth) {
-    MoveList list = move_list_generate(&moveList[depth], board);
-    Board copy = board_new();
-    long start = get_time_ms();
-
-    printf("\n     Performance test\n\n");
-
-    nodes = 0;
-    for (int i = 0; i < move_list_size(list); i++) {
-        board_copy(board, copy);
-        Move move = move_list_move(list, i);
-        if (!move_make(move_list_move(list, i), copy, 0)) continue;
-        unsigned long long node = 0;
-        perft_driver(copy, moveList, depth - 1, &node);
-        printf("%s%s: %llu\n", square_to_coordinates[move_source(move)],
-               square_to_coordinates[move_target(move)], node);
-        nodes += node;
-    }
-    move_list_reset(list);
-    board_free(&copy);
-
-    printf("\nNodes searched: %ld\n\n", nodes);
-    printf("\n    Depth: %d\n", depth);
-    printf("    Nodes: %ld\n", nodes);
-    printf("     Time: %ld\n\n", get_time_ms() - start);
-}
-
-typedef struct perf_shared perf_shared;
-struct perf_shared {
-    Board board;
-    MoveList list;
-    int depth;
-    sem_t *mutex;
-    int *index;
-    sem_t *finish;
-    unsigned long long *total;
-};
-
-void *perft_thread(void *arg) {
-    perf_shared *shared = (perf_shared *)arg;
-    Board board = board_new();
-    unsigned long long node_count = 0;
-
-    struct MoveList moveList[10];
-
-    while (1) {
-        sem_wait(shared->mutex);
-        *shared->total += node_count;
-        if (*shared->index >= move_list_size(shared->list)) {
-            sem_post(shared->mutex);
-            break;
-        }
-        Move move = move_list_move(shared->list, (*shared->index)++);
-        sem_post(shared->mutex);
-
-        board_copy(shared->board, board);
-        if (!move_make(move, board, 0)) continue;
-
-        node_count = 0;
-        perft_driver(board, moveList, shared->depth, &node_count);
-        printf("%s%s: %llu\n", square_to_coordinates[move_source(move)],
-               square_to_coordinates[move_target(move)], node_count);
-    }
-    board_free(&board);
-    sem_post(shared->finish);
-    return NULL;
-}
-
-void perft_test_threaded(Board board, int depth) {
-    MoveList list = move_list_generate(NULL, board);
-    int size = 8;
-
-    unsigned long long total = 0;
-    perf_shared shared[size];
-    pthread_t threads[size];
-    sem_t mutex, finish;
-
-    int index = 0;
-    sem_init(&mutex, 0, 1);
-    sem_init(&finish, 0, 0);
-    for (int i = 0; i < size; i++) {
-        shared[i].board = board;
-        shared[i].list = list;
-        shared[i].depth = depth - 1;
-        shared[i].mutex = &mutex;
-        shared[i].index = &index;
-        shared[i].finish = &finish;
-        shared[i].total = &total;
-        pthread_create(threads + i, NULL, perft_thread, (void *)(shared + i));
-    }
-
-    for (int i = 0; i < size; i++)
-        sem_wait(&finish);
-    move_list_free(&list);
-
-    printf("Nodes processed: %llu\n", total);
-}
 
 // FEN debug positions
 #define tricky_position                                                        \
@@ -137,9 +21,160 @@ void perft_test_threaded(Board board, int depth) {
 #define cmk_position                                                           \
     "r2q1rk1/ppp2ppp/2n1bn2/2b1p3/3pP3/3P1NPP/PPP1NPB1/R1BQ1RK1 b - - 0 9 "
 
-int main(void) {
+void perft_result_print(PerftResult res) {
+    printf("           - Perft Results -\n\n");
+    printf("            Nodes: %llu\n", res.node);
+#ifdef USE_FULL_COUNT
+    printf("         Captures: %llu\n", res.capture);
+    printf("       Enpassants: %llu\n", res.enpassant);
+    printf("          Castles: %llu\n", res.castle);
+    printf("       Promotions: %llu\n", res.promote);
+    printf("           Checks: %llu\n", res.check);
+    //     printf("Discovered Checks: %llu\n", res.checkDiscovered);
+    //     printf("    Dobule Checks: %llu\n", res.checkDouble);
+    //     printf("       Checkmates: %llu\n", res.checkmate);
+#endif
+}
+
+void perft_result_add(PerftResult *base, PerftResult *add) {
+    base->node += add->node;
+#ifdef USE_FULL_COUNT
+    base->capture += add->capture;
+    base->enpassant += add->enpassant;
+    base->castle += add->castle;
+    base->promote += add->promote;
+    base->check += add->check;
+    //     base->checkDiscovered += add->checkDiscovered;
+    //     base->checkDouble += add->checkDouble;
+    //     base->checkmate += add->checkmate;
+#endif
+}
+
+void perft_driver(Board board, struct MoveList *moveList, int depth,
+                  PerftResult *result) {
+    if (depth == 0) {
+        result->node++;
+        return;
+    }
+
+    MoveList list = move_list_generate(&moveList[depth], board);
+    Board copy = board_new();
+
+    for (int i = 0; i < move_list_size(list); i++) {
+        Move move = move_list_move(list, i);
+        board_copy(board, copy);
+        if (!move_make(move, copy, 0)) continue;
+
+#ifdef USE_FULL_COUNT
+        if (board_isCheck(copy)) result->check++;
+        if (move_capture(move)) result->capture++;
+        if (move_enpassant(move)) result->enpassant++;
+        if (move_castle(move)) result->castle++;
+        if (move_promote(move)) result->promote++;
+#endif
+
+        perft_driver(copy, moveList, depth - 1, result);
+    }
+
+    move_list_reset(list);
+    board_free(&copy);
+}
+
+typedef struct perf_shared perf_shared;
+struct perf_shared {
+    const char *fen;
+    MoveList list;
+    int depth;
+    pthread_mutex_t mutex;
+    unsigned int index;
+    sem_t finish;
+    PerftResult result;
+};
+
+void *perft_thread(void *arg) {
+    PerftResult result = {0};
+    perf_shared *shared = (perf_shared *)arg;
+    struct MoveList moveList[shared->depth + 1];
+
+    Board board = board_from_FEN(NULL, shared->fen);
+    Board copy = board_new();
+
+    while (1) {
+        pthread_mutex_lock(&shared->mutex);
+        perft_result_add(&shared->result, &result);
+        if (shared->index >= move_list_size(shared->list)) {
+            pthread_mutex_unlock(&shared->mutex);
+            break;
+        }
+        Move move = move_list_move(shared->list, shared->index++);
+        pthread_mutex_unlock(&shared->mutex);
+
+        result = (PerftResult){0};
+
+        board_copy(board, copy);
+        if (!move_make(move, copy, 0)) continue;
+
+#ifdef USE_FULL_COUNT
+        if (board_isCheck(copy)) result.check++;
+        if (move_capture(move)) result.capture++;
+        if (move_enpassant(move)) result.enpassant++;
+        if (move_castle(move)) result.castle++;
+        if (move_promote(move)) result.promote++;
+#endif
+
+        perft_driver(copy, moveList, shared->depth, &result);
+    }
+    board_free(&board);
+    sem_post(&shared->finish);
+    return NULL;
+}
+
+PerftResult perft_test(const char *fen, int depth, int thread_num) {
+    assert(fen);
+    assert(depth > 0);
+
+    pthread_t threads[thread_num];
+    perf_shared shared = (perf_shared){
+        .list = move_list_generate(NULL, board_from_FEN(NULL, fen)),
+        .depth = depth - 1,
+        .fen = fen,
+    };
+
+    sem_init(&shared.finish, 0, 0);
+    pthread_mutex_init(&shared.mutex, NULL);
+    for (int i = 0; i < thread_num; i++)
+        pthread_create(threads + i, NULL, perft_thread, (void *)(&shared));
+
+    for (int i = 0; i < thread_num; i++)
+        sem_wait(&shared.finish);
+
+    move_list_free(&shared.list);
+    return shared.result;
+}
+
+int main(int argc, char *argv[]) {
+
+    int c, depth = 1, thread_num = 1;
+    char *fen = start_position;
+    while ((c = getopt(argc, argv, "t:f:d:")) != -1) {
+        switch (c) {
+        case 't':
+            thread_num = atoi(optarg);
+            if (thread_num <= 0) abort();
+            break;
+        case 'f':
+            fen = optarg;
+            break;
+        case 'd':
+            depth = atoi(optarg);
+            if (depth <= 0) abort();
+            break;
+        default:
+            abort();
+        }
+    }
+
     attacks_init();
-    Board board = board_new();
-    board_from_FEN(board, tricky_position);
-    perft_test_threaded(board, 5);
+    PerftResult res = perft_test(fen, depth, thread_num);
+    perft_result_print(res);
 }

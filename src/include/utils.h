@@ -45,7 +45,7 @@ enum enumSquare {
 typedef enum enumSquare Square;
 
 extern const char *square_to_coordinates[];
-Square coordinates_to_square(char *cord);
+Square coordinates_to_square(const char *cord);
 
 // board moving
 typedef U64 (*direction_f)(U64);

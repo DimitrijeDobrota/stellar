@@ -158,7 +158,7 @@ void board_print(Board self) {
     printf("\n");
 }
 
-Board board_from_FEN(Board board, char *fen) {
+Board board_from_FEN(Board board, const char *fen) {
     if (!board) NEW(board);
 
     memset(board, 0, sizeof(*board));

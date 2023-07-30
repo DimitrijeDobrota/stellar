@@ -3,7 +3,22 @@
 
 #include "board.h"
 
-void perft_test_threaded(Board board, int depth);
-void perft_test(Board board, int depth);
+typedef unsigned long long ull;
+typedef struct PerftResult PerftResult;
+struct PerftResult {
+    ull node;
+#ifdef USE_FULL_COUNT
+    ull capture;
+    ull enpassant;
+    ull castle;
+    ull promote;
+    ull check;
+    // ull checkDiscovered;
+    // ull checkDouble;
+    // ull checkmate;
+#endif
+};
+
+PerftResult perft_test(const char *fen, int depth, int thread_num);
 
 #endif

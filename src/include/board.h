@@ -46,7 +46,7 @@ Piece board_square_piece(Board self, Square square, eColor side);
 int board_square_isAttack(Board self, Square square, eColor side);
 int board_square_isOccupied(Board self, Square square);
 
-Board board_from_FEN(Board board, char *fen);
+Board board_from_FEN(Board board, const char *fen);
 int board_isCheck(Board self);
 void board_print(Board self);
 void board_side_switch(Board self);
