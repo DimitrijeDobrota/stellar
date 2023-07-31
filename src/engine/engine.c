@@ -73,11 +73,11 @@ void move_list_sort(Stats_T stats, MoveList list) {
 int evaluate(Board board) {
     Square square;
     eColor side = board_side(board);
-    U64 occupancy = board_colorBB(board, side);
+    U64 occupancy = board_color(board, side);
 
     int score = 0;
     for (int i = 0; i < 6; i++) {
-        U64 bitboard = board_pieceBB(board, i);
+        U64 bitboard = board_piece(board, i);
         bitboard_for_each_bit(square, bitboard) {
             if (bit_get(occupancy, square)) {
                 score += Score_value(i);

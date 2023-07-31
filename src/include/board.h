@@ -17,9 +17,9 @@ Board board_new(void);
 void board_free(Board *p);
 void board_copy(Board self, Board dest);
 
-U64 board_colorBB(Board self, eColor color);
+U64 board_color(Board self, eColor color);
 U64 board_occupancy(Board self);
-U64 board_pieceBB(Board self, ePiece piece);
+U64 board_piece(Board self, ePiece piece);
 eCastle board_castle(Board self);
 eColor board_side(Board self);
 
@@ -30,14 +30,15 @@ U64 board_pieceSet(Board self, Piece piece);
 U64 board_piece_attacks(Board self, Piece piece, Square src);
 void board_piece_capture(Board self, Piece piece, Piece taken, Square source,
                          Square target);
+
 void board_piece_move(Board self, Piece Piece, Square square, Square target);
 void board_piece_pop(Board self, Piece Piece, Square square);
 void board_piece_set(Board self, Piece Piece, Square square);
 int board_piece_get(Board self, Square square);
 
-U64 board_colorBB_get(Board self, eColor color, Square target);
-void board_colorBB_pop(Board self, eColor color, Square target);
-void board_colorBB_set(Board self, eColor color, Square target);
+U64 board_color_get(Board self, eColor color, Square target);
+void board_color_pop(Board self, eColor color, Square target);
+void board_color_set(Board self, eColor color, Square target);
 
 void board_castle_and(Board self, int exp);
 void board_castle_pop(Board self, eCastle castle);

@@ -2,6 +2,7 @@
 #include <stdlib.h>
 
 #include <cul/mem.h>
+#include <cul/assert.h>
 
 #include "moves.h"
 
@@ -105,7 +106,7 @@ MoveList move_list_generate(MoveList moves, Board board) {
             }
             { // capture
                 U64 attack = board_piece_attacks(board, Piece, src) &
-                             board_colorBB(board, !color);
+                             board_color(board, !color);
                 bitboard_for_each_bit(tgt, attack) {
                     if (pawn_canPromote(color, src)) {
                         pawn_promote(src, tgt, Piece,
@@ -139,7 +140,7 @@ MoveList move_list_generate(MoveList moves, Board board) {
         U64 bitboard = board_pieceSet(board, Piece);
         bitboard_for_each_bit(src, bitboard) {
             U64 attack = board_piece_attacks(board, Piece, src) &
-                         ~board_colorBB(board, color);
+                         ~board_color(board, color);
             bitboard_for_each_bit(tgt, attack) {
                 /* int take = bit_get(board_colorBB(board, !color), tgt); */
                 move_list_add(
