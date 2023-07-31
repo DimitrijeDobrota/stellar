@@ -38,9 +38,9 @@ int move_score(Stats_T stats, Move move) {
         return Score_capture(piece_piece(move_piece(move)),
                              piece_piece(move_piece_capture(move)));
     } else {
-        if (!move_cmp(stats->killer_moves[0][stats->ply], move))
+        if (move_cmp(stats->killer_moves[0][stats->ply], move))
             return 9000;
-        else if (!move_cmp(stats->killer_moves[1][stats->ply], move))
+        else if (move_cmp(stats->killer_moves[1][stats->ply], move))
             return 8000;
         else
             return stats->history_moves[piece_index(move_piece(move))]
@@ -366,7 +366,7 @@ Board Instruction_parse(Instruction_T self, Board board) {
 
         if (strcmp(token, "go") == 0) {
             token = Instruction_token_next(self);
-            int depth = 5;
+            int depth = 6;
             if (token && strcmp(token, "depth") == 0) {
                 token = Instruction_token_next(self);
                 depth = atoi(token);

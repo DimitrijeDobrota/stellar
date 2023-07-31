@@ -1,6 +1,7 @@
 #ifndef STELLAR_MOVES_H
 #define STELLAR_MOVES_H
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include "board.h"
@@ -12,11 +13,11 @@ struct Move {
     unsigned piece : 5;
     unsigned piece_capture : 5;
     unsigned piece_promote : 5;
-    unsigned dbl : 1;
-    unsigned enpassant : 1;
-    unsigned castle : 1;
-    unsigned capture : 1;
-    unsigned promote : 1;
+    bool dbl : 1;
+    bool enpassant : 1;
+    bool castle : 1;
+    bool capture : 1;
+    bool promote : 1;
 };
 
 typedef struct MoveList *MoveList;
