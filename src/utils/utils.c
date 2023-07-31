@@ -1,15 +1,31 @@
 #include <stdio.h>
-#ifdef WIN64
-#include <widnows.h>
-#else
 #include <sys/time.h>
-#endif
 
 #include "utils.h"
 
-const U64 universe = C64(0xffffffffffffffff); //
-const U64 notAFile = C64(0xfefefefefefefefe); // ~0x0101010101010101
-const U64 notHFile = C64(0x7f7f7f7f7f7f7f7f); // ~0x8080808080808080
+const U64 universe = C64(0xffffffffffffffff);
+const U64 notAFile = C64(0xfefefefefefefefe);
+const U64 notHFile = C64(0x7f7f7f7f7f7f7f7f);
+
+inline uint8_t bit_count(U64 bitboard) {
+#if __has_builtin(__builtin_popcountll)
+    return __builtin_popcountll(bitboard);
+#endif
+
+    int count = 0;
+    for (; bitboard > 0; bitboard &= bitboard - 1)
+        count++;
+    return count;
+}
+
+inline uint8_t bit_lsb_index(U64 bitboard) {
+#if __has_builtin(__builtin_ffsll)
+    return __builtin_ffsll(bitboard) - 1;
+#endif
+
+    if (!bitboard) return -1;
+    return bit_count((bitboard & -bitboard) - 1);
+}
 
 U64 soutOne(U64 b) { return b >> 8; }
 U64 nortOne(U64 b) { return b << 8; }
@@ -41,45 +57,8 @@ Square coordinates_to_square(const char *cord) {
     return (cord[1] - '1') * 8 + (cord[0] - 'a');
 }
 
-int bit_count(U64 bitboard) {
-    int count = 0;
-
-    while (bitboard > 0) {
-        count++;
-        bitboard &= bitboard - 1;
-    }
-
-    return count;
-}
-
-int bit_lsb_index(U64 bitboard) {
-    if (!bitboard) return -1;
-
-    return bit_count((bitboard & -bitboard) - 1);
-}
-
-void bitboard_print(U64 bitboard) {
-    for (int rank = 0; rank < 8; rank++) {
-        for (int file = 0; file < 8; file++) {
-            Square square = (7 - rank) * 8 + file;
-
-            if (!file) printf(" %d  ", 8 - rank);
-
-            printf("%d ", bit_get(bitboard, square) ? 1 : 0);
-        }
-        printf("\n");
-    }
-
-    printf("\n    A B C D E F G H\n\n");
-    printf("    Bitboard: %llud\n\n", bitboard);
-}
-
 int get_time_ms(void) {
-#ifdef WIN64
-    return GetTickCount();
-#else
     struct timeval time;
     gettimeofday(&time, NULL);
     return time.tv_sec * 1000 + time.tv_usec / 1000;
-#endif
 }

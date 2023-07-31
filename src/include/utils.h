@@ -1,6 +1,8 @@
 #ifndef STELLAR_UTILS_H
 #define STELLAR_UTILS_H
 
+#include <inttypes.h>
+
 // useful macros
 #define MAX(a, b) ((a > b) ? a : b)
 #define MIN(a, b) ((a < b) ? a : b)
@@ -21,13 +23,11 @@ extern const U64 notHFile;
 #define bit_get(bitboard, square) (((bitboard) >> (square)) & C64(1))
 #define bit_set(bitboard, square) ((bitboard) |= C64(1) << (square))
 #define bit_pop(bitboard, square) ((bitboard) &= ~(C64(1) << (square)))
-int bit_count(U64 bitboard);
-int bit_lsb_index(U64 bitboard);
+uint8_t bit_count(U64 bitboard);
+uint8_t bit_lsb_index(U64 bitboard);
 
 #define bitboard_for_each_bit(var, bb)                                         \
     for (var = bit_lsb_index(bb); bb; bit_pop(bb, var), var = bit_lsb_index(bb))
-
-void bitboard_print(U64 bitboard);
 
 // squares
 // clang-format off
