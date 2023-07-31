@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <cul/mem.h>
 #include <cul/assert.h>
+#include <cul/mem.h>
 
 #include "moves.h"
 
@@ -88,8 +88,7 @@ MoveList move_list_generate(MoveList moves, Board board) {
             { // quiet
                 int add = (color == WHITE) ? +8 : -8;
                 tgt = src + add;
-                if (tgt > a1 && tgt < h8 &&
-                    !board_square_isOccupied(board, tgt)) {
+                if (!board_square_isOccupied(board, tgt)) {
                     if (pawn_canPromote(color, src)) {
                         pawn_promote(src, tgt, Piece, 0);
                     } else {

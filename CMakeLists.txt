@@ -3,7 +3,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 project(
     Stellar
-	VERSION 0.0.8
+	VERSION 0.0.9
     DESCRIPTION "Chess engine written in C"
 	HOMEPAGE_URL https://git.dimitrijedobrota.com/stellar.git
 	LANGUAGES C
@@ -11,6 +11,6 @@ project(
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
-set(CMAKE_C_EXTENSIONS OFF)
+set(CMAKE_C_EXTENSIONS ON)
 
 add_subdirectory(src)

@@ -145,8 +145,9 @@ Board board_from_FEN(Board board, const char *fen) {
         } else if (*fen == '/') {
             file = 0;
             rank--;
-        } else
+        } else {
             assert(0);
+        }
     }
 
     fen++;

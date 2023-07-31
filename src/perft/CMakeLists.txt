@@ -1,13 +1,9 @@
 project(
     perft
-    VERSION 1.0.0
+    VERSION 1.1.0
     DESCRIPTION "Performance Test"
     LANGUAGES C
 )
-
-set(CMAKE_C_STANDARD 99)
-set(CMAKE_C_STANDARD_REQUIRED ON)
-set(CMAKE_C_EXTENSIONS ON)
 
 add_executable(perft perft.c)
 
