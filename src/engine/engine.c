@@ -15,8 +15,8 @@
 
 #define MAX_PLY 64
 
-typedef struct Stats_T *Stats_T;
-struct Stats_T {
+typedef struct Stats Stats;
+struct Stats {
     long nodes;
     int ply;
     int pv_length[MAX_PLY];
@@ -25,15 +25,15 @@ struct Stats_T {
     U32 history_moves[16][64];
 };
 
-Stats_T Stats_new(void) {
-    Stats_T p;
+Stats *Stats_new(void) {
+    Stats *p;
     NEW0(p);
     return p;
 }
 
-void Stats_free(Stats_T *p) { FREE(*p); }
+void Stats_free(Stats **p) { FREE(*p); }
 
-int move_score(Stats_T stats, Move move) {
+int move_score(Stats *stats, Move move) {
     if (move_capture(move)) {
         return Score_capture(piece_piece(move_piece(move)),
                              piece_piece(move_piece_capture(move)));
@@ -50,7 +50,7 @@ int move_score(Stats_T stats, Move move) {
     return 0;
 }
 
-void move_list_sort(Stats_T stats, MoveList list) {
+void move_list_sort(Stats *stats, MoveList *list) {
     int score[list->count];
     for (int i = 0; i < list->count; i++)
         score[i] = move_score(stats, list->moves[i]);
@@ -70,7 +70,7 @@ void move_list_sort(Stats_T stats, MoveList list) {
 
 /* SEARCHING */
 
-int evaluate(Board board) {
+int evaluate(Board *board) {
     Square square;
     eColor side = board_side(board);
     U64 occupancy = board_color(board, side);
@@ -92,9 +92,9 @@ int evaluate(Board board) {
     return score;
 }
 
-int quiescence(Stats_T stats, Board board, int alpha, int beta) {
-    MoveList moves;
-    Board copy;
+int quiescence(Stats *stats, Board *board, int alpha, int beta) {
+    MoveList *moves;
+    Board *copy;
 
     int eval = evaluate(board);
     stats->nodes++;
@@ -136,9 +136,9 @@ int quiescence(Stats_T stats, Board board, int alpha, int beta) {
     return alpha;
 }
 
-int negamax(Stats_T stats, Board board, int alpha, int beta, int depth) {
-    MoveList list;
-    Board copy;
+int negamax(Stats *stats, Board *board, int alpha, int beta, int depth) {
+    MoveList *list;
+    Board *copy;
     int isCheck = 0;
     int ply = stats->ply;
 
@@ -212,8 +212,8 @@ void move_print_UCI(Move move) {
     if (move_promote(move)) printf(" %c", piece_asci(move_piece_promote(move)));
 }
 
-void search_position(Board board, int depth) {
-    Stats_T stats = Stats_new();
+void search_position(Board *board, int depth) {
+    Stats *stats = Stats_new();
 
     for (int crnt = 1; crnt <= depth; crnt++) {
         int score = negamax(stats, board, -50000, 50000, crnt);
@@ -241,17 +241,17 @@ void print_info(void) {
     printf("uciok\n");
 }
 
-typedef struct Instruction_T *Instruction_T;
-struct Instruction_T {
+typedef struct Instruction Instruction;
+struct Instruction {
     char *command;
     char *token;
     char *crnt;
 };
 
-char *Instruction_token_next(Instruction_T self);
+char *Instruction_token_next(Instruction *self);
 
-Instruction_T Instruction_new(char *command) {
-    Instruction_T p;
+Instruction *Instruction_new(char *command) {
+    Instruction *p;
     NEW0(p);
     p->command = ALLOC(strlen(command) + 1);
     p->token = ALLOC(strlen(command) + 1);
@@ -261,14 +261,14 @@ Instruction_T Instruction_new(char *command) {
     return p;
 }
 
-void Instruction_free(Instruction_T *p) {
+void Instruction_free(Instruction **p) {
     FREE((*p)->command);
     FREE((*p)->token);
     FREE(*p);
 }
 
-char *Instruction_token(Instruction_T self) { return self->token; }
-char *Instruction_token_n(Instruction_T self, int n) {
+char *Instruction_token(Instruction *self) { return self->token; }
+char *Instruction_token_n(Instruction *self, int n) {
     while (isspace(*self->crnt) && *self->crnt != '\0')
         self->crnt++;
 
@@ -294,13 +294,13 @@ char *Instruction_token_n(Instruction_T self, int n) {
     return self->token;
 }
 
-char *Instruction_token_next(Instruction_T self) {
+char *Instruction_token_next(Instruction *self) {
     return Instruction_token_n(self, 1);
 }
 
-Move parse_move(Board board, char *move_string) {
+Move parse_move(Board *board, char *move_string) {
     Move result = {0};
-    MoveList moves;
+    MoveList *moves;
     Square source, target;
 
     source = coordinates_to_square(move_string);
@@ -324,7 +324,7 @@ Move parse_move(Board board, char *move_string) {
     return result;
 }
 
-Board Instruction_parse(Instruction_T self, Board board) {
+Board *Instruction_parse(Instruction *self, Board *board) {
     char *token = Instruction_token(self);
 
     if (!board) board = board_new();
@@ -393,8 +393,8 @@ Board Instruction_parse(Instruction_T self, Board board) {
 }
 
 void uci_loop(void) {
-    Board board = NULL;
-    Instruction_T instruction;
+    Board *board = NULL;
+    Instruction *instruction;
     char input[200000];
 
     setbuf(stdin, NULL);

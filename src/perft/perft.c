@@ -51,10 +51,10 @@ void perft_result_add(PerftResult *base, PerftResult *add) {
 #endif
 }
 
-void perft_driver(Board board, struct MoveList *moveList, int depth,
+void perft_driver(Board *board, struct MoveList *moveList, int depth,
                   PerftResult *result) {
-    MoveList list = move_list_generate(&moveList[depth], board);
-    Board copy = board_new();
+    MoveList *list = move_list_generate(&moveList[depth], board);
+    Board *copy = board_new();
 
     for (int i = 0; i < move_list_size(list); i++) {
         Move move = move_list_move(list, i);
@@ -82,7 +82,7 @@ void perft_driver(Board board, struct MoveList *moveList, int depth,
 typedef struct perf_shared perf_shared;
 struct perf_shared {
     const char *fen;
-    MoveList list;
+    MoveList *list;
     int depth;
     pthread_mutex_t mutex;
     unsigned int index;
@@ -94,8 +94,8 @@ void *perft_thread(void *arg) {
     perf_shared *shared = (perf_shared *)arg;
     struct MoveList moveList[shared->depth + 1];
 
-    Board board = board_from_FEN(NULL, shared->fen);
-    Board copy = board_new();
+    Board *board = board_from_FEN(NULL, shared->fen);
+    Board *copy = board_new();
 
     while (1) {
         pthread_mutex_lock(&shared->mutex);

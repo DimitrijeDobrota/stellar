@@ -20,7 +20,7 @@ struct Move {
     bool promote : 1;
 };
 
-typedef struct MoveList *MoveList;
+typedef struct MoveList MoveList;
 struct MoveList {
     Move moves[256];
     int count;
@@ -30,15 +30,15 @@ int move_cmp(Move a, Move b);
 Move move_encode(Square src, Square tgt, Piece piece, Piece capture,
                  Piece promote, int dbl, int enpassant, int castle);
 void move_print(Move move);
-MoveList move_list_new(void);
-void move_list_free(MoveList *p);
-Move move_list_move(MoveList self, int index);
-int move_list_size(MoveList self);
-void move_list_reset(MoveList self);
-void move_list_add(MoveList self, Move move);
-void move_list_print(MoveList self);
-MoveList move_list_generate(MoveList moves, Board board);
-int move_make(Move move, Board board, int flag);
+MoveList *move_list_new(void);
+void move_list_free(MoveList **p);
+Move move_list_move(const MoveList *self, int index);
+int move_list_size(const MoveList *self);
+void move_list_reset(MoveList *self);
+void move_list_add(MoveList *self, Move move);
+void move_list_print(const MoveList *self);
+MoveList *move_list_generate(MoveList *moves, Board *board);
+int move_make(Move move, Board *board, int flag);
 
 #define move_source(move) (move.source)
 #define move_target(move) (move.target)
