@@ -16,6 +16,7 @@
 #define MAX_PLY 64
 #define FULL_DEPTH 4
 #define REDUCTION_LIMIT 3
+#define REDUCTION_MOVE 2
 
 #define INFINITY 50000
 #define WINDOW 50
@@ -151,6 +152,18 @@ int negamax(Stats *stats, const Board *board, int alpha, int beta, int depth) {
     if (isCheck) depth++;
 
     Board copy;
+
+    if (depth >= 3 && !isCheck && stats->ply) {
+        board_copy(board, &copy);
+        board_side_switch(&copy);
+        board_enpassant_set(&copy, no_sq);
+
+        int score = -negamax(stats, &copy, -beta, -beta + 2,
+                             depth - 1 - REDUCTION_MOVE);
+
+        if (score >= beta) return beta;
+    }
+
     MoveList list;
     move_list_generate(&list, board);
 
