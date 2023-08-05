@@ -17,6 +17,9 @@
 #define FULL_DEPTH 4
 #define REDUCTION_LIMIT 3
 
+#define INFINITY 50000
+#define WINDOW 50
+
 typedef struct Stats Stats;
 struct Stats {
     long nodes;
@@ -231,12 +234,19 @@ void move_print_UCI(Move move) {
 void search_position(const Board *board, int depth) {
     Stats stats = {0};
 
-    for (int crnt = 1; crnt <= depth; crnt++) {
+    int alpha = -INFINITY, beta = INFINITY;
+    for (int crnt = 1; crnt <= depth;) {
         stats.follow_pv = 1;
 
-        int score = negamax(&stats, board, -50000, 50000, crnt);
+        int score = negamax(&stats, board, alpha, beta, crnt);
+        if (score <= alpha || score >= beta) {
+            alpha = -INFINITY;
+            beta = INFINITY;
+        }
+        alpha = score - 50;
+        beta = score + 50;
 
-        printf("info score cp %4d depth %2d nodes %10ld pv ", score, crnt,
+        printf("info score cp %d depth %d nodes %ld pv ", score, crnt,
                stats.nodes);
 
         for (int i = 0; i < stats.pv_length[0]; i++) {
@@ -244,6 +254,8 @@ void search_position(const Board *board, int depth) {
             printf(" ");
         }
         printf("\n");
+
+        crnt++;
     }
 
     printf("bestmove ");
@@ -381,13 +393,16 @@ Board *Instruction_parse(Instruction *self, Board *board) {
         }
 
         if (strcmp(token, "go") == 0) {
-            token = Instruction_token_next(self);
             int depth = 6;
-            if (token && strcmp(token, "depth") == 0) {
-                token = Instruction_token_next(self);
-                depth = atoi(token);
-            } else {
-                printf("Unknown argument after go\n");
+            for (token = Instruction_token_next(self); token;
+                 token = Instruction_token_next(self)) {
+
+                if (token && strcmp(token, "depth") == 0) {
+                    token = Instruction_token_next(self);
+                    depth = atoi(token);
+                } else {
+                    printf("Unknown argument %s after go\n", token);
+                }
             }
             search_position(board, depth);
             continue;
@@ -402,7 +417,6 @@ Board *Instruction_parse(Instruction *self, Board *board) {
             print_info();
             continue;
         }
-
     } while ((token = Instruction_token_next(self)));
 
     return board;
