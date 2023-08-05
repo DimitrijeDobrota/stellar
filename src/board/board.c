@@ -7,14 +7,6 @@
 
 #include "board.h"
 
-struct Board {
-    U64 color[2];
-    U64 piece[6];
-    eColor side;
-    Square enpassant;
-    eCastle castle;
-};
-
 Board *board_new(void) {
     Board *p;
     NEW0(p);
@@ -23,7 +15,7 @@ Board *board_new(void) {
 
 void board_free(Board **p) { FREE(*p); }
 
-void board_copy(Board *self, Board *dest) { *dest = *self; }
+void board_copy(const Board *self, Board *dest) { *dest = *self; }
 
 Square board_enpassant(const Board *self) { return self->enpassant; }
 eCastle board_castle(const Board *self) { return self->castle; }
@@ -38,7 +30,7 @@ U64 board_piece_get_internal(const Board *self, ePiece piece, Square target) {
     return bit_get(self->piece[piece], target);
 }
 
-U64 board_pieceSet(Board *self, Piece piece) {
+U64 board_pieceSet(const Board *self, Piece piece) {
     return self->piece[piece_piece(piece)] & self->color[piece_color(piece)];
 }
 
@@ -79,7 +71,7 @@ void board_piece_move(Board *self, Piece Piece, Square source, Square target) {
     board_piece_set(self, Piece, target);
 }
 
-U64 board_piece_attacks(Board *self, Piece piece, Square src) {
+U64 board_piece_attacks(const Board *self, Piece piece, Square src) {
     return piece_attacks(piece)(src, board_occupancy(self));
 }
 

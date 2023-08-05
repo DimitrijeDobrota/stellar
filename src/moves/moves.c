@@ -76,12 +76,15 @@ void move_list_print(const MoveList *self) {
         move_list_add(moves, move);                                            \
     }
 
-MoveList *move_list_generate(MoveList *moves, Board *board) {
+MoveList *move_list_generate(MoveList *moves, const Board *board) {
     Move move;
     Square src, tgt;
     eColor color = board_side(board);
 
-    if (!moves) moves = move_list_new();
+    if (!moves)
+        moves = move_list_new();
+    else
+        move_list_reset(moves);
 
     // pawn moves
     Piece piece = piece_get(PAWN, color);

@@ -12,10 +12,17 @@ enum enumCastle {
 typedef enum enumCastle eCastle;
 
 typedef struct Board Board;
+struct Board {
+    U64 color[2];
+    U64 piece[6];
+    eColor side;
+    Square enpassant;
+    eCastle castle;
+};
 
 Board *board_new(void);
 void board_free(Board **p);
-void board_copy(Board *self, Board *dest);
+void board_copy(const Board *self, Board *dest);
 
 U64 board_color(const Board *self, eColor color);
 U64 board_occupancy(const Board *self);
@@ -26,8 +33,8 @@ Square board_enpassant(const Board *self);
 
 void board_enpassant_set(Board *self, Square target);
 
-U64 board_pieceSet(Board *self, Piece piece);
-U64 board_piece_attacks(Board *self, Piece piece, Square src);
+U64 board_pieceSet(const Board *self, Piece piece);
+U64 board_piece_attacks(const Board *self, Piece piece, Square src);
 void board_piece_capture(Board *self, Piece piece, Piece taken, Square source,
                          Square target);
 

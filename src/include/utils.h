@@ -23,11 +23,13 @@ extern const U64 notHFile;
 #define bit_get(bitboard, square) (((bitboard) >> (square)) & C64(1))
 #define bit_set(bitboard, square) ((bitboard) |= C64(1) << (square))
 #define bit_pop(bitboard, square) ((bitboard) &= ~(C64(1) << (square)))
+
 uint8_t bit_count(U64 bitboard);
 uint8_t bit_lsb_index(U64 bitboard);
+#define bit_lsb_pop(bitboard) ((bitboard) &= (bitboard) & ((bitboard)-1))
 
 #define bitboard_for_each_bit(var, bb)                                         \
-    for (var = bit_lsb_index(bb); bb; bit_pop(bb, var), var = bit_lsb_index(bb))
+    for (var = bit_lsb_index(bb); bb; bit_lsb_pop(bb), var = bit_lsb_index(bb))
 
 // squares
 // clang-format off

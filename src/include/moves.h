@@ -37,7 +37,7 @@ int move_list_size(const MoveList *self);
 void move_list_reset(MoveList *self);
 void move_list_add(MoveList *self, Move move);
 void move_list_print(const MoveList *self);
-MoveList *move_list_generate(MoveList *moves, Board *board);
+MoveList *move_list_generate(MoveList *moves, const Board *board);
 int move_make(Move move, Board *board, int flag);
 
 #define move_source(move) (move.source)

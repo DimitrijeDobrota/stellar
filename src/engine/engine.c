@@ -23,6 +23,7 @@ struct Stats {
     Move pv_table[MAX_PLY][MAX_PLY];
     Move killer_moves[2][MAX_PLY];
     U32 history_moves[16][64];
+    int follow_pv, score_pv;
 };
 
 Stats *Stats_new(void) {
@@ -34,43 +35,55 @@ Stats *Stats_new(void) {
 void Stats_free(Stats **p) { FREE(*p); }
 
 int move_score(Stats *stats, Move move) {
+    if (stats->score_pv) {
+        if (move_cmp(stats->pv_table[0][stats->ply], move)) {
+            stats->score_pv = 0;
+            return 20000;
+        }
+    }
+
     if (move_capture(move)) {
         return Score_capture(piece_piece(move_piece(move)),
                              piece_piece(move_piece_capture(move)));
-    } else {
-        if (move_cmp(stats->killer_moves[0][stats->ply], move))
-            return 9000;
-        else if (move_cmp(stats->killer_moves[1][stats->ply], move))
-            return 8000;
-        else
-            return stats->history_moves[piece_index(move_piece(move))]
-                                       [move_target(move)];
     }
+
+    if (move_cmp(stats->killer_moves[0][stats->ply], move))
+        return 9000;
+    else if (move_cmp(stats->killer_moves[1][stats->ply], move))
+        return 8000;
+    else
+        return stats
+            ->history_moves[piece_index(move_piece(move))][move_target(move)];
 
     return 0;
 }
 
+static Stats *move_list_stats = NULL;
+int move_list_cmp(const void *a, const void *b) {
+    return move_score(move_list_stats, *(Move *)a) <=
+           move_score(move_list_stats, *(Move *)b);
+}
+
 void move_list_sort(Stats *stats, MoveList *list) {
-    int score[list->count];
-    for (int i = 0; i < list->count; i++)
-        score[i] = move_score(stats, list->moves[i]);
-
-    for (int i = 0; i < list->count; i++)
-        for (int j = i + 1; j < list->count; j++)
-            if (score[i] < score[j]) {
-                Move t = list->moves[i];
-                list->moves[i] = list->moves[j];
-                list->moves[j] = t;
-
-                int s = score[i];
-                score[i] = score[j];
-                score[j] = s;
-            }
+    move_list_stats = stats;
+    qsort(list->moves, list->count, sizeof(Move), move_list_cmp);
 }
 
 /* SEARCHING */
 
-int evaluate(Board *board) {
+void enable_pv_scoring(Stats *stats, MoveList *list) {
+    stats->follow_pv = 0;
+
+    for (int i = 0; i < list->count; i++) {
+        if (move_cmp(stats->pv_table[0][stats->ply], move_list_move(list, i))) {
+            stats->score_pv = 1;
+            stats->follow_pv = 1;
+            return;
+        }
+    }
+}
+
+int evaluate(const Board *board) {
     Square square;
     eColor side = board_side(board);
     U64 occupancy = board_color(board, side);
@@ -92,82 +105,64 @@ int evaluate(Board *board) {
     return score;
 }
 
-int quiescence(Stats *stats, Board *board, int alpha, int beta) {
-    MoveList *moves;
-    Board *copy;
-
+int quiescence(Stats *stats, const Board *board, int alpha, int beta) {
     int eval = evaluate(board);
     stats->nodes++;
 
-    if (eval >= beta) {
-        return beta;
-    }
+    if (eval >= beta) return beta;
+    if (eval > alpha) alpha = eval;
 
-    if (eval > alpha) {
-        alpha = eval;
-    }
+    Board copy;
+    MoveList moves;
+    move_list_generate(&moves, board);
+    move_list_sort(stats, &moves);
 
-    copy = board_new();
-    moves = move_list_generate(NULL, board);
-    move_list_sort(stats, moves);
+    for (int i = 0; i < move_list_size(&moves); i++) {
+        board_copy(board, &copy);
 
-    for (int i = 0; i < move_list_size(moves); i++) {
-        board_copy(board, copy);
-
-        if (move_make(move_list_move(moves, i), copy, 1) == 0) continue;
+        if (move_make(move_list_move(&moves, i), &copy, 1) == 0) continue;
 
         stats->ply++;
-        int score = -quiescence(stats, copy, -beta, -alpha);
+        int score = -quiescence(stats, &copy, -beta, -alpha);
         stats->ply--;
 
-        if (score >= beta) {
-            move_list_free(&moves);
-            board_free(&copy);
-            return beta;
-        }
-
-        if (score > alpha) {
-            alpha = score;
-        }
+        if (score >= beta) return beta;
+        if (score > alpha) alpha = score;
     }
 
-    move_list_free(&moves);
-    board_free(&copy);
     return alpha;
 }
 
-int negamax(Stats *stats, Board *board, int alpha, int beta, int depth) {
-    MoveList *list;
-    Board *copy;
-    int isCheck = 0;
+int negamax(Stats *stats, const Board *board, int alpha, int beta, int depth) {
     int ply = stats->ply;
-
     stats->pv_length[ply] = ply;
 
     if (depth == 0) return quiescence(stats, board, alpha, beta);
-
     if (ply > MAX_PLY - 1) return evaluate(board);
 
     stats->nodes++;
 
-    copy = board_new();
-    list = move_list_generate(NULL, board);
-    isCheck = board_isCheck(board);
-
+    int isCheck = board_isCheck(board);
     if (isCheck) depth++;
 
-    int legal_moves = 0;
-    move_list_sort(stats, list);
-    for (int i = 0; i < move_list_size(list); i++) {
-        Move move = move_list_move(list, i);
+    Board copy;
+    MoveList list;
+    move_list_generate(&list, board);
 
-        board_copy(board, copy);
-        if (move_make(move, copy, 0) == 0) {
+    if (stats->follow_pv) enable_pv_scoring(stats, &list);
+
+    move_list_sort(stats, &list);
+    int legal_moves = 0;
+    for (int i = 0; i < move_list_size(&list); i++) {
+        Move move = move_list_move(&list, i);
+
+        board_copy(board, &copy);
+        if (move_make(move, &copy, 0) == 0) {
             continue;
         }
 
         stats->ply++;
-        int score = -negamax(stats, copy, -beta, -alpha, depth - 1);
+        int score = -negamax(stats, &copy, -beta, -alpha, depth - 1);
         stats->ply--;
         legal_moves++;
 
@@ -176,8 +171,6 @@ int negamax(Stats *stats, Board *board, int alpha, int beta, int depth) {
                 stats->killer_moves[1][ply] = stats->killer_moves[0][ply];
                 stats->killer_moves[0][ply] = move;
             }
-            move_list_free(&list);
-            board_free(&copy);
             return beta;
         }
 
@@ -201,8 +194,6 @@ int negamax(Stats *stats, Board *board, int alpha, int beta, int depth) {
             return 0;
     }
 
-    move_list_free(&list);
-    board_free(&copy);
     return alpha;
 }
 
@@ -212,27 +203,28 @@ void move_print_UCI(Move move) {
     if (move_promote(move)) printf(" %c", piece_asci(move_piece_promote(move)));
 }
 
-void search_position(Board *board, int depth) {
-    Stats *stats = Stats_new();
+void search_position(const Board *board, int depth) {
+    Stats stats = {0};
 
     for (int crnt = 1; crnt <= depth; crnt++) {
-        int score = negamax(stats, board, -50000, 50000, crnt);
+        stats.follow_pv = 1;
+        stats.nodes = 0;
+
+        int score = negamax(&stats, board, -50000, 50000, crnt);
 
         printf("info score cp %d depth %d nodes %ld pv ", score, crnt,
-               stats->nodes);
+               stats.nodes);
 
-        for (int i = 0; i < stats->pv_length[0]; i++) {
-            move_print_UCI(stats->pv_table[0][i]);
+        for (int i = 0; i < stats.pv_length[0]; i++) {
+            move_print_UCI(stats.pv_table[0][i]);
             printf(" ");
         }
         printf("\n");
     }
 
     printf("bestmove ");
-    move_print_UCI(stats->pv_table[0][0]);
+    move_print_UCI(stats.pv_table[0][0]);
     printf("\n");
-
-    Stats_free(&stats);
 }
 
 void print_info(void) {
