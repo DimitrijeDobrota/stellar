@@ -153,6 +153,7 @@ int negamax(Stats *stats, const Board *board, int alpha, int beta, int depth) {
 
     move_list_sort(stats, &list);
     int legal_moves = 0;
+    int found_pv = 0;
     for (int i = 0; i < move_list_size(&list); i++) {
         Move move = move_list_move(&list, i);
 
@@ -162,7 +163,15 @@ int negamax(Stats *stats, const Board *board, int alpha, int beta, int depth) {
         }
 
         stats->ply++;
-        int score = -negamax(stats, &copy, -beta, -alpha, depth - 1);
+
+        int score = alpha;
+        if (found_pv)
+            score = -negamax(stats, &copy, -alpha - 1, -alpha, depth - 1);
+
+        // no PVS or the last one failed
+        if (!found_pv || (score > alpha) && (score < beta))
+            score = -negamax(stats, &copy, -beta, -alpha, depth - 1);
+
         stats->ply--;
         legal_moves++;
 
@@ -179,7 +188,7 @@ int negamax(Stats *stats, const Board *board, int alpha, int beta, int depth) {
                 stats->history_moves[piece_index(move_piece(move))]
                                     [move_target(move)] += depth;
             alpha = score;
-
+            found_pv = 1;
             stats->pv_table[ply][ply] = move;
             for (int i = stats->ply + 1; i < stats->pv_length[ply + 1]; i++)
                 stats->pv_table[ply][i] = stats->pv_table[ply + 1][i];
@@ -208,7 +217,6 @@ void search_position(const Board *board, int depth) {
 
     for (int crnt = 1; crnt <= depth; crnt++) {
         stats.follow_pv = 1;
-        stats.nodes = 0;
 
         int score = negamax(&stats, board, -50000, 50000, crnt);
 
