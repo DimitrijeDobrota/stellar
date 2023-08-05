@@ -14,6 +14,8 @@
 #include <cul/mem.h>
 
 #define MAX_PLY 64
+#define FULL_DEPTH 4
+#define REDUCTION_LIMIT 3
 
 typedef struct Stats Stats;
 struct Stats {
@@ -153,7 +155,7 @@ int negamax(Stats *stats, const Board *board, int alpha, int beta, int depth) {
 
     move_list_sort(stats, &list);
     int legal_moves = 0;
-    int found_pv = 0;
+    int searched = 0;
     for (int i = 0; i < move_list_size(&list); i++) {
         Move move = move_list_move(&list, i);
 
@@ -161,19 +163,34 @@ int negamax(Stats *stats, const Board *board, int alpha, int beta, int depth) {
         if (move_make(move, &copy, 0) == 0) {
             continue;
         }
-
+        int makeCheck = board_isCheck(&copy);
         stats->ply++;
 
-        int score = alpha;
-        if (found_pv)
-            score = -negamax(stats, &copy, -alpha - 1, -alpha, depth - 1);
-
-        // no PVS or the last one failed
-        if (!found_pv || (score > alpha) && (score < beta))
+        int score;
+        if (!searched) {
             score = -negamax(stats, &copy, -beta, -alpha, depth - 1);
+        } else {
+            // Late Move Reduction
+            if (searched >= FULL_DEPTH && depth >= REDUCTION_LIMIT &&
+                !isCheck && !makeCheck && !move_capture(move) &&
+                !move_promote(move)) {
+                score = -negamax(stats, &copy, -alpha - 1, -alpha, depth - 2);
+            } else
+                score = alpha + 1;
+
+            // found better move
+            if (score > alpha) {
+                score = -negamax(stats, &copy, -alpha - 1, -alpha, depth - 1);
+
+                // if fail research
+                if (score > alpha && score < beta)
+                    score = -negamax(stats, &copy, -beta, -alpha, depth - 1);
+            }
+        }
 
         stats->ply--;
         legal_moves++;
+        searched++;
 
         if (score >= beta) {
             if (!move_capture(move)) {
@@ -188,7 +205,6 @@ int negamax(Stats *stats, const Board *board, int alpha, int beta, int depth) {
                 stats->history_moves[piece_index(move_piece(move))]
                                     [move_target(move)] += depth;
             alpha = score;
-            found_pv = 1;
             stats->pv_table[ply][ply] = move;
             for (int i = stats->ply + 1; i < stats->pv_length[ply + 1]; i++)
                 stats->pv_table[ply][i] = stats->pv_table[ply + 1][i];
@@ -220,7 +236,7 @@ void search_position(const Board *board, int depth) {
 
         int score = negamax(&stats, board, -50000, 50000, crnt);
 
-        printf("info score cp %d depth %d nodes %ld pv ", score, crnt,
+        printf("info score cp %4d depth %2d nodes %10ld pv ", score, crnt,
                stats.nodes);
 
         for (int i = 0; i < stats.pv_length[0]; i++) {
