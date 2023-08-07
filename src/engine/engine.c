@@ -8,6 +8,7 @@
 #include "moves.h"
 #include "perft.h"
 #include "score.h"
+#include "transposition.h"
 #include "utils.h"
 #include "zobrist.h"
 
@@ -19,20 +20,17 @@
 #define REDUCTION_LIMIT 3
 #define REDUCTION_MOVE 2
 
-#define INFINITY 50000
-#define MATE_VALUE 49000
-#define MATE_SCORE 48000
-
 #define WINDOW 50
 
 typedef struct Stats Stats;
 struct Stats {
-    long nodes;
-    int ply;
-    int pv_length[MAX_PLY];
     Move pv_table[MAX_PLY][MAX_PLY];
     Move killer_moves[2][MAX_PLY];
     U32 history_moves[16][64];
+    TTable *ttable;
+    long nodes;
+    int ply;
+    int pv_length[MAX_PLY];
     int follow_pv, score_pv;
 };
 
@@ -118,10 +116,10 @@ int evaluate(const Board *board) {
 int quiescence(Stats *stats, const Board *board, int alpha, int beta) {
     stats->nodes++;
 
-    int eval = evaluate(board);
-    if (stats->ply > MAX_PLY - 1) return eval;
-    if (eval >= beta) return beta;
-    if (eval > alpha) alpha = eval;
+    int score = evaluate(board);
+    if (score >= beta) return beta;
+    if (score > alpha) alpha = score;
+    if (stats->ply > MAX_PLY - 1) return score;
 
     Board copy;
     MoveList moves;
@@ -135,7 +133,7 @@ int quiescence(Stats *stats, const Board *board, int alpha, int beta) {
         if (move_make(move, &copy, 1) == 0) continue;
 
         stats->ply++;
-        int score = -quiescence(stats, &copy, -beta, -alpha);
+        score = -quiescence(stats, &copy, -beta, -alpha);
         stats->ply--;
 
         if (score > alpha) {
@@ -148,15 +146,28 @@ int quiescence(Stats *stats, const Board *board, int alpha, int beta) {
 }
 
 int negamax(Stats *stats, const Board *board, int alpha, int beta, int depth) {
+    HasheFlag flag = flagAlpha;
+    U64 bhash = board_hash(board);
+
     stats->pv_length[stats->ply] = stats->ply;
+
+    int pv_node = (beta - alpha) > 1;
+    int score =
+        ttable_read(stats->ttable, bhash, alpha, beta, depth, stats->ply);
+    if (stats->ply && score != TTABLE_UNKNOWN && !pv_node) return score;
+
     stats->nodes++;
 
-    if (depth == 0) return quiescence(stats, board, alpha, beta);
-    if (stats->ply > MAX_PLY - 1) return evaluate(board);
+    if (depth == 0) {
+        int score = quiescence(stats, board, alpha, beta);
+        ttable_write(stats->ttable, bhash, score, depth, stats->ply, flagExact);
+        return score;
+    }
 
-    // if (alpha < -MATE_VALUE) alpha = -MATE_VALUE;
-    // if (beta > MATE_VALUE - 1) beta = MATE_VALUE - 1;
-    // if (alpha >= beta) return alpha;
+    if (alpha < -MATE_VALUE) alpha = -MATE_VALUE;
+    if (beta > MATE_VALUE - 1) beta = MATE_VALUE - 1;
+    if (alpha >= beta) return alpha;
+    if (stats->ply > MAX_PLY - 1) return evaluate(board);
 
     int isCheck = board_isCheck(board);
     if (isCheck) depth++;
@@ -168,8 +179,10 @@ int negamax(Stats *stats, const Board *board, int alpha, int beta, int depth) {
         board_side_switch(&copy);
         board_enpassant_set(&copy, no_sq);
 
-        int score = -negamax(stats, &copy, -beta, -beta + 1,
-                             depth - 1 - REDUCTION_MOVE);
+        stats->ply++;
+        score = -negamax(stats, &copy, -beta, -beta + 1,
+                         depth - 1 - REDUCTION_MOVE);
+        stats->ply--;
 
         if (score >= beta) return beta;
     }
@@ -218,17 +231,21 @@ int negamax(Stats *stats, const Board *board, int alpha, int beta, int depth) {
         searched++;
 
         if (score > alpha) {
-            if (!move_capture(move))
+            if (!move_capture(move)) {
                 stats->history_moves[piece_index(move_piece(move))]
                                     [move_target(move)] += depth;
+            }
 
-            alpha = score;
             stats->pv_table[stats->ply][stats->ply] = move;
             for (int i = stats->ply + 1; i < stats->pv_length[stats->ply + 1];
-                 i++)
+                 i++) {
                 stats->pv_table[stats->ply][i] =
                     stats->pv_table[stats->ply + 1][i];
+            }
             stats->pv_length[stats->ply] = stats->pv_length[stats->ply + 1];
+
+            alpha = score;
+            flag = flagExact;
 
             if (score >= beta) {
                 if (!move_capture(move)) {
@@ -236,6 +253,9 @@ int negamax(Stats *stats, const Board *board, int alpha, int beta, int depth) {
                         stats->killer_moves[0][stats->ply];
                     stats->killer_moves[0][stats->ply] = move;
                 }
+
+                ttable_write(stats->ttable, board_hash(&copy), beta, depth,
+                             stats->ply, flagBeta);
                 return beta;
             }
         }
@@ -247,6 +267,7 @@ int negamax(Stats *stats, const Board *board, int alpha, int beta, int depth) {
             return 0;
     }
 
+    ttable_write(stats->ttable, bhash, alpha, depth, stats->ply, flag);
     return alpha;
 }
 
@@ -256,24 +277,26 @@ void move_print_UCI(Move move) {
     if (move_promote(move)) printf("%c", piece_asci(move_piece_promote(move)));
 }
 
+TTable *ttable = NULL;
 void search_position(const Board *board, int depth) {
-    Stats stats = {0};
+    Stats stats = {.ttable = ttable, 0};
 
     int alpha = -INFINITY, beta = INFINITY;
     for (int crnt = 1; crnt <= depth;) {
         stats.follow_pv = 1;
 
         int score = negamax(&stats, board, alpha, beta, crnt);
-        if (score <= alpha || score >= beta) {
+        if ((score <= alpha) || (score >= beta)) {
             alpha = -INFINITY;
             beta = INFINITY;
+            continue;
         }
-        alpha = score - 50;
-        beta = score + 50;
+        alpha = score - WINDOW;
+        beta = score + WINDOW;
 
         if (score > -MATE_VALUE && score < -MATE_SCORE) {
             printf("info score mate %d depth %d nodes %ld pv ",
-                   (MATE_VALUE - score) / 2 + 1, crnt, stats.nodes);
+                   -(score + MATE_VALUE) / 2 - 1, crnt, stats.nodes);
         } else if (score > MATE_SCORE && score < MATE_VALUE) {
             printf("info score mate %d depth %d nodes %ld pv ",
                    (MATE_VALUE - score) / 2 + 1, crnt, stats.nodes);
@@ -482,10 +505,12 @@ void uci_loop(void) {
 void init(void) {
     attacks_init();
     zobrist_init();
+    ttable = ttable_new(C64(0x400000));
 }
 
 int main(void) {
     init();
     uci_loop();
+    ttable_free(&ttable);
     return 0;
 }

@@ -1,4 +1,7 @@
-add_executable(engine engine.c)
+add_executable(engine
+    engine.c
+    transposition.c
+)
 
 target_link_libraries(engine
     PRIVATE attacks

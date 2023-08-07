@@ -61,4 +61,3 @@ void move_list_print(const MoveList *self) {
         move_print(self->moves[i]);
     printf("Total: %d\n", self->count);
 }
-
