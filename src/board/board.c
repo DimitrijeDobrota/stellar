@@ -6,6 +6,7 @@
 #include <cul/mem.h>
 
 #include "board.h"
+#include "utils.h"
 #include "zobrist.h"
 
 Board *board_new(void) {
@@ -29,16 +30,8 @@ U64 board_occupancy(const Board *self) {
     return self->color[WHITE] | self->color[BLACK];
 }
 
-U64 board_piece_get_internal(const Board *self, ePiece piece, Square target) {
-    return bit_get(self->piece[piece], target);
-}
-
 U64 board_pieceSet(const Board *self, Piece piece) {
     return self->piece[piece_piece(piece)] & self->color[piece_color(piece)];
-}
-
-void board_enpassant_set(Board *self, Square target) {
-    self->enpassant = target;
 }
 
 void board_color_pop(Board *self, eColor color, Square target) {
@@ -69,28 +62,9 @@ void board_piece_set(Board *self, Piece piece, Square square) {
     bit_set(self->color[piece_color(piece)], square);
 }
 
-void board_piece_move(Board *self, Piece Piece, Square source, Square target) {
-    board_piece_pop(self, Piece, source);
-    board_piece_set(self, Piece, target);
-}
-
 U64 board_piece_attacks(const Board *self, Piece piece, Square src) {
     return piece_attacks(piece)(src, board_occupancy(self));
 }
-
-void board_piece_capture(Board *self, Piece piece, Piece taken, Square source,
-                         Square target) {
-    board_piece_pop(self, piece, source);
-    if (taken) board_piece_pop(self, taken, target);
-    board_piece_set(self, piece, target);
-}
-
-void board_castle_pop(Board *self, eCastle castle) {
-    bit_pop(self->castle, bit_lsb_index(castle));
-}
-
-void board_castle_and(Board *self, int exp) { self->castle &= exp; }
-void board_side_switch(Board *self) { self->side = !self->side; }
 
 int board_isCheck(const Board *self) {
     U64 king = self->piece[KING] & self->color[self->side];
@@ -103,7 +77,7 @@ int board_square_isOccupied(const Board *self, Square square) {
 int board_square_isAttack(const Board *self, Square square, eColor side) {
     U64 occupancy = self->color[WHITE] | self->color[BLACK];
 
-    for (int i = 0; i < 6; i++) {
+    for (int i = KING; i >= PAWN; i--) {
         if (piece_attacks(piece_get(i, !side))(square, occupancy) &
             self->piece[i] & self->color[side])
             return 1;
@@ -112,10 +86,24 @@ int board_square_isAttack(const Board *self, Square square, eColor side) {
     return 0;
 }
 
+void board_side_switch(Board *self) {
+    self->side = !self->side;
+    self->hash ^= zobrist_key_side();
+}
+
+void board_enpassant_set(Board *self, Square target) {
+    if (self->enpassant != no_sq)
+        self->hash ^= zobrist_key_enpassant(self->enpassant);
+
+    if (target != no_sq) self->hash ^= zobrist_key_enpassant(target);
+    self->enpassant = target;
+}
+
+void board_castle_and(Board *self, int exp) { self->castle &= exp; }
+
 Piece board_square_piece(const Board *self, Square square, eColor color) {
     for (ePiece i = 0; i < 6; i++)
-        if (board_piece_get_internal(self, i, square))
-            return piece_get(i, color);
+        if (bit_get(self->piece[i], square)) return piece_get(i, color);
     return NULL;
 }
 
@@ -217,6 +205,6 @@ void board_print(const Board *self) {
     printf(" Castling: %c%c%c%c\n", (self->castle & WK) ? 'K' : '-',
            (self->castle & WQ) ? 'Q' : '-', (self->castle & BK) ? 'k' : '-',
            (self->castle & BQ) ? 'q' : '-');
-    printf("     Hash: %llu\n", self->hash);
+    printf("     Hash: %llx\n", self->hash);
     printf("\n");
 }

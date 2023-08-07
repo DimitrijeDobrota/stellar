@@ -19,6 +19,7 @@ target_link_libraries(perft
     PRIVATE piece
     PRIVATE score
     PRIVATE utils
+    PRIVATE random
 )
 
 target_link_libraries(perft PRIVATE "cul")

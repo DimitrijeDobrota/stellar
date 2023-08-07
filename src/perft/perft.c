@@ -11,6 +11,7 @@
 #include "moves.h"
 #include "perft.h"
 #include "utils.h"
+#include "zobrist.h"
 
 // FEN debug positions
 #define tricky_position                                                        \
@@ -174,6 +175,9 @@ int main(int argc, char *argv[]) {
     }
 
     attacks_init();
+    zobrist_init();
+
+    board_print(board_from_FEN(NULL, fen));
     PerftResult res = perft_test(fen, depth, thread_num);
     perft_result_print(res);
 }

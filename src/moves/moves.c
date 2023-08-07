@@ -4,7 +4,9 @@
 #include <cul/assert.h>
 #include <cul/mem.h>
 
+#include "board.h"
 #include "moves.h"
+#include "zobrist.h"
 
 int move_cmp(Move a, Move b) { return *(uint32_t *)&a == *(uint32_t *)&b; }
 
@@ -128,10 +130,9 @@ MoveList *move_list_generate(MoveList *moves, const Board *board) {
             if (board_enpassant(board) != no_sq &&
                 board_piece_attacks(board, piece, src) &
                     (C64(1) << board_enpassant(board)))
-                move_list_add(
-                    moves, move_encode(src, board_enpassant(board), piece,
-                                       board_square_piece(board, tgt, !color),
-                                       0, 0, 1, 0));
+                move_list_add(moves,
+                              move_encode(src, board_enpassant(board), piece,
+                                          piece_get(PAWN, !color), 0, 0, 1, 0));
         }
     }
 
@@ -204,28 +205,53 @@ const int castling_rights[64] = {
 };
 // clang-format on
 
-int move_make(Move move, Board *board, int flag) {
-    if (flag == 0) {
+void _piece_remove(Board *self, Piece piece, Square square) {
+    board_piece_pop(self, piece, square);
+    self->hash ^= zobrist_key_piece(piece, square);
+}
 
-        Square source = move_source(move);
-        Square target = move_target(move);
+void _piece_set(Board *self, Piece piece, Square square) {
+    board_piece_set(self, piece, square);
+    self->hash ^= zobrist_key_piece(piece, square);
+}
+
+void _piece_move(Board *self, Piece piece, Square source, Square target) {
+    _piece_remove(self, piece, source);
+    _piece_set(self, piece, target);
+}
+
+int move_make(Move move, Board *board, int flag) {
+    if (flag) {
+        if (move_capture(move)) return move_make(move, board, 0);
+        return 0;
+    } else {
         Piece piece = move_piece(move);
         eColor color = board_side(board);
+        Square source = move_source(move);
+        Square target = move_target(move);
+        Square ntarget = target + (color == WHITE ? -8 : +8);
 
-        if (!move_capture(move))
-            board_piece_move(board, piece, source, target);
-        else
-            board_piece_capture(board, piece, move_piece_capture(move), source,
-                                target);
-
-        if (move_promote(move)) {
-            board_piece_pop(board, piece, target);
-            board_piece_set(board, move_piece_promote(move), target);
+        if (!move_capture(move)) {
+            if (move_promote(move)) {
+                _piece_remove(board, piece, source);
+                _piece_set(board, move_piece_promote(move), target);
+            } else {
+                _piece_move(board, piece, source, target);
+            }
+        } else {
+            if (move_enpassant(move)) {
+                _piece_move(board, piece, source, target);
+                _piece_remove(board, move_piece_capture(move), ntarget);
+            } else if (move_promote(move)) {
+                _piece_remove(board, piece, source);
+                _piece_remove(board, move_piece_capture(move), target);
+                _piece_set(board, move_piece_promote(move), target);
+            } else {
+                _piece_remove(board, piece, source);
+                _piece_remove(board, move_piece_capture(move), target);
+                _piece_set(board, piece, target);
+            }
         }
-
-        int ntarget = target + (color == WHITE ? -8 : +8);
-        if (move_enpassant(move))
-            board_piece_pop(board, piece_get(PAWN, !color), ntarget);
 
         board_enpassant_set(board, move_double(move) ? ntarget : no_sq);
 
@@ -233,34 +259,31 @@ int move_make(Move move, Board *board, int flag) {
             Piece Rook = piece_get(ROOK, board_side(board));
             switch (target) {
             case g1:
-                board_piece_move(board, Rook, h1, f1);
+                _piece_move(board, Rook, h1, f1);
                 break;
             case c1:
-                board_piece_move(board, Rook, a1, d1);
+                _piece_move(board, Rook, a1, d1);
                 break;
             case g8:
-                board_piece_move(board, Rook, h8, f8);
+                _piece_move(board, Rook, h8, f8);
                 break;
             case c8:
-                board_piece_move(board, Rook, a8, d8);
+                _piece_move(board, Rook, a8, d8);
                 break;
             default:
                 break;
             }
         }
 
+        board->hash ^= zobrist_key_castle(board_castle(board));
         board_castle_and(board, castling_rights[source]);
         board_castle_and(board, castling_rights[target]);
+        board->hash ^= zobrist_key_castle(board_castle(board));
 
         if (!board_isCheck(board)) {
             board_side_switch(board);
             return 1;
-        } else
-            return 0;
-    } else {
-        if (move_capture(move))
-            return move_make(move, board, 0);
-        else
-            return 0;
+        }
+        return 0;
     }
 }

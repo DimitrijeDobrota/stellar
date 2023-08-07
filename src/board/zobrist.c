@@ -9,6 +9,13 @@ U64 enpassant_keys[64];
 U64 piece_keys[16][64];
 U64 side_key;
 
+U64 zobrist_key_side(void) { return side_key; }
+U64 zobrist_key_castle(int exp) { return castle_keys[exp]; }
+U64 zobrist_key_enpassant(Square square) { return enpassant_keys[square]; }
+U64 zobrist_key_piece(Piece piece, Square square) {
+    return piece_keys[piece_index(piece)][square];
+}
+
 void init_hash_keys() {
     random_state_reset();
 
