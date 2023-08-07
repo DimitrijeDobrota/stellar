@@ -10,8 +10,7 @@
 const char *FORMAT = "C64(0x%llx),\n";
 
 U64 generate_magic_number() {
-    return random_get_U64() & random_get_U64() &
-           random_get_U64();
+    return random_get_U64() & random_get_U64() & random_get_U64();
 }
 
 U64 find_magic_number(Square square, int relevant_bits, int bishop) {

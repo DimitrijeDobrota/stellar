@@ -6,6 +6,7 @@
 #include <cul/mem.h>
 
 #include "board.h"
+#include "zobrist.h"
 
 Board *board_new(void) {
     Board *p;
@@ -22,6 +23,8 @@ eCastle board_castle(const Board *self) { return self->castle; }
 eColor board_side(const Board *self) { return self->side; }
 U64 board_color(const Board *self, eColor color) { return self->color[color]; }
 U64 board_piece(const Board *self, ePiece piece) { return self->piece[piece]; }
+U64 board_hash(const Board *self) { return self->hash; }
+
 U64 board_occupancy(const Board *self) {
     return self->color[WHITE] | self->color[BLACK];
 }
@@ -177,6 +180,7 @@ Board *board_from_FEN(Board *board, const char *fen) {
         board->enpassant = coordinates_to_square(fen);
     }
 
+    board->hash = zobrist_hash(board);
     return board;
 }
 
@@ -213,5 +217,6 @@ void board_print(const Board *self) {
     printf(" Castling: %c%c%c%c\n", (self->castle & WK) ? 'K' : '-',
            (self->castle & WQ) ? 'Q' : '-', (self->castle & BK) ? 'k' : '-',
            (self->castle & BQ) ? 'q' : '-');
+    printf("     Hash: %llu\n", self->hash);
     printf("\n");
 }

@@ -7,6 +7,7 @@ target_link_libraries(engine
     PRIVATE piece
     PRIVATE score
     PRIVATE utils
+    PRIVATE random
 )
 
 target_link_libraries(engine PRIVATE "cul")

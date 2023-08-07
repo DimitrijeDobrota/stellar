@@ -9,6 +9,7 @@
 #include "perft.h"
 #include "score.h"
 #include "utils.h"
+#include "zobrist.h"
 
 #include <cul/assert.h>
 #include <cul/mem.h>
@@ -455,7 +456,7 @@ Board *Instruction_parse(Instruction *self, Board *board) {
 }
 
 void uci_loop(void) {
-    Board *board = NULL;
+    Board board;
     Instruction *instruction;
     char input[200000];
 
@@ -469,18 +470,22 @@ void uci_loop(void) {
         if (!fgets(input, sizeof(input), stdin)) continue;
 
         instruction = Instruction_new(input);
-        if (!(board = Instruction_parse(instruction, board))) break;
+        if (!Instruction_parse(instruction, &board)) break;
         Instruction_free(&instruction);
     }
 
     Instruction_free(&instruction);
-    board_free(&board);
 }
 
 /* MAIN */
 
-int main(void) {
+void init(void) {
     attacks_init();
+    zobrist_init();
+}
+
+int main(void) {
+    init();
     uci_loop();
     return 0;
 }

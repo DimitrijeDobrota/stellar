@@ -15,6 +15,7 @@ typedef struct Board Board;
 struct Board {
     U64 color[2];
     U64 piece[6];
+    U64 hash;
     eColor side;
     Square enpassant;
     eCastle castle;
@@ -30,6 +31,7 @@ U64 board_piece(const Board *self, ePiece piece);
 eCastle board_castle(const Board *self);
 eColor board_side(const Board *self);
 Square board_enpassant(const Board *self);
+U64 board_hash(const Board *self);
 
 void board_enpassant_set(Board *self, Square target);
 
