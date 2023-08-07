@@ -26,6 +26,7 @@ add_executable(magic
 
 target_link_libraries(magic
     PRIVATE utils
+    PRIVATE random
 )
 
 set_target_properties(magic PROPERTIES

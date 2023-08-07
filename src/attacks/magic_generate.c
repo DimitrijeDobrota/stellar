@@ -1,4 +1,5 @@
 #include "internal.h"
+#include "random.h"
 
 #include <inttypes.h>
 #include <stdio.h>
@@ -8,34 +9,9 @@
 
 const char *FORMAT = "C64(0x%llx),\n";
 
-// pseudo random numbers
-
-U32 state = C32(1804289383);
-
-U32 get_random_U32_number() {
-    U32 number = state;
-
-    number ^= number << 13;
-    number ^= number >> 17;
-    number ^= number << 5;
-
-    return state = number;
-}
-
-U64 get_random_U64_number() {
-    U64 n1, n2, n3, n4;
-
-    n1 = (U64)(get_random_U32_number()) & C64(0xFFFF);
-    n2 = (U64)(get_random_U32_number()) & C64(0xFFFF);
-    n3 = (U64)(get_random_U32_number()) & C64(0xFFFF);
-    n4 = (U64)(get_random_U32_number()) & C64(0xFFFF);
-
-    return n1 | (n2 << 16) | (n3 << 32) | (n4 << 48);
-}
-
 U64 generate_magic_number() {
-    return get_random_U64_number() & get_random_U64_number() &
-           get_random_U64_number();
+    return random_get_U64() & random_get_U64() &
+           random_get_U64();
 }
 
 U64 find_magic_number(Square square, int relevant_bits, int bishop) {
@@ -76,6 +52,7 @@ U64 find_magic_number(Square square, int relevant_bits, int bishop) {
 }
 
 int main(void) {
+    random_state_reset();
 
     printf("Bishup Magic Numbers:\n");
     for (int i = 0; i < 64; i++)
