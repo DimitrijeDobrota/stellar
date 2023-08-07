@@ -19,6 +19,9 @@
 #define REDUCTION_MOVE 2
 
 #define INFINITY 50000
+#define MATE_VALUE 49000
+#define MATE_SCORE 48000
+
 #define WINDOW 50
 
 typedef struct Stats Stats;
@@ -112,9 +115,10 @@ int evaluate(const Board *board) {
 }
 
 int quiescence(Stats *stats, const Board *board, int alpha, int beta) {
-    int eval = evaluate(board);
     stats->nodes++;
 
+    int eval = evaluate(board);
+    if (stats->ply > MAX_PLY - 1) return eval;
     if (eval >= beta) return beta;
     if (eval > alpha) alpha = eval;
 
@@ -126,27 +130,32 @@ int quiescence(Stats *stats, const Board *board, int alpha, int beta) {
     for (int i = 0; i < move_list_size(&moves); i++) {
         board_copy(board, &copy);
 
-        if (move_make(move_list_move(&moves, i), &copy, 1) == 0) continue;
+        Move move = move_list_move(&moves, i);
+        if (move_make(move, &copy, 1) == 0) continue;
 
         stats->ply++;
         int score = -quiescence(stats, &copy, -beta, -alpha);
         stats->ply--;
 
-        if (score >= beta) return beta;
-        if (score > alpha) alpha = score;
+        if (score > alpha) {
+            alpha = score;
+            if (score >= beta) return beta;
+        }
     }
 
     return alpha;
 }
 
 int negamax(Stats *stats, const Board *board, int alpha, int beta, int depth) {
-    int ply = stats->ply;
-    stats->pv_length[ply] = ply;
+    stats->pv_length[stats->ply] = stats->ply;
+    stats->nodes++;
 
     if (depth == 0) return quiescence(stats, board, alpha, beta);
-    if (ply > MAX_PLY - 1) return evaluate(board);
+    if (stats->ply > MAX_PLY - 1) return evaluate(board);
 
-    stats->nodes++;
+    // if (alpha < -MATE_VALUE) alpha = -MATE_VALUE;
+    // if (beta > MATE_VALUE - 1) beta = MATE_VALUE - 1;
+    // if (alpha >= beta) return alpha;
 
     int isCheck = board_isCheck(board);
     if (isCheck) depth++;
@@ -158,7 +167,7 @@ int negamax(Stats *stats, const Board *board, int alpha, int beta, int depth) {
         board_side_switch(&copy);
         board_enpassant_set(&copy, no_sq);
 
-        int score = -negamax(stats, &copy, -beta, -beta + 2,
+        int score = -negamax(stats, &copy, -beta, -beta + 1,
                              depth - 1 - REDUCTION_MOVE);
 
         if (score >= beta) return beta;
@@ -170,16 +179,16 @@ int negamax(Stats *stats, const Board *board, int alpha, int beta, int depth) {
     if (stats->follow_pv) enable_pv_scoring(stats, &list);
 
     move_list_sort(stats, &list);
+
     int legal_moves = 0;
     int searched = 0;
     for (int i = 0; i < move_list_size(&list); i++) {
         Move move = move_list_move(&list, i);
 
         board_copy(board, &copy);
-        if (move_make(move, &copy, 0) == 0) {
-            continue;
-        }
-        int makeCheck = board_isCheck(&copy);
+        if (move_make(move, &copy, 0) == 0) continue;
+        legal_moves++;
+
         stats->ply++;
 
         int score;
@@ -188,7 +197,7 @@ int negamax(Stats *stats, const Board *board, int alpha, int beta, int depth) {
         } else {
             // Late Move Reduction
             if (searched >= FULL_DEPTH && depth >= REDUCTION_LIMIT &&
-                !isCheck && !makeCheck && !move_capture(move) &&
+                !isCheck && !board_isCheck(&copy) && !move_capture(move) &&
                 !move_promote(move)) {
                 score = -negamax(stats, &copy, -alpha - 1, -alpha, depth - 2);
             } else
@@ -205,33 +214,35 @@ int negamax(Stats *stats, const Board *board, int alpha, int beta, int depth) {
         }
 
         stats->ply--;
-        legal_moves++;
         searched++;
-
-        if (score >= beta) {
-            if (!move_capture(move)) {
-                stats->killer_moves[1][ply] = stats->killer_moves[0][ply];
-                stats->killer_moves[0][ply] = move;
-            }
-            return beta;
-        }
 
         if (score > alpha) {
             if (!move_capture(move))
                 stats->history_moves[piece_index(move_piece(move))]
                                     [move_target(move)] += depth;
+
             alpha = score;
-            stats->pv_table[ply][ply] = move;
-            for (int i = stats->ply + 1; i < stats->pv_length[ply + 1]; i++)
-                stats->pv_table[ply][i] = stats->pv_table[ply + 1][i];
-            stats->pv_length[ply] = stats->pv_length[ply + 1];
+            stats->pv_table[stats->ply][stats->ply] = move;
+            for (int i = stats->ply + 1; i < stats->pv_length[stats->ply + 1];
+                 i++)
+                stats->pv_table[stats->ply][i] =
+                    stats->pv_table[stats->ply + 1][i];
+            stats->pv_length[stats->ply] = stats->pv_length[stats->ply + 1];
+
+            if (score >= beta) {
+                if (!move_capture(move)) {
+                    stats->killer_moves[1][stats->ply] =
+                        stats->killer_moves[0][stats->ply];
+                    stats->killer_moves[0][stats->ply] = move;
+                }
+                return beta;
+            }
         }
     }
-
     if (legal_moves == 0) {
-        if (isCheck)
-            return -49000 + stats->ply;
-        else
+        if (isCheck) {
+            return -MATE_VALUE + stats->ply;
+        } else
             return 0;
     }
 
@@ -241,7 +252,7 @@ int negamax(Stats *stats, const Board *board, int alpha, int beta, int depth) {
 void move_print_UCI(Move move) {
     printf("%s%s", square_to_coordinates[move_source(move)],
            square_to_coordinates[move_target(move)]);
-    if (move_promote(move)) printf(" %c", piece_asci(move_piece_promote(move)));
+    if (move_promote(move)) printf("%c", piece_asci(move_piece_promote(move)));
 }
 
 void search_position(const Board *board, int depth) {
@@ -259,8 +270,16 @@ void search_position(const Board *board, int depth) {
         alpha = score - 50;
         beta = score + 50;
 
-        printf("info score cp %d depth %d nodes %ld pv ", score, crnt,
-               stats.nodes);
+        if (score > -MATE_VALUE && score < -MATE_SCORE) {
+            printf("info score mate %d depth %d nodes %ld pv ",
+                   (MATE_VALUE - score) / 2 + 1, crnt, stats.nodes);
+        } else if (score > MATE_SCORE && score < MATE_VALUE) {
+            printf("info score mate %d depth %d nodes %ld pv ",
+                   (MATE_VALUE - score) / 2 + 1, crnt, stats.nodes);
+        } else {
+            printf("info score cp %d depth %d nodes %ld pv ", score, crnt,
+                   stats.nodes);
+        }
 
         for (int i = 0; i < stats.pv_length[0]; i++) {
             move_print_UCI(stats.pv_table[0][i]);
@@ -414,7 +433,7 @@ Board *Instruction_parse(Instruction *self, Board *board) {
                     token = Instruction_token_next(self);
                     depth = atoi(token);
                 } else {
-                    printf("Unknown argument %s after go\n", token);
+                    // printf("Unknown argument %s after go\n", token);
                 }
             }
             search_position(board, depth);

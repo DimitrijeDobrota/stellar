@@ -25,12 +25,12 @@ Move move_encode(Square src, Square tgt, Piece piece, Piece capture,
 }
 
 void move_print(Move move) {
-    printf("%5s %5s  %2s  %2s   %2s %4d %4d %4d %4d %4d\n",
+    printf("%5s %5s  %2c  %2c   %2c %4d %4d %4d %4d %4d\n",
            square_to_coordinates[move_source(move)],
            square_to_coordinates[move_target(move)],
-           piece_unicode(move_piece(move)),
-           move_capture(move) ? piece_unicode(move_piece_capture(move)) : "X ",
-           move_promote(move) ? piece_unicode(move_piece_promote(move)) : "X ",
+           piece_asci(move_piece(move)),
+           move_capture(move) ? piece_asci(move_piece_capture(move)) : '.',
+           move_promote(move) ? piece_asci(move_piece_promote(move)) : '.',
            move_double(move) ? 1 : 0, move_enpassant(move) ? 1 : 0,
            move_castle(move) ? 1 : 0, move_capture(move) ? 1 : 0,
            move_promote(move) ? 1 : 0);

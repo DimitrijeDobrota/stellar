@@ -203,7 +203,7 @@ void board_print(const Board *self) {
 
             if (!file) printf(" %d  ", 8 - rank);
 
-            printf("%s", (piece) ? piece_unicode(piece) : ". ");
+            printf("%c ", (piece) ? piece_asci(piece) : '.');
         }
         printf("\n");
     }

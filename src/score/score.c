@@ -114,4 +114,6 @@ int Score_position(ePiece piece, eColor color, Square square) {
     return Scores[piece].position[square];
 }
 
-int Score_capture(ePiece src, ePiece tgt) { return Scores[src].capture[tgt]; }
+int Score_capture(ePiece src, ePiece tgt) {
+    return Scores[src].capture[tgt] + 10000;
+}
