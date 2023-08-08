@@ -40,16 +40,20 @@ void ttable_clear(T *self) {
     memset(self->table, 0x0, sizeof(T) + self->size * sizeof(Hashe));
 }
 
-int ttable_read(T *self, U64 hash, int alpha, int beta, int depth, int ply) {
-    assert(self);
+int ttable_read(const Stats *stats, int alpha, int beta, int depth) {
+    assert(stats);
+    assert(stats->ttable);
+
+    T *self = stats->ttable;
+    U64 hash = board_hash(stats->board);
 
     Hashe *phashe = &self->table[hash % self->size];
     if (phashe->key == hash) {
         if (phashe->depth >= depth) {
             int score = phashe->score;
 
-            if (score < -MATE_SCORE) score += ply;
-            if (score > MATE_SCORE) score -= ply;
+            if (score < -MATE_SCORE) score += stats->ply;
+            if (score > MATE_SCORE) score -= stats->ply;
 
             if (phashe->flag == flagExact) return score;
             if ((phashe->flag == flagAlpha) && (score <= alpha)) return alpha;
@@ -59,14 +63,17 @@ int ttable_read(T *self, U64 hash, int alpha, int beta, int depth, int ply) {
     return TTABLE_UNKNOWN;
 }
 
-void ttable_write(T *self, U64 hash, int score, int depth, int ply,
-                  HasheFlag flag) {
-    assert(self);
+void ttable_write(const Stats *stats, int score, int depth, HasheFlag flag) {
+    assert(stats);
+    assert(stats->ttable);
+
+    T *self = stats->ttable;
+    U64 hash = board_hash(stats->board);
 
     Hashe *phashe = &self->table[hash % self->size];
 
-    if (score < -MATE_SCORE) score += ply;
-    if (score > MATE_SCORE) score -= ply;
+    if (score < -MATE_SCORE) score += stats->ply;
+    if (score > MATE_SCORE) score -= stats->ply;
 
     *phashe = (Hashe){
         .key = hash,
