@@ -40,7 +40,8 @@ void ttable_clear(T *self) {
     memset(self->table, 0x0, sizeof(T) + self->size * sizeof(Hashe));
 }
 
-int ttable_read(const Stats *stats, int alpha, int beta, int depth) {
+int ttable_read(const Stats *stats, Move *best, int alpha, int beta,
+                int depth) {
     assert(stats);
     assert(stats->ttable);
 
@@ -59,11 +60,13 @@ int ttable_read(const Stats *stats, int alpha, int beta, int depth) {
             if ((phashe->flag == flagAlpha) && (score <= alpha)) return alpha;
             if ((phashe->flag == flagBeta) && (score >= beta)) return beta;
         }
+        *best = phashe->best;
     }
     return TTABLE_UNKNOWN;
 }
 
-void ttable_write(const Stats *stats, int score, int depth, HasheFlag flag) {
+void ttable_write(const Stats *stats, Move best, int score, int depth,
+                  HasheFlag flag) {
     assert(stats);
     assert(stats->ttable);
 
@@ -77,7 +80,7 @@ void ttable_write(const Stats *stats, int score, int depth, HasheFlag flag) {
 
     *phashe = (Hashe){
         .key = hash,
-        .best = 0,
+        .best = best,
         .depth = depth,
         .score = score,
         .flag = flag,

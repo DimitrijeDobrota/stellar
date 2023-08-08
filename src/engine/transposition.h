@@ -1,6 +1,7 @@
 #ifndef STELLAR_TRANSPOSITION_H
 #define STELLAR_TRANSPOSITION_H
 
+#include "moves.h"
 #include "stats.h"
 #include "utils.h"
 
@@ -21,8 +22,9 @@ T *ttable_new(U64 size);
 void ttable_free(T **self);
 void ttable_clear(T *self);
 
-int ttable_read(const Stats *stats, int alpha, int beta, int depth);
-void ttable_write(const Stats *stats, int score, int depth, HasheFlag flag);
+int ttable_read(const Stats *stats, Move *best, int alpha, int beta, int depth);
+void ttable_write(const Stats *stats, Move best, int score, int depth,
+                  HasheFlag flag);
 
 #undef T
 #endif

@@ -7,7 +7,7 @@ struct Score_T {
   int capture[6];
 };
 
-const struct Score_T Scores[] = {
+static const struct Score_T Scores[] = {
 [PAWN] = {
 .value = 100,
 .position = {

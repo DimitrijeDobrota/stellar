@@ -36,13 +36,12 @@ int move_score(Stats *stats, Move move) {
                              piece_piece(move_piece_capture(move)));
     }
 
-    if (move_cmp(stats->killer_moves[0][stats->ply], move))
+    if (move_cmp(stats->killer[0][stats->ply], move))
         return 9000;
-    else if (move_cmp(stats->killer_moves[1][stats->ply], move))
+    else if (move_cmp(stats->killer[1][stats->ply], move))
         return 8000;
     else
-        return stats
-            ->history_moves[piece_index(move_piece(move))][move_target(move)];
+        return stats->history[piece_index(move_piece(move))][move_target(move)];
 
     return 0;
 }
@@ -118,22 +117,30 @@ void stats_move_unmake(Stats *self, Board *copy) {
     self->ply--;
 }
 
+void stats_pv_store(Stats *self, Move move) {
+    const int ply = self->ply;
+    self->pv_table[ply][ply] = move;
+    for (int i = ply + 1; i < self->pv_length[ply + 1]; i++) {
+        self->pv_table[ply][i] = self->pv_table[ply + 1][i];
+    }
+    self->pv_length[ply] = self->pv_length[ply + 1];
+}
+
 int quiescence(Stats *stats, int alpha, int beta) {
+    stats->pv_length[stats->ply] = stats->ply;
     stats->nodes++;
 
     int score = evaluate(stats->board);
+    if (stats->ply > MAX_PLY - 1) return score;
     if (score >= beta) return beta;
     if (score > alpha) alpha = score;
-    if (stats->ply > MAX_PLY - 1) return score;
 
     Board copy;
-
     MoveList moves;
     move_list_generate(&moves, stats->board);
     move_list_sort(stats, &moves);
 
     for (int i = 0; i < move_list_size(&moves); i++) {
-
         Move move = move_list_move(&moves, i);
         if (!stats_move_make(stats, &copy, move, 1)) continue;
         score = -quiescence(stats, -beta, -alpha);
@@ -141,6 +148,7 @@ int quiescence(Stats *stats, int alpha, int beta) {
 
         if (score > alpha) {
             alpha = score;
+            stats_pv_store(stats, move);
             if (score >= beta) return beta;
         }
     }
@@ -148,38 +156,74 @@ int quiescence(Stats *stats, int alpha, int beta) {
     return alpha;
 }
 
-int negamax(Stats *stats, int alpha, int beta, int depth) {
+int negamax(Stats *stats, int alpha, int beta, int depth, bool null) {
     int pv_node = (beta - alpha) > 1;
     HasheFlag flag = flagAlpha;
     Move bestMove = {0};
+    int futility = 0;
     Board copy;
 
     stats->pv_length[stats->ply] = stats->ply;
 
-    int score = ttable_read(stats, alpha, beta, depth);
+    int score = ttable_read(stats, &bestMove, alpha, beta, depth);
     if (stats->ply && score != TTABLE_UNKNOWN && !pv_node) return score;
 
+    // && fifty >= 100
     if (stats->ply && is_repetition()) return 0;
     if (depth == 0) {
+        stats->nodes++;
         int score = quiescence(stats, alpha, beta);
-        ttable_write(stats, score, depth, flagExact);
+        // ttable_write(stats, bestMove, score, depth, flagExact);
         return score;
     }
 
     if (alpha < -MATE_VALUE) alpha = -MATE_VALUE;
     if (beta > MATE_VALUE - 1) beta = MATE_VALUE - 1;
     if (alpha >= beta) return alpha;
-    if (stats->ply > MAX_PLY - 1) return evaluate(stats->board);
+    // if (stats->ply > MAX_PLY - 1) return evaluate(stats->board);
 
-    stats->nodes++;
     int isCheck = board_isCheck(stats->board);
     if (isCheck) depth++;
 
-    if (depth >= 3 && !isCheck && stats->ply) {
-        stats_move_make_pruning(stats, &copy);
-        score = -negamax(stats, -beta, -beta + 1, depth - 1 - REDUCTION_MOVE);
-        stats_move_unmake(stats, &copy);
-        if (score >= beta) return beta;
+    if (!pv_node && !isCheck) {
+        int staticEval = evaluate(stats->board);
+
+        // evaluation pruning
+        if (depth < 3 && abs(beta - 1) > -MATE_VALUE + 100) {
+            int marginEval = Score_value(PAWN) * depth;
+            if (staticEval - marginEval >= beta) return staticEval - marginEval;
+        }
+
+        if (null) {
+            // null move pruning
+            if (stats->ply && depth > 2 && staticEval >= beta) {
+                stats_move_make_pruning(stats, &copy);
+                score = -negamax(stats, -beta, -beta + 1,
+                                 depth - 1 - REDUCTION_MOVE, false);
+                stats_move_unmake(stats, &copy);
+                if (score >= beta) return beta;
+            }
+
+            // razoring
+            score = staticEval + Score_value(PAWN);
+            int scoreNew = quiescence(stats, alpha, beta);
+
+            if (score < beta && depth == 1) {
+                return (scoreNew > score) ? scoreNew : score;
+            }
+
+            score += Score_value(PAWN);
+            if (score < beta && depth < 4) {
+                if (scoreNew < beta)
+                    return (scoreNew > score) ? scoreNew : score;
+            }
+        }
+
+        // futility pruning condition
+        static const int margin[] = {0, 100, 300, 500};
+        if (depth < 4 && abs(alpha) < MATE_SCORE &&
+            staticEval + margin[depth] <= alpha)
+            futility = 1;
     }
 
     MoveList list;
@@ -194,23 +238,40 @@ int negamax(Stats *stats, int alpha, int beta, int depth) {
         if (!stats_move_make(stats, &copy, move, 0)) continue;
         legal_moves++;
 
+        // futility pruning
+        if (futility && searched && !move_capture(move) &&
+            !move_promote(move) && !board_isCheck(stats->board)) {
+            stats_move_unmake(stats, &copy);
+            continue;
+        }
+
         if (!searched) {
-            score = -negamax(stats, -beta, -alpha, depth - 1);
+            score = -negamax(stats, -beta, -alpha, depth - 1, true);
         } else {
             // Late Move Reduction
-            if (searched >= FULL_DEPTH && depth >= REDUCTION_LIMIT &&
-                !isCheck && !move_capture(move) && !move_promote(move)) {
-                score = -negamax(stats, -alpha - 1, -alpha, depth - 2);
+            if (!pv_node && searched >= FULL_DEPTH &&
+                depth >= REDUCTION_LIMIT && !isCheck && !move_capture(move) &&
+                !move_promote(move) &&
+                (move_source(move) !=
+                     move_source(stats->killer[0][stats->ply]) ||
+                 move_target(move) !=
+                     move_target(stats->killer[0][stats->ply])) &&
+                (move_source(move) !=
+                     move_source(stats->killer[1][stats->ply]) ||
+                 move_target(move) !=
+                     move_target(stats->killer[1][stats->ply]))) {
+                score = -negamax(stats, -alpha - 1, -alpha, depth - 2, true);
             } else
                 score = alpha + 1;
 
             // found better move
+            // Principal Variation Search
             if (score > alpha) {
-                score = -negamax(stats, -alpha - 1, -alpha, depth - 1);
+                score = -negamax(stats, -alpha - 1, -alpha, depth - 1, true);
 
                 // if fail research
-                if (score > alpha && score < beta)
-                    score = -negamax(stats, -beta, -alpha, depth - 1);
+                if ((score > alpha) && (score < beta))
+                    score = -negamax(stats, -beta, -alpha, depth - 1, true);
             }
         }
 
@@ -219,42 +280,36 @@ int negamax(Stats *stats, int alpha, int beta, int depth) {
 
         if (score > alpha) {
             if (!move_capture(move)) {
-                stats->history_moves[piece_index(move_piece(move))]
-                                    [move_target(move)] += depth;
+                stats->history[piece_index(move_piece(move))]
+                              [move_target(move)] += depth;
             }
-
-            stats->pv_table[stats->ply][stats->ply] = move;
-            for (int i = stats->ply + 1; i < stats->pv_length[stats->ply + 1];
-                 i++) {
-                stats->pv_table[stats->ply][i] =
-                    stats->pv_table[stats->ply + 1][i];
-            }
-            stats->pv_length[stats->ply] = stats->pv_length[stats->ply + 1];
 
             alpha = score;
             flag = flagExact;
+            bestMove = move;
+            stats_pv_store(stats, move);
 
             if (score >= beta) {
+                ttable_write(stats, bestMove, beta, depth, flagBeta);
+
                 if (!move_capture(move)) {
-                    stats->killer_moves[1][stats->ply] =
-                        stats->killer_moves[0][stats->ply];
-                    stats->killer_moves[0][stats->ply] = move;
+                    stats->killer[1][stats->ply] = stats->killer[0][stats->ply];
+                    stats->killer[0][stats->ply] = move;
                 }
 
-                ttable_write(stats, beta, depth, flagBeta);
                 return beta;
             }
         }
     }
 
     if (legal_moves == 0) {
-        if (isCheck) {
+        if (isCheck)
             return -MATE_VALUE + stats->ply;
-        } else
+        else
             return 0;
     }
 
-    ttable_write(stats, alpha, depth, flag);
+    ttable_write(stats, bestMove, alpha, depth, flag);
     return alpha;
 }
 
@@ -272,7 +327,7 @@ void search_position(Board *board, int depth) {
     for (int crnt = 1; crnt <= depth;) {
         stats.follow_pv = 1;
 
-        int score = negamax(&stats, alpha, beta, crnt);
+        int score = negamax(&stats, alpha, beta, crnt, true);
         if ((score <= alpha) || (score >= beta)) {
             alpha = -INFINITY;
             beta = INFINITY;

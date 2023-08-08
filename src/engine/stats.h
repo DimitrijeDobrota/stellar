@@ -9,8 +9,8 @@
 typedef struct Stats Stats;
 struct Stats {
     Move pv_table[MAX_PLY][MAX_PLY];
-    Move killer_moves[2][MAX_PLY];
-    U32 history_moves[16][64];
+    Move killer[2][MAX_PLY];
+    U32 history[16][64];
     int pv_length[MAX_PLY];
     struct TTable *ttable;
     Board *board;
