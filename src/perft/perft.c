@@ -58,7 +58,7 @@ void perft_driver(Board *board, struct MoveList *moveList, int depth,
     Board *copy = board_new();
 
     for (int i = 0; i < move_list_size(list); i++) {
-        Move move = move_list_move(list, i);
+        Move move = move_list_index_move(list, i);
         board_copy(board, copy);
         if (!move_make(move, copy, 0)) continue;
 
@@ -105,7 +105,7 @@ void *perft_thread(void *arg) {
             pthread_mutex_unlock(&shared->mutex);
             break;
         }
-        Move move = move_list_move(shared->list, shared->index++);
+        Move move = move_list_index_move(shared->list, shared->index++);
         pthread_mutex_unlock(&shared->mutex);
 
         result = (PerftResult){0};

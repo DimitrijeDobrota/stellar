@@ -1,5 +1,6 @@
 add_executable(engine
     engine.c
+    score.c
     transposition.c
 )
 
@@ -8,7 +9,6 @@ target_link_libraries(engine
     PRIVATE board
     PRIVATE moves
     PRIVATE piece
-    PRIVATE score
     PRIVATE utils
     PRIVATE random
 )

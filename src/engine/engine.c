@@ -23,55 +23,35 @@
 
 #define WINDOW 50
 
-int move_score(Stats *stats, Move move) {
-    if (stats->score_pv) {
-        if (move_cmp(stats->pv_table[0][stats->ply], move)) {
-            stats->score_pv = 0;
-            return 20000;
+void move_list_sort_pv(MoveList *list, Stats *stats, Move best) {
+    assert(list && stats);
+
+    for (int i = 0; i < move_list_size(list); i++) {
+        const Move move = move_list_index_move(list, i);
+        if (move_cmp(best, move)) {
+            move_list_index_score_set(list, i, 30000);
+            return;
         }
     }
 
-    if (move_capture(move)) {
-        return Score_capture(piece_piece(move_piece(move)),
-                             piece_piece(move_piece_capture(move)));
+    if (stats->ply && stats->follow_pv) {
+        stats->follow_pv = 0;
+        for (int i = 0; i < move_list_size(list); i++) {
+            const Move move = move_list_index_move(list, i);
+            if (move_cmp(stats->pv_table[0][stats->ply], move)) {
+                move_list_index_score_set(list, i, 20000);
+                stats->follow_pv = 1;
+                break;
+            }
+        }
     }
-
-    if (move_cmp(stats->killer[0][stats->ply], move))
-        return 9000;
-    else if (move_cmp(stats->killer[1][stats->ply], move))
-        return 8000;
-    else
-        return stats->history[piece_index(move_piece(move))][move_target(move)];
-
-    return 0;
-}
-
-static Stats *move_list_stats = NULL;
-int move_list_cmp(const void *a, const void *b) {
-    return move_score(move_list_stats, *(Move *)a) <=
-           move_score(move_list_stats, *(Move *)b);
-}
-
-void move_list_sort(Stats *stats, MoveList *list) {
-    move_list_stats = stats;
-    qsort(list->moves, list->count, sizeof(Move), move_list_cmp);
 }
 
 /* SEARCHING */
 
-void enable_pv_scoring(Stats *stats, MoveList *list) {
-    stats->follow_pv = 0;
-
-    for (int i = 0; i < list->count; i++) {
-        if (move_cmp(stats->pv_table[0][stats->ply], move_list_move(list, i))) {
-            stats->score_pv = 1;
-            stats->follow_pv = 1;
-            return;
-        }
-    }
-}
-
 int evaluate(const Board *board) {
+    assert(board);
+
     Square square;
     eColor side = board_side(board);
     U64 occupancy = board_color(board, side);
@@ -96,6 +76,8 @@ int evaluate(const Board *board) {
 int is_repetition() { return 0; }
 
 int stats_move_make(Stats *self, Board *copy, Move move, int flag) {
+    assert(self && copy);
+
     board_copy(self->board, copy);
     if (!move_make(move, self->board, flag)) {
         board_copy(copy, self->board);
@@ -106,6 +88,8 @@ int stats_move_make(Stats *self, Board *copy, Move move, int flag) {
 }
 
 void stats_move_make_pruning(Stats *self, Board *copy) {
+    assert(self && copy);
+
     board_copy(self->board, copy);
     board_side_switch(self->board);
     board_enpassant_set(self->board, no_sq);
@@ -113,11 +97,15 @@ void stats_move_make_pruning(Stats *self, Board *copy) {
 }
 
 void stats_move_unmake(Stats *self, Board *copy) {
+    assert(self && copy);
+
     board_copy(copy, self->board);
     self->ply--;
 }
 
 void stats_pv_store(Stats *self, Move move) {
+    assert(self);
+
     const int ply = self->ply;
     self->pv_table[ply][ply] = move;
     for (int i = ply + 1; i < self->pv_length[ply + 1]; i++) {
@@ -127,6 +115,8 @@ void stats_pv_store(Stats *self, Move move) {
 }
 
 int quiescence(Stats *stats, int alpha, int beta) {
+    assert(stats);
+
     stats->pv_length[stats->ply] = stats->ply;
     stats->nodes++;
 
@@ -136,12 +126,14 @@ int quiescence(Stats *stats, int alpha, int beta) {
     if (score > alpha) alpha = score;
 
     Board copy;
-    MoveList moves;
-    move_list_generate(&moves, stats->board);
-    move_list_sort(stats, &moves);
+    MoveList list;
+    move_list_generate(&list, stats->board);
+    Score_move_list(stats, &list);
+    move_list_sort_pv(&list, stats, (Move){0});
+    move_list_sort(&list);
 
-    for (int i = 0; i < move_list_size(&moves); i++) {
-        Move move = move_list_move(&moves, i);
+    for (int i = 0; i < move_list_size(&list); i++) {
+        Move move = move_list_index_move(&list, i);
         if (!stats_move_make(stats, &copy, move, 1)) continue;
         score = -quiescence(stats, -beta, -alpha);
         stats_move_unmake(stats, &copy);
@@ -157,6 +149,8 @@ int quiescence(Stats *stats, int alpha, int beta) {
 }
 
 int negamax(Stats *stats, int alpha, int beta, int depth, bool null) {
+    assert(stats);
+
     int pv_node = (beta - alpha) > 1;
     HasheFlag flag = flagAlpha;
     Move bestMove = {0};
@@ -228,13 +222,14 @@ int negamax(Stats *stats, int alpha, int beta, int depth, bool null) {
 
     MoveList list;
     move_list_generate(&list, stats->board);
-    if (stats->follow_pv) enable_pv_scoring(stats, &list);
-    move_list_sort(stats, &list);
+    Score_move_list(stats, &list);
+    move_list_sort_pv(&list, stats, bestMove);
+    move_list_sort(&list);
 
     int legal_moves = 0;
     int searched = 0;
     for (int i = 0; i < move_list_size(&list); i++) {
-        const Move move = move_list_move(&list, i);
+        const Move move = move_list_index_move(&list, i);
         if (!stats_move_make(stats, &copy, move, 0)) continue;
         legal_moves++;
 
@@ -321,6 +316,8 @@ void move_print_UCI(Move move) {
 
 TTable *ttable = NULL;
 void search_position(Board *board, int depth) {
+    assert(board);
+
     Stats stats = {.ttable = ttable, .board = board, 0};
 
     int alpha = -INFINITY, beta = INFINITY;
@@ -435,7 +432,7 @@ Move parse_move(Board *board, char *move_string) {
 
     moves = move_list_generate(NULL, board);
     for (int i = 0; i < moves->count; i++) {
-        Move move = moves->moves[i];
+        Move move = move_list_index_move(moves, i);
         if (move_source(move) == source && move_target(move) == target) {
             if (move_string[4]) {
                 if (tolower(piece_code(move_piece_promote(move))) !=

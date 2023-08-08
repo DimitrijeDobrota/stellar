@@ -1,4 +1,6 @@
 #include "score.h"
+#include "moves.h"
+#include "stats.h"
 
 // clang-format off
 struct Score_T {
@@ -116,4 +118,24 @@ int Score_position(ePiece piece, eColor color, Square square) {
 
 int Score_capture(ePiece src, ePiece tgt) {
     return Scores[src].capture[tgt] + 10000;
+}
+
+int Score_move(const Stats *stats, Move move) {
+    if (move_capture(move)) {
+        return Score_capture(piece_piece(move_piece(move)),
+                             piece_piece(move_piece_capture(move)));
+    }
+
+    if (move_cmp(stats->killer[0][stats->ply], move))
+        return 9000;
+    else if (move_cmp(stats->killer[1][stats->ply], move))
+        return 8000;
+
+    return stats->history[piece_index(move_piece(move))][move_target(move)];
+}
+
+void Score_move_list(const Stats *stats, MoveList *list) {
+    for (int i = 0; i < move_list_size(list); i++) {
+        list->moves[i].score = Score_move(stats, move_list_index_move(list, i));
+    }
 }

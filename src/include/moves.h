@@ -21,9 +21,14 @@ struct Move {
 };
 
 typedef struct MoveList MoveList;
+typedef struct MoveE MoveE;
+
 struct MoveList {
-    Move moves[256];
     int count;
+    struct MoveE {
+        Move move;
+        int score;
+    } moves[256];
 };
 
 int move_cmp(Move a, Move b);
@@ -31,14 +36,21 @@ Move move_encode(Square src, Square tgt, Piece piece, Piece capture,
                  Piece promote, int dbl, int enpassant, int castle);
 void move_print(Move move);
 MoveList *move_list_new(void);
+
 void move_list_free(MoveList **p);
-Move move_list_move(const MoveList *self, int index);
+Move move_list_index_move(const MoveList *self, int index);
+int move_list_index_score(const MoveList *self, int index);
+void move_list_index_score_set(MoveList *self, int index, int score);
+
+int move_make(Move move, Board *board, int flag);
+
 int move_list_size(const MoveList *self);
 void move_list_reset(MoveList *self);
 void move_list_add(MoveList *self, Move move);
 void move_list_print(const MoveList *self);
+void move_list_sort(MoveList *list);
+
 MoveList *move_list_generate(MoveList *moves, const Board *board);
-int move_make(Move move, Board *board, int flag);
 
 #define move_source(move) (move.source)
 #define move_target(move) (move.target)

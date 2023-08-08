@@ -17,7 +17,6 @@ target_link_libraries(perft
     PRIVATE board
     PRIVATE moves
     PRIVATE piece
-    PRIVATE score
     PRIVATE utils
     PRIVATE random
 )

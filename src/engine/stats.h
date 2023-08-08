@@ -14,7 +14,7 @@ struct Stats {
     int pv_length[MAX_PLY];
     struct TTable *ttable;
     Board *board;
-    int follow_pv, score_pv;
+    int follow_pv;
     long nodes;
     int ply;
 };

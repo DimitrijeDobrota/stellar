@@ -4,7 +4,6 @@
 #include <cul/assert.h>
 #include <cul/mem.h>
 
-#include "board.h"
 #include "moves.h"
 
 int move_cmp(Move a, Move b) { return *(uint32_t *)&a == *(uint32_t *)&b; }
@@ -45,19 +44,38 @@ MoveList *move_list_new(void) {
 
 void move_list_free(MoveList **p) { FREE(*p); }
 
-Move move_list_move(const MoveList *self, int index) {
-    return self->moves[index];
+Move move_list_index_move(const MoveList *self, int index) {
+    return self->moves[index].move;
 }
+
+int move_list_index_score(const MoveList *self, int index) {
+    return self->moves[index].score;
+}
+
+void move_list_index_score_set(MoveList *self, int index, int score) {
+    self->moves[index].score = score;
+}
+
 int move_list_size(const MoveList *self) { return self->count; }
 void move_list_reset(MoveList *self) { self->count = 0; }
 
 void move_list_add(MoveList *self, Move move) {
-    self->moves[self->count++] = move;
+    self->moves[self->count++].move = move;
+}
+
+int move_list_cmp(const void *a, const void *b) {
+    return ((MoveE *)a)->score <= ((MoveE *)b)->score;
+}
+
+void move_list_sort(MoveList *list) {
+    qsort(list->moves, list->count, sizeof(MoveE), move_list_cmp);
 }
 
 void move_list_print(const MoveList *self) {
-    printf(" From    To  Pi  Cap  Prmt  Dbl  Enp  Cst  C   P\n");
-    for (int i = 0; i < self->count; i++)
-        move_print(self->moves[i]);
+    printf("Score   From    To  Pi  Cap  Prmt  Dbl  Enp  Cst  C   P\n");
+    for (int i = 0; i < self->count; i++) {
+        printf("%5d: ", self->moves[i].score);
+        move_print(self->moves[i].move);
+    }
     printf("Total: %d\n", self->count);
 }
