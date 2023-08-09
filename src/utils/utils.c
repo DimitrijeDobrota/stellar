@@ -53,7 +53,7 @@ const char *square_to_coordinates[]={
 };
 // clang-format on
 
-Square coordinates_to_square(const char *cord) {
+eSquare coordinates_to_square(const char *cord) {
     return (cord[1] - '1') * 8 + (cord[0] - 'a');
 }
 

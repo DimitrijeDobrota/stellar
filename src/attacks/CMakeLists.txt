@@ -1,7 +1,7 @@
 add_library(attacks OBJECT
-    attacks.c
-    internal.c
-    magic.c
+    attacks.cpp
+    internal.cpp
+    magic.cpp
 )
 
 target_include_directories(attacks
@@ -14,14 +14,14 @@ project(
     MagicGenerator
     VERSION 1.0.0
     DESCRIPTION "Generator of magic numbers for bishup and rook attacks"
-    LANGUAGES C
+    LANGUAGES CXX
 )
 
 
 add_executable(magic
-    internal.c
-    magic.c
-    magic_generate.c
+    internal.cpp
+    magic.cpp
+    magic_generate.cpp
 )
 
 target_link_libraries(magic

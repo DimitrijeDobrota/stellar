@@ -6,7 +6,7 @@ project(
 	VERSION 0.0.18
     DESCRIPTION "Chess engine written in C"
 	HOMEPAGE_URL https://git.dimitrijedobrota.com/stellar.git
-	LANGUAGES C
+    LANGUAGES C CXX
 )
 
 set(CMAKE_C_STANDARD 99)

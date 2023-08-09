@@ -48,10 +48,10 @@ enum enumSquare {
   a8, b8, c8, d8, e8, f8, g8, h8, no_sq
 };
 // clang-format on
-typedef enum enumSquare Square;
+typedef enum enumSquare eSquare;
 
 extern const char *square_to_coordinates[];
-Square coordinates_to_square(const char *cord);
+eSquare coordinates_to_square(const char *cord);
 
 // board moving
 typedef U64 (*direction_f)(U64);
@@ -70,7 +70,7 @@ U64 rotateRight(U64 x, int s);
 
 int get_time_ms(void);
 
-typedef U64 (*attack_f)(Square square, U64 occupancy);
+typedef U64 (*attack_f)(eSquare square, U64 occupancy);
 
 #define empty_board "8/8/8/8/8/8/8/8 w - - "
 #define start_position                                                         \

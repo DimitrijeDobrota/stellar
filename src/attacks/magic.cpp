@@ -1,4 +1,4 @@
-#include "magic.h"
+#include "magic.hpp"
 
 const U64 bishop_magic_numbers[64] = {
     C64(0x40040844404084),   C64(0x2004208a004208),   C64(0x10190041080202),

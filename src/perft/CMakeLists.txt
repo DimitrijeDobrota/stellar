@@ -2,7 +2,7 @@ project(
     perft
     VERSION 1.1.0
     DESCRIPTION "Performance Test"
-    LANGUAGES C
+    LANGUAGES C CXX
 )
 
 add_executable(perft perft.c)

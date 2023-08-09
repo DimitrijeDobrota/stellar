@@ -1,4 +1,7 @@
 #include "internal.h"
+#include "utils_cpp.hpp"
+
+#include <algorithm> // std::min
 
 U64 king_attacks[64];
 U64 knight_attacks[64];
@@ -41,7 +44,7 @@ U64 set_occupancy(int index, int bits_in_mask, U64 attack_mask) {
     U64 occupancy = C64(0);
 
     for (int count = 0; count < bits_in_mask; count++) {
-        Square square = bit_lsb_index(attack_mask);
+        uint8_t square = bit_lsb_index(attack_mask);
         bit_pop(attack_mask, square);
 
         if (index & (1 << count)) bit_set(occupancy, square);
@@ -55,7 +58,7 @@ U64 attacks_slide_mask(Square square, U64 block, const direction_f dir[4],
     U64 bitboard = C64(0), attacks = C64(0), tmp;
     int i, j;
 
-    bit_set(bitboard, square);
+    bit_set(bitboard, to_underlying(square));
     for (i = 0; i < 4; i++) {
         for (j = 0, tmp = bitboard; j < len[i]; j++) {
             attacks |= tmp = (dir[i])(tmp);
@@ -72,11 +75,11 @@ const direction_f attacks_bishop_direction[4] = {noEaOne, noWeOne, soEaOne,
 const direction_f attacks_rook_direction[4] = {westOne, soutOne, eastOne,
                                                nortOne};
 
-U64 pawn_mask(int side, Square square) {
+U64 pawn_mask(Color side, Square square) {
     U64 bitboard = C64(0);
 
-    bit_set(bitboard, square);
-    if (side == WHITE)
+    bit_set(bitboard, to_underlying(square));
+    if (side == Color::WHITE)
         return noWeOne(bitboard) | noEaOne(bitboard);
     else
         return soWeOne(bitboard) | soEaOne(bitboard);
@@ -85,7 +88,7 @@ U64 pawn_mask(int side, Square square) {
 U64 knight_mask(Square square) {
     U64 bitboard = C64(0), attacks = C64(0), tmp;
 
-    bit_set(bitboard, square);
+    bit_set(bitboard, to_underlying(square));
     tmp = nortOne(nortOne(bitboard));
     attacks |= westOne(tmp) | eastOne(tmp);
     tmp = soutOne(soutOne(bitboard));
@@ -101,7 +104,7 @@ U64 knight_mask(Square square) {
 U64 king_mask(Square square) {
     U64 bitboard = C64(0), attacks = C64(0);
 
-    bit_set(bitboard, square);
+    bit_set(bitboard, to_underlying(square));
     attacks |= westOne(bitboard) | eastOne(bitboard);
     attacks |= soutOne(bitboard) | nortOne(bitboard);
     attacks |= soutOne(bitboard) | nortOne(bitboard);
@@ -112,29 +115,33 @@ U64 king_mask(Square square) {
 }
 
 U64 bishop_mask(Square square) {
-    int tr = square / 8, tf = square % 8;
-    int len[4] = {MIN(7 - tf, 7 - tr) - 1, MIN(tf, 7 - tr) - 1,
-                  MIN(7 - tf, tr) - 1, MIN(tf, tr) - 1};
+    uint8_t square_i = to_underlying(square);
+    int tr = square_i / 8, tf = square_i % 8;
+    int len[4] = {std::min(7 - tf, 7 - tr) - 1, std::min(tf, 7 - tr) - 1,
+                  std::min(7 - tf, tr) - 1, std::min(tf, tr) - 1};
     return attacks_slide_mask(square, C64(0), attacks_bishop_direction, len);
 }
 
 U64 rook_mask(Square square) {
-    int tr = square / 8, tf = square % 8;
+    uint8_t square_i = to_underlying(square);
+    int tr = square_i / 8, tf = square_i % 8;
     int len[4] = {tf - 1, tr - 1, 6 - tf, 6 - tr};
 
     return attacks_slide_mask(square, C64(0), attacks_rook_direction, len);
 }
 
 U64 bishop_on_the_fly(Square square, U64 block) {
-    int tr = square / 8, tf = square % 8;
-    int len[4] = {MIN(7 - tf, 7 - tr), MIN(tf, 7 - tr), MIN(7 - tf, tr),
-                  MIN(tf, tr)};
+    uint8_t square_i = to_underlying(square);
+    int tr = square_i / 8, tf = square_i % 8;
+    int len[4] = {std::min(7 - tf, 7 - tr), std::min(tf, 7 - tr),
+                  std::min(7 - tf, tr), std::min(tf, tr)};
 
     return attacks_slide_mask(square, block, attacks_bishop_direction, len);
 }
 
 U64 rook_on_the_fly(Square square, U64 block) {
-    int tr = square / 8, tf = square % 8;
+    uint8_t square_i = to_underlying(square);
+    int tr = square_i / 8, tf = square_i % 8;
     int len[4] = {tf, tr, 7 - tf, 7 - tr};
 
     return attacks_slide_mask(square, block, attacks_rook_direction, len);

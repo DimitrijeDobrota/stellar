@@ -1,5 +1,5 @@
 add_library(piece OBJECT
-    piece.c
+    piece.cpp
 )
 
 target_include_directories(piece
