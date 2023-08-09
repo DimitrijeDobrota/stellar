@@ -32,6 +32,7 @@ template <typename C, C beginVal, C endVal> class Iterator {
 };
 
 #define C64(constantU64) constantU64##ULL
+#define C32(constantU64) constantU64##UL
 typedef uint64_t U64;
 typedef uint32_t U32;
 
@@ -119,5 +120,8 @@ inline U64 soEaOne(U64 b) { return (b & notHFile) >> 7; }
 inline U64 soWeOne(U64 b) { return (b & notAFile) >> 9; }
 inline U64 noEaOne(U64 b) { return (b & notHFile) << 9; }
 inline U64 noWeOne(U64 b) { return (b & notAFile) << 7; }
+
+#define start_position                                                         \
+    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 "
 
 #endif

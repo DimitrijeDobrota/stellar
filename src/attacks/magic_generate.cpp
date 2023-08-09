@@ -1,5 +1,6 @@
-#include "internal.h"
-#include "random.h"
+#include "internal.hpp"
+#include "random.hpp"
+#include "utils_cpp.hpp"
 
 #include <inttypes.h>
 #include <stdio.h>
@@ -54,11 +55,15 @@ int main(void) {
     random_state_reset();
 
     printf("Bishup Magic Numbers:\n");
-    for (int i = 0; i < 64; i++)
-        printf(FORMAT, find_magic_number(i, bishop_relevant_bits[i], 1));
+    for (Square square : SquareIter())
+        printf(FORMAT,
+               find_magic_number(
+                   square, bishop_relevant_bits[to_underlying(square)], 1));
 
     printf("Rook Magic Numbers:\n");
-    for (int i = 0; i < 64; i++)
-        printf(FORMAT, find_magic_number(i, rook_relevant_bits[i], 0));
+    for (Square square : SquareIter())
+        printf(FORMAT,
+               find_magic_number(square,
+                                 rook_relevant_bits[to_underlying(square)], 0));
     return 0;
 }

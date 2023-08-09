@@ -1,6 +1,7 @@
-#include "score.h"
-#include "moves.h"
-#include "stats.h"
+#include "score.hpp"
+#include "moves.hpp"
+#include "stats.hpp"
+#include "utils_cpp.hpp"
 
 // clang-format off
 struct Score_T {
@@ -10,7 +11,7 @@ struct Score_T {
 };
 
 static const struct Score_T Scores[] = {
-[PAWN] = {
+{
 .value = 100,
 .position = {
              0,   0,   0,   0,   0,   0,   0,   0,
@@ -21,10 +22,8 @@ static const struct Score_T Scores[] = {
             20,  20,  20,  30,  30,  30,  20,  20,
             30,  30,  30,  40,  40,  30,  30,  30,
             90,  90,  90,  90,  90,  90,  90,  90, },
-.capture = {   [PAWN] = 105, [KNIGHT] = 205,
-             [BISHOP] = 305,   [ROOK] = 405,
-              [QUEEN] = 505,   [KING] = 605} },
-[KNIGHT] = {
+.capture = { 105, 205, 305, 405, 505, 605} },
+{
 .value = 300,
 .position = {
             -5,  -10 , 0,   0,   0,   0, -10,  -5,
@@ -35,10 +34,8 @@ static const struct Score_T Scores[] = {
             -5,   5,  20,  20,  20,  20,   5,  -5,
             -5,   0,   0,  10,  10,   0,   0,  -5,
             -5,   0,   0,   0,   0,   0,   0,  -5, },
-.capture = {   [PAWN] = 104, [KNIGHT] = 204,
-             [BISHOP] = 304,   [ROOK] = 404,
-              [QUEEN] = 504,   [KING] = 604} },
-[BISHOP] = {
+.capture = { 104, 204, 304, 404, 504, 604} },
+{
 .value = 350,
 .position = {
              0,   0, -10,   0,   0, -10,   0,   0,
@@ -49,10 +46,8 @@ static const struct Score_T Scores[] = {
              0,   0,   0,  10,  10,   0,   0,   0,
              0,   0,   0,   0,   0,   0,   0,   0,
              0,   0,   0,   0,   0,   0,   0,   0, },
-.capture = {   [PAWN] = 103, [KNIGHT] = 203,
-             [BISHOP] = 303,   [ROOK] = 403,
-              [QUEEN] = 503,   [KING] = 603} },
-[ROOK] = {
+.capture = { 103, 203, 303, 403, 503, 603} },
+{
 .value = 500,
 .position = {
              0,   0,   0,  20,  20,   0,   0,   0,
@@ -63,10 +58,8 @@ static const struct Score_T Scores[] = {
              0,   0,  10,  20,  20,  10,   0,   0,
             50,  50,  50,  50,  50,  50,  50,  50,
             50,  50,  50,  50,  50,  50,  50,  50, },
-.capture = {   [PAWN] = 102, [KNIGHT] = 202,
-             [BISHOP] = 302,   [ROOK] = 402,
-              [QUEEN] = 502,   [KING] = 602} },
-[QUEEN] = {
+.capture = { 102, 202, 302, 402, 502, 602} },
+{
 .value = 1000,
 .position = {
              0,   0,   0,   0,   0,   0,   0,   0,
@@ -77,10 +70,8 @@ static const struct Score_T Scores[] = {
              0,   0,   0,   0,   0,   0,   0,   0,
              0,   0,   0,   0,   0,   0,   0,   0,
              0,   0,   0,   0,   0,   0,   0,   0, },
-.capture = {   [PAWN] = 101, [KNIGHT] = 201,
-             [BISHOP] = 301,   [ROOK] = 401,
-              [QUEEN] = 501,   [KING] = 601} },
-[KING] = {
+.capture = { 101, 201, 301, 401, 501, 601} },
+{
 .value = 10000,
 .position = {
              0,   0,   5,   0, -15,   0,  10,   0,
@@ -91,51 +82,49 @@ static const struct Score_T Scores[] = {
              0,   5,   5,  10,  10,   5,   5,   0,
              0,   0,   5,   5,   5,   5,   0,   0,
              0,   0,   0,   0,   0,   0,   0,   0, },
-.capture = {   [PAWN] = 100, [KNIGHT] = 200,
-             [BISHOP] = 300,   [ROOK] = 400,
-              [QUEEN] = 500,   [KING] = 600} },
+.capture = { 100, 200, 300, 400, 500, 600} },
 };
 
-const int mirror_score[128] =
+const Square mirror_score[128] =
 {
-	a8, b8, c8, d8, e8, f8, g8, h8,
-	a7, b7, c7, d7, e7, f7, g7, h7,
-	a6, b6, c6, d6, e6, f6, g6, h6,
-	a5, b5, c5, d5, e5, f5, g5, h5,
-	a4, b4, c4, d4, e4, f4, g4, h4,
-	a3, b3, c3, d3, e3, f3, g3, h3,
-	a2, b2, c2, d2, e2, f2, g2, h2,
-	a1, b1, c1, d1, e1, f1, g1, h1, no_sq,
+    Square::a8, Square::b8, Square::c8, Square::d8, Square::e8, Square::f8, Square::g8, Square::h8,
+	Square::a7, Square::b7, Square::c7, Square::d7, Square::e7, Square::f7, Square::g7, Square::h7,
+	Square::a6, Square::b6, Square::c6, Square::d6, Square::e6, Square::f6, Square::g6, Square::h6,
+	Square::a5, Square::b5, Square::c5, Square::d5, Square::e5, Square::f5, Square::g5, Square::h5,
+	Square::a4, Square::b4, Square::c4, Square::d4, Square::e4, Square::f4, Square::g4, Square::h4,
+	Square::a3, Square::b3, Square::c3, Square::d3, Square::e3, Square::f3, Square::g3, Square::h3,
+	Square::a2, Square::b2, Square::c2, Square::d2, Square::e2, Square::f2, Square::g2, Square::h2,
+	Square::a1, Square::b1, Square::c1, Square::d1, Square::e1, Square::f1, Square::g1, Square::h1, Square::no_sq,
 };
 // clang-format on
 
-int Score_value(ePiece piece) { return Scores[piece].value; }
-
-int Score_position(ePiece piece, eColor color, Square square) {
-    if (color == BLACK) square = mirror_score[square];
-    return Scores[piece].position[square];
+int Score_value(piece::Type piece) {
+    return Scores[to_underlying(piece)].value;
 }
 
-int Score_capture(ePiece src, ePiece tgt) {
-    return Scores[src].capture[tgt] + 10000;
+int Score_position(piece::Type piece, Color color, Square square) {
+    if (color == Color::BLACK) square = mirror_score[to_underlying(square)];
+    return Scores[to_underlying(piece)].position[to_underlying(square)];
 }
 
-int Score_move(const Stats *stats, Move move) {
+int Score_move(const Stats &stats, Move move) {
+    const int piece = to_underlying(move_piece(move).type);
+    const int capture = to_underlying(move_piece_capture(move).type);
+
     if (move_capture(move)) {
-        return Score_capture(piece_piece(move_piece(move)),
-                             piece_piece(move_piece_capture(move)));
+        return Scores[piece].capture[capture] + 10000;
     }
 
-    if (move_cmp(stats->killer[0][stats->ply], move))
+    if (move_cmp(stats.killer[0][stats.ply], move))
         return 9000;
-    else if (move_cmp(stats->killer[1][stats->ply], move))
+    else if (move_cmp(stats.killer[1][stats.ply], move))
         return 8000;
 
-    return stats->history[piece_index(move_piece(move))][move_target(move)];
+    return stats.history[piece][move_target(move)];
 }
 
-void Score_move_list(const Stats *stats, MoveList *list) {
-    for (int i = 0; i < move_list_size(list); i++) {
-        list->moves[i].score = Score_move(stats, move_list_index_move(list, i));
+void Score_move_list(const Stats &stats, std::vector<MoveE> &list) {
+    for (MoveE &move : list) {
+        move.score = Score_move(stats, move.move);
     }
 }

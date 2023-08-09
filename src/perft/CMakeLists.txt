@@ -5,7 +5,7 @@ project(
     LANGUAGES C CXX
 )
 
-add_executable(perft perft.c)
+add_executable(perft perft.cpp)
 
 option(WITH_FULL_COUNT "Make count on types of moves" OFF)
 if(WITH_FULL_COUNT)
@@ -17,7 +17,6 @@ target_link_libraries(perft
     PRIVATE board
     PRIVATE moves
     PRIVATE piece
-    PRIVATE utils
     PRIVATE random
 )
 

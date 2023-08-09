@@ -1,6 +1,6 @@
 add_library(board OBJECT
-    board.c
-    zobrist.c
+    board.cpp
+    zobrist.cpp
 )
 
 target_include_directories(board

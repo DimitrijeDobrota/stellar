@@ -44,12 +44,13 @@ class Board {
     // exception if not found
     Color get_square_piece_color(Square square) const;
     piece::Type get_square_piece_type(Square square) const;
-    const piece::Piece &get_square_piece(Square square) const;
+    const piece::Piece *get_square_piece(Square square) const;
 
     /* Setters */
 
+    void xor_hash(U64 op);
     void switch_side(void);
-    void and_castle(Castle right);
+    void and_castle(uint8_t right);
     void set_enpassant(Square target);
 
     void pop_bitboard_color(Color color, Square square);
@@ -78,7 +79,5 @@ class Board {
 
 const piece::Piece &board_square_piece(const Board *self, Square square,
                                        Color side);
-
-void board_print(const Board *self);
 
 #endif

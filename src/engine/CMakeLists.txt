@@ -1,7 +1,7 @@
 add_executable(engine
-    engine.c
-    score.c
-    transposition.c
+    engine.cpp
+    score.cpp
+    transposition.cpp
 )
 
 target_link_libraries(engine
@@ -9,7 +9,6 @@ target_link_libraries(engine
     PRIVATE board
     PRIVATE moves
     PRIVATE piece
-    PRIVATE utils
     PRIVATE random
 )
 

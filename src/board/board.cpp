@@ -1,4 +1,5 @@
 #include <ctype.h>
+#include <exception>
 #include <stdio.h>
 #include <string.h>
 
@@ -61,14 +62,19 @@ piece::Type Board::get_square_piece_type(Square square) const {
     throw std::exception();
 }
 
-const piece::Piece &Board::get_square_piece(Square square) const {
-    return piece::get(get_square_piece_type(square),
-                      get_square_piece_color(square));
+const piece::Piece *Board::get_square_piece(Square square) const {
+    try {
+        return &piece::get(get_square_piece_type(square),
+                           get_square_piece_color(square));
+    } catch (std::exception e) {
+        return nullptr;
+    }
 }
 
 /* Setters */
 
-void Board::and_castle(Castle right) { castle &= to_underlying(right); }
+void Board::xor_hash(U64 op) { hash ^= op; }
+void Board::and_castle(uint8_t right) { castle &= right; }
 
 void Board::switch_side(void) {
     side = (side == Color::BLACK) ? Color::WHITE : Color::BLACK;
@@ -186,12 +192,9 @@ Board::Board(const std::string &fen) {
 std::ostream &operator<<(std::ostream &os, const Board &board) {
     for (int rank = 0; rank < 8; rank++) {
         for (int file = 0; file < 8; file++) {
-            try {
-                Square square = static_cast<Square>((7 - rank) * 8 + file);
-                os << board.get_square_piece(square).code;
-            } catch (std::exception e) {
-                os << ". ";
-            }
+            Square square = static_cast<Square>((7 - rank) * 8 + file);
+            const piece::Piece *piece = board.get_square_piece(square);
+            os << (piece ? piece->code : '.') << " ";
         }
         printf("\n");
     }

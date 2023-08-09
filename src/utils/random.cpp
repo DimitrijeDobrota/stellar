@@ -1,4 +1,4 @@
-#include "random.h"
+#include "random.hpp"
 
 U32 state = C32(1804289383);
 

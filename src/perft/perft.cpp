@@ -4,14 +4,12 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include <cul/assert.h>
-
-#include "attacks.h"
-#include "board.h"
-#include "moves.h"
-#include "perft.h"
-#include "utils.h"
-#include "zobrist.h"
+#include "attacks.hpp"
+#include "board.hpp"
+#include "moves.hpp"
+#include "perft.hpp"
+#include "utils_cpp.hpp"
+#include "zobrist.hpp"
 
 // FEN debug positions
 #define tricky_position                                                        \
@@ -52,14 +50,15 @@ void perft_result_add(PerftResult *base, PerftResult *add) {
 #endif
 }
 
-void perft_driver(Board *board, struct MoveList *moveList, int depth,
-                  PerftResult *result) {
-    MoveList *list = move_list_generate(&moveList[depth], board);
-    Board *copy = board_new();
+typedef std::vector<MoveE> MoveList;
 
-    for (int i = 0; i < move_list_size(list); i++) {
-        Move move = move_list_index_move(list, i);
-        board_copy(board, copy);
+void perft_driver(Board &board, MoveList *moveList, int depth,
+                  PerftResult *result) {
+    moveList[depth] = move_list_generate(board);
+    Board copy;
+
+    for (const auto [move, _] : moveList[depth]) {
+        copy = board;
         if (!move_make(move, copy, 0)) continue;
 
         if (depth != 1) {
@@ -75,16 +74,13 @@ void perft_driver(Board *board, struct MoveList *moveList, int depth,
 #endif
         }
     }
-
-    move_list_reset(list);
-    board_free(&copy);
 }
 
 typedef struct perf_shared perf_shared;
 struct perf_shared {
-    const char *fen;
-    MoveList *list;
+    MoveList list;
     int depth;
+    const char *fen;
     pthread_mutex_t mutex;
     unsigned int index;
     PerftResult result;
@@ -93,24 +89,23 @@ struct perf_shared {
 void *perft_thread(void *arg) {
     PerftResult result = {0};
     perf_shared *shared = (perf_shared *)arg;
-    struct MoveList moveList[shared->depth + 1];
+    MoveList moveList[shared->depth + 1];
 
-    Board *board = board_from_FEN(NULL, shared->fen);
-    Board *copy = board_new();
+    Board board = Board(shared->fen), copy;
 
     while (1) {
         pthread_mutex_lock(&shared->mutex);
         perft_result_add(&shared->result, &result);
-        if (shared->index >= move_list_size(shared->list)) {
+        if (shared->index >= shared->list.size()) {
             pthread_mutex_unlock(&shared->mutex);
             break;
         }
-        Move move = move_list_index_move(shared->list, shared->index++);
+        Move move = shared->list[shared->index++].move;
         pthread_mutex_unlock(&shared->mutex);
 
         result = (PerftResult){0};
 
-        board_copy(board, copy);
+        copy = board;
         if (!move_make(move, copy, 0)) continue;
 
         if (shared->depth != 1) {
@@ -126,17 +121,13 @@ void *perft_thread(void *arg) {
 #endif
         }
     }
-    board_free(&board);
     return NULL;
 }
 
 PerftResult perft_test(const char *fen, int depth, int thread_num) {
-    assert(fen);
-    assert(depth > 0);
-
     pthread_t threads[thread_num];
     perf_shared shared = (perf_shared){
-        .list = move_list_generate(NULL, board_from_FEN(NULL, fen)),
+        .list = move_list_generate(Board(fen)),
         .depth = depth,
         .fen = fen,
     };
@@ -148,14 +139,14 @@ PerftResult perft_test(const char *fen, int depth, int thread_num) {
     for (int i = 0; i < thread_num; i++)
         pthread_join(threads[i], NULL);
 
-    move_list_free(&shared.list);
     return shared.result;
 }
 
 int main(int argc, char *argv[]) {
 
     int c, depth = 1, thread_num = 1;
-    char *fen = start_position;
+    std::string s(start_position);
+    const char *fen = s.data();
     while ((c = getopt(argc, argv, "t:f:d:")) != -1) {
         switch (c) {
         case 't':
@@ -177,7 +168,6 @@ int main(int argc, char *argv[]) {
     attacks_init();
     zobrist_init();
 
-    board_print(board_from_FEN(NULL, fen));
     PerftResult res = perft_test(fen, depth, thread_num);
     perft_result_print(res);
 }

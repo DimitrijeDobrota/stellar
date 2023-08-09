@@ -1,7 +1,7 @@
 #ifndef STELLAR_PERFT_H
 #define STELLAR_PERFT_H
 
-#include "board.h"
+#include "board.hpp"
 
 typedef unsigned long long ull;
 typedef struct PerftResult PerftResult;

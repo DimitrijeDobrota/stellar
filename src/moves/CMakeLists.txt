@@ -1,7 +1,7 @@
 add_library(moves OBJECT
-    moves.c
-    moves_make.c
-    moves_generate.c
+    moves.cpp
+    moves_make.cpp
+    moves_generate.cpp
 )
 
 target_include_directories(moves

@@ -106,7 +106,9 @@ constexpr const Piece &get_from_code(char code) {
     throw std::exception();
 }
 
-// constexpr const Piece &get_from_index(uint8_t index);
+constexpr const Piece &get_from_index(uint8_t index) {
+    return table[index / 6][index % 6];
+}
 
 } // namespace piece
 
