@@ -28,13 +28,14 @@ struct Hashe {
 
 class TTable {
   public:
-    TTable(U64 size) : table(size, {0}) {}
+    TTable(U64 size) : table(size, {0}) {
+    }
 
-    void clear() { table.clear(); };
-    void write(const Stats &stats, Move best, int score, int depth,
-               HasheFlag flag);
-    int read(const Stats &stats, Move *best, int alpha, int beta,
-             int depth) const;
+    void clear() {
+        table.clear();
+    };
+    void write(const Stats &stats, Move best, int score, int depth, HasheFlag flag);
+    int read(const Stats &stats, Move *best, int alpha, int beta, int depth) const;
 
   private:
     std::vector<Hashe> table;

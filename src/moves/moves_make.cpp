@@ -25,8 +25,7 @@ void _piece_set(Board &board, const piece::Piece &piece, Square square) {
     board.xor_hash(zobrist_key_piece(piece, square));
 }
 
-void _piece_move(Board &board, const piece::Piece &piece, Square source,
-                 Square target) {
+void _piece_move(Board &board, const piece::Piece &piece, Square source, Square target) {
     _piece_remove(board, piece, source);
     _piece_set(board, piece, target);
 }
@@ -40,8 +39,7 @@ int move_make(Move move, Board &board, int flag) {
         const Color color = board.get_side();
         const Square source = static_cast<Square>(move_source(move));
         const Square target = static_cast<Square>(move_target(move));
-        const Square ntarget = static_cast<Square>(
-            move_target(move) + (color == Color::WHITE ? -8 : +8));
+        const Square ntarget = static_cast<Square>(move_target(move) + (color == Color::WHITE ? -8 : +8));
 
         if (!move_capture(move)) {
             if (move_promote(move)) {
@@ -68,16 +66,11 @@ int move_make(Move move, Board &board, int flag) {
         board.set_enpassant(move_double(move) ? ntarget : Square::no_sq);
 
         if (move_castle(move)) {
-            static const piece::Piece &rook =
-                piece::get(piece::Type::ROOK, board.get_side());
-            if (target == Square::g1)
-                _piece_move(board, rook, Square::h1, Square::f1);
-            if (target == Square::c1)
-                _piece_move(board, rook, Square::a1, Square::d1);
-            if (target == Square::g8)
-                _piece_move(board, rook, Square::h8, Square::f8);
-            if (target == Square::c8)
-                _piece_move(board, rook, Square::a8, Square::d8);
+            static const piece::Piece &rook = piece::get(piece::Type::ROOK, board.get_side());
+            if (target == Square::g1) _piece_move(board, rook, Square::h1, Square::f1);
+            if (target == Square::c1) _piece_move(board, rook, Square::a1, Square::d1);
+            if (target == Square::g8) _piece_move(board, rook, Square::h8, Square::f8);
+            if (target == Square::c8) _piece_move(board, rook, Square::a8, Square::d8);
         }
 
         board.xor_hash(zobrist_key_castle(board.get_castle()));

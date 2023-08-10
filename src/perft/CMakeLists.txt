@@ -6,10 +6,8 @@ if(WITH_FULL_COUNT)
 endif()
 
 target_link_libraries(perft
-    PRIVATE attacks
     PRIVATE board
     PRIVATE moves
-    PRIVATE piece
     PRIVATE random
 )
 

@@ -24,9 +24,8 @@ struct MoveE {
     int score;
 };
 
-Move move_encode(uint8_t src, uint8_t tgt, const piece::Piece *piece,
-                 const piece::Piece *capture, const piece::Piece *promote,
-                 bool dbl, bool enpassant, bool castle);
+Move move_encode(uint8_t src, uint8_t tgt, const piece::Piece *piece, const piece::Piece *capture,
+                 const piece::Piece *promote, bool dbl, bool enpassant, bool castle);
 std::vector<MoveE> move_list_generate(const Board &board);
 int move_make(Move move, Board &board, int flag);
 void move_list_sort(std::vector<MoveE> &list);

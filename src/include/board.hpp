@@ -17,7 +17,8 @@ class Board {
         BQ = 8
     };
 
-    Board() {}
+    Board() {
+    }
     Board(const std::string &fen);
 
     friend std::ostream &operator<<(std::ostream &os, const Board &board);
@@ -36,10 +37,8 @@ class Board {
     U64 get_bitboard_piece(piece::Type piece, Color color) const;
     U64 get_bitboard_piece(const piece::Piece &piece) const;
 
-    U64 get_bitboard_piece_attacks(piece::Type piece, Color color,
-                                   Square square) const;
-    U64 get_bitboard_piece_attacks(const piece::Piece &piece,
-                                   Square square) const;
+    U64 get_bitboard_piece_attacks(piece::Type piece, Color color, Square square) const;
+    U64 get_bitboard_piece_attacks(const piece::Piece &piece, Square square) const;
 
     // exception if not found
     Color get_square_piece_color(Square square) const;
@@ -77,7 +76,6 @@ class Board {
     uint8_t castle = 0;
 };
 
-const piece::Piece &board_square_piece(const Board *self, Square square,
-                                       Color side);
+const piece::Piece &board_square_piece(const Board *self, Square square, Color side);
 
 #endif

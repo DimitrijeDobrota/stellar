@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "attacks.hpp"
+#include "attack.hpp"
 #include "board.hpp"
 #include "moves.hpp"
 #include "perft.hpp"
@@ -12,8 +12,7 @@
 #include "zobrist.hpp"
 
 // FEN debug positions
-#define tricky_position                                                        \
-    "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1 "
+#define tricky_position "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1 "
 
 void perft_result_print(PerftResult res) {
     printf("           - Perft Results -\n\n");
@@ -48,17 +47,16 @@ void perft_result_add(PerftResult *base, PerftResult *add) {
 
 typedef std::vector<MoveE> MoveList;
 
-void perft_driver(Board &board, MoveList *moveList, int depth,
-                  PerftResult *result) {
-    moveList[depth] = move_list_generate(board);
+void perft_driver(Board &board, int depth, PerftResult *result) {
+    MoveList moveList = move_list_generate(board);
     Board copy;
 
-    for (const auto [move, _] : moveList[depth]) {
+    for (const auto [move, _] : moveList) {
         copy = board;
         if (!move_make(move, copy, 0)) continue;
 
         if (depth != 1) {
-            perft_driver(copy, moveList, depth - 1, result);
+            perft_driver(copy, depth - 1, result);
         } else {
             result->node++;
 #ifdef USE_FULL_COUNT
@@ -85,8 +83,6 @@ struct perf_shared {
 void *perft_thread(void *arg) {
     PerftResult result = {0};
     perf_shared *shared = (perf_shared *)arg;
-    MoveList moveList[shared->depth + 1];
-
     Board board = Board(shared->fen), copy;
 
     while (1) {
@@ -99,13 +95,14 @@ void *perft_thread(void *arg) {
         Move move = shared->list[shared->index++].move;
         pthread_mutex_unlock(&shared->mutex);
 
-        result = (PerftResult){0};
+        result = {0};
 
         copy = board;
         if (!move_make(move, copy, 0)) continue;
+        // std::cout << copy << std::endl;
 
         if (shared->depth != 1) {
-            perft_driver(copy, moveList, shared->depth - 1, &result);
+            perft_driver(copy, shared->depth - 1, &result);
         } else {
             result.node++;
 #ifdef USE_FULL_COUNT
@@ -121,8 +118,8 @@ void *perft_thread(void *arg) {
 }
 
 PerftResult perft_test(const char *fen, int depth, int thread_num) {
-    pthread_t threads[thread_num];
-    perf_shared shared = (perf_shared){
+    pthread_t *threads = new pthread_t(thread_num);
+    perf_shared shared = {
         .list = move_list_generate(Board(fen)),
         .depth = depth,
         .fen = fen,
@@ -135,13 +132,14 @@ PerftResult perft_test(const char *fen, int depth, int thread_num) {
     for (int i = 0; i < thread_num; i++)
         pthread_join(threads[i], NULL);
 
+    delete threads;
     return shared.result;
 }
 
 int main(int argc, char *argv[]) {
 
     int c, depth = 1, thread_num = 1;
-    std::string s(tricky_position);
+    std::string s(start_position);
     const char *fen = s.data();
     while ((c = getopt(argc, argv, "t:f:d:")) != -1) {
         switch (c) {
@@ -161,7 +159,6 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    attacks_init();
     zobrist_init();
 
     PerftResult res = perft_test(fen, depth, thread_num);
