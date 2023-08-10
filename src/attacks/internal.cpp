@@ -1,4 +1,4 @@
-#include "internal.h"
+#include "internal.hpp"
 #include "utils_cpp.hpp"
 
 #include <algorithm> // std::min

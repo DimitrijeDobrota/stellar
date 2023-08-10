@@ -14,10 +14,6 @@
 // FEN debug positions
 #define tricky_position                                                        \
     "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1 "
-#define killer_position                                                        \
-    "rnbqkb1r/pp1p1pPp/8/2p1pP2/1P1P4/3P3P/P1P1P3/RNBQKBNR w KQkq e6 0 1"
-#define cmk_position                                                           \
-    "r2q1rk1/ppp2ppp/2n1bn2/2b1p3/3pP3/3P1NPP/PPP1NPB1/R1BQ1RK1 b - - 0 9 "
 
 void perft_result_print(PerftResult res) {
     printf("           - Perft Results -\n\n");
@@ -66,7 +62,7 @@ void perft_driver(Board &board, MoveList *moveList, int depth,
         } else {
             result->node++;
 #ifdef USE_FULL_COUNT
-            if (board_isCheck(copy)) result->check++;
+            if (copy.is_check()) result->check++;
             if (move_capture(move)) result->capture++;
             if (move_enpassant(move)) result->enpassant++;
             if (move_castle(move)) result->castle++;
@@ -113,7 +109,7 @@ void *perft_thread(void *arg) {
         } else {
             result.node++;
 #ifdef USE_FULL_COUNT
-            if (board_isCheck(copy)) result.check++;
+            if (copy.is_check()) result.check++;
             if (move_capture(move)) result.capture++;
             if (move_enpassant(move)) result.enpassant++;
             if (move_castle(move)) result.castle++;
@@ -145,7 +141,7 @@ PerftResult perft_test(const char *fen, int depth, int thread_num) {
 int main(int argc, char *argv[]) {
 
     int c, depth = 1, thread_num = 1;
-    std::string s(start_position);
+    std::string s(tricky_position);
     const char *fen = s.data();
     while ((c = getopt(argc, argv, "t:f:d:")) != -1) {
         switch (c) {

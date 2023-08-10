@@ -69,12 +69,12 @@ class Board {
     bool is_check(void) const;
 
   private:
-    U64 colors[2];
-    U64 pieces[6];
-    U64 hash;
-    Color side;
-    Square enpassant;
-    uint8_t castle;
+    U64 colors[2] = {0};
+    U64 pieces[6] = {0};
+    U64 hash = 0;
+    Color side = Color::WHITE;
+    Square enpassant = Square::no_sq;
+    uint8_t castle = 0;
 };
 
 const piece::Piece &board_square_piece(const Board *self, Square square,

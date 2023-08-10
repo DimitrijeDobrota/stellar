@@ -1,10 +1,3 @@
-project(
-    perft
-    VERSION 1.1.0
-    DESCRIPTION "Performance Test"
-    LANGUAGES C CXX
-)
-
 add_executable(perft perft.cpp)
 
 option(WITH_FULL_COUNT "Make count on types of moves" OFF)

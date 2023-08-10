@@ -15,19 +15,19 @@
 
 #define pawn_promote(source, target, piece, capture)                           \
     res.push_back(                                                             \
-        {move_encode(source, target, &piece, 0,                                \
+        {move_encode(source, target, &piece, capture,                          \
                      &piece::get(piece::Type::KNIGHT, color), 0, 0, 0),        \
          0});                                                                  \
     res.push_back(                                                             \
-        {move_encode(source, target, &piece, 0,                                \
+        {move_encode(source, target, &piece, capture,                          \
                      &piece::get(piece::Type::BISHOP, color), 0, 0, 0),        \
          0});                                                                  \
     res.push_back(                                                             \
-        {move_encode(source, target, &piece, 0,                                \
+        {move_encode(source, target, &piece, capture,                          \
                      &piece::get(piece::Type::ROOK, color), 0, 0, 0),          \
          0});                                                                  \
     res.push_back(                                                             \
-        {move_encode(source, target, &piece, 0,                                \
+        {move_encode(source, target, &piece, capture,                          \
                      &piece::get(piece::Type::QUEEN, color), 0, 0, 0),         \
          0});
 
@@ -53,22 +53,24 @@ std::vector<MoveE> move_list_generate(const Board &board) {
         if (!board.is_square_occupied(tgt)) {
             if (pawn_canPromote(color, src)) {
                 pawn_promote(src_i, tgt_i, piece, nullptr);
-                continue;
-            }
-            res.push_back(
-                {move_encode(src_i, tgt_i, &piece, 0, 0, 0, 0, 0), 0});
-
-            // two ahead
-            if (pawn_onStart(color, src) && !board.is_square_occupied(tgt))
+            } else {
                 res.push_back(
-                    {move_encode(src_i, tgt_i + add, &piece, 0, 0, 1, 0, 0),
-                     0});
+                    {move_encode(src_i, tgt_i, &piece, 0, 0, 0, 0, 0), 0});
+
+                // two ahead
+                Square tgt = static_cast<Square>(tgt_i + add);
+                if (pawn_onStart(color, src) && !board.is_square_occupied(tgt))
+                    res.push_back(
+                        {move_encode(src_i, tgt_i + add, &piece, 0, 0, 1, 0, 0),
+                         0});
+            }
         }
 
         // capture
         U64 attack = board.get_bitboard_piece_attacks(piece, src) &
                      board.get_bitboard_color(colorOther);
         bitboard_for_each_bit(tgt_i, attack) {
+            Square tgt = static_cast<Square>(tgt_i);
             const piece::Piece *capture = board.get_square_piece(tgt);
             if (pawn_canPromote(color, src)) {
                 pawn_promote(src_i, tgt_i, piece, capture);
@@ -92,11 +94,12 @@ std::vector<MoveE> move_list_generate(const Board &board) {
     }
 
     // All piece move
-    for (piece::Type type : ++piece::TypeIter()) {
-        const piece::Piece &piece = piece::get(type, color);
+    auto type_it = piece::TypeIter().begin();
+    for (++type_it; type_it != type_it.end(); ++type_it) {
+        const piece::Piece &piece = piece::get(*type_it, color);
         U64 bitboard = board.get_bitboard_piece(piece);
-        Square src = static_cast<Square>(src_i);
         bitboard_for_each_bit(src_i, bitboard) {
+            Square src = static_cast<Square>(src_i);
             U64 attack = board.get_bitboard_piece_attacks(piece, src) &
                          ~board.get_bitboard_color(color);
             bitboard_for_each_bit(tgt_i, attack) {
@@ -111,7 +114,8 @@ std::vector<MoveE> move_list_generate(const Board &board) {
 
     // Castling
     if (color == Color::WHITE) {
-        const piece::Piece &piece = piece::get(piece::Type::KING, Color::WHITE);
+        static const piece::Piece &piece =
+            piece::get(piece::Type::KING, Color::WHITE);
         if (board.get_castle() & to_underlying(Board::Castle::WK)) {
             if (!board.is_square_occupied(Square::f1) &&
                 !board.is_square_occupied(Square::g1) &&
@@ -134,7 +138,8 @@ std::vector<MoveE> move_list_generate(const Board &board) {
                                0});
         }
     } else {
-        const piece::Piece &piece = piece::get(piece::Type::KING, Color::BLACK);
+        static const piece::Piece &piece =
+            piece::get(piece::Type::KING, Color::BLACK);
         if (board.get_castle() & to_underlying(Board::Castle::BK)) {
             if (!board.is_square_occupied(Square::f8) &&
                 !board.is_square_occupied(Square::g8) &&
@@ -158,5 +163,6 @@ std::vector<MoveE> move_list_generate(const Board &board) {
         }
     }
 
+    res.resize(res.size());
     return res;
 }

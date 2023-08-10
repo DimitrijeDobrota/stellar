@@ -121,13 +121,11 @@ bool Board::is_square_occupied(Square square) const {
 }
 
 bool Board::is_square_attacked(Square square, Color side) const {
-    // side switch because of pawns
     Color side_other = (side == Color::BLACK) ? Color::WHITE : Color::BLACK;
 
     for (piece::Type type : piece::TypeIter()) {
-        const piece::Piece &piece = piece::get(type, side_other);
-        if (get_bitboard_piece_attacks(piece, square) &
-            get_bitboard_piece(piece))
+        if (get_bitboard_piece_attacks(piece::get(type, side_other), square) &
+            get_bitboard_piece(piece::get(type, side)))
             return 1;
     }
 
@@ -137,19 +135,14 @@ bool Board::is_square_attacked(Square square, Color side) const {
 bool Board::is_check(void) const {
     U64 king =
         pieces[to_underlying(piece::Type::KING)] & colors[to_underlying(side)];
+    Color side_other = (side == Color::BLACK) ? Color::WHITE : Color::BLACK;
     Square square = static_cast<Square>(bit_lsb_index(king));
-    return is_square_attacked(square, side);
+    return is_square_attacked(square, side_other);
 }
 
 Board::Board(const std::string &fen) {
-    *this = {0};
-
-    side = Color::WHITE;
-    enpassant = Square::no_sq;
-    castle = 0;
-
     int file = 0, rank = 7, i;
-    for (i = 0; i < fen.size(); i++) {
+    for (i = 0; fen[i] != ' '; i++) {
         if (isalpha(fen[i])) {
             set_piece(piece::get_from_code(fen[i]),
                       static_cast<Square>(rank * 8 + file));
@@ -181,6 +174,8 @@ Board::Board(const std::string &fen) {
             castle |= to_underlying(Castle::BK);
         else if (fen[i] == 'q')
             castle |= to_underlying(Castle::BQ);
+        else if (fen[i] == '-')
+            break;
         else
             throw std::exception();
     }
@@ -192,13 +187,14 @@ Board::Board(const std::string &fen) {
 std::ostream &operator<<(std::ostream &os, const Board &board) {
     for (int rank = 0; rank < 8; rank++) {
         for (int file = 0; file < 8; file++) {
+            if (!file) os << 8 - rank << " ";
             Square square = static_cast<Square>((7 - rank) * 8 + file);
             const piece::Piece *piece = board.get_square_piece(square);
             os << (piece ? piece->code : '.') << " ";
         }
         printf("\n");
     }
-    os << "    A B C D E F G H\n";
+    os << "  A B C D E F G H\n";
     os << "     Side: ";
     os << ((board.side == Color::WHITE) ? "white" : "black") << "\n";
     os << "Enpassant: " << square_to_coordinates(board.enpassant) << "\n";

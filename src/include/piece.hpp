@@ -32,11 +32,10 @@ class Piece {
     constexpr Piece(Type type, Color color, char code, const char *symbol,
                     attack_get_f attacks)
         : type(type), color(color), code(code), symbol(symbol),
-          attacks(attacks), index(index_calc()) {}
+          attacks(attacks), index(index_calc(color, type)) {}
 
-    constexpr int index_calc() {
-        return to_underlying(Type::TypeSIZE) * to_underlying(color) *
-               to_underlying(type);
+    constexpr uint8_t index_calc(Color color, Type type) {
+        return to_underlying(color) * 6 + to_underlying(type);
     }
 };
 

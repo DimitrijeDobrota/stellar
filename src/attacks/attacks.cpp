@@ -48,7 +48,7 @@ U64 attacks_queen_get(Square square, U64 occupancy) {
 
 void attacks_init_leapers(void) {
     for (Square square : SquareIter()) {
-        uint8_t square_i;
+        uint8_t square_i = to_underlying(square);
         pawn_attacks[to_underlying(Color::WHITE)][square_i] =
             pawn_mask(Color::WHITE, square);
         pawn_attacks[to_underlying(Color::BLACK)][square_i] =
@@ -60,7 +60,7 @@ void attacks_init_leapers(void) {
 
 void attacks_init_sliders(int bishop) {
     for (Square square : SquareIter()) {
-        uint8_t square_i;
+        uint8_t square_i = to_underlying(square);
         U64 attack_mask;
 
         if (bishop) {
