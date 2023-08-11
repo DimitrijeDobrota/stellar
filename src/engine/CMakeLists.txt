@@ -5,10 +5,8 @@ add_executable(engine
 )
 
 target_link_libraries(engine
-    PRIVATE attacks
     PRIVATE board
     PRIVATE moves
-    PRIVATE piece
     PRIVATE random
 )
 

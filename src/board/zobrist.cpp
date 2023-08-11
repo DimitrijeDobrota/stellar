@@ -8,8 +8,12 @@ U64 enpassant_keys[64];
 U64 piece_keys[12][64];
 U64 side_key;
 
-U64 zobrist_key_side(void) { return side_key; }
-U64 zobrist_key_castle(int exp) { return castle_keys[exp]; }
+U64 zobrist_key_side(void) {
+    return side_key;
+}
+U64 zobrist_key_castle(int exp) {
+    return castle_keys[exp];
+}
 U64 zobrist_key_enpassant(Square square) {
     return enpassant_keys[to_underlying(square)];
 }
@@ -40,7 +44,9 @@ void init_hash_keys() {
     side_key = random_get_U64();
 }
 
-void zobrist_init(void) { init_hash_keys(); }
+void zobrist_init(void) {
+    init_hash_keys();
+}
 
 U64 zobrist_hash(const Board &board) {
     U64 key_final = C64(0);

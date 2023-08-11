@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "attacks.hpp"
+#include "attack.hpp"
 #include "board.hpp"
 #include "moves.hpp"
 #include "score.hpp"
@@ -65,7 +65,9 @@ int evaluate(const Board &board) {
     return score;
 }
 
-int is_repetition() { return 0; }
+int is_repetition() {
+    return 0;
+}
 
 int stats_move_make(Stats &stats, Board &copy, Move move, int flag) {
     copy = stats.board;
@@ -110,7 +112,7 @@ int quiescence(Stats &stats, int alpha, int beta) {
     Board copy;
     std::vector<MoveE> list = move_list_generate(stats.board);
     Score_move_list(stats, list);
-    move_list_sort_pv(list, stats, (Move){0});
+    move_list_sort_pv(list, stats, {0});
     move_list_sort(list);
 
     for (const auto [move, _] : list) {
@@ -170,8 +172,7 @@ int negamax(Stats &stats, int alpha, int beta, int depth, bool null) {
             // null move pruning
             if (stats.ply && depth > 2 && staticEval >= beta) {
                 stats_move_make_pruning(stats, copy);
-                score = -negamax(stats, -beta, -beta + 1,
-                                 depth - 1 - REDUCTION_MOVE, false);
+                score = -negamax(stats, -beta, -beta + 1, depth - 1 - REDUCTION_MOVE, false);
                 stats_move_unmake(stats, copy);
                 if (score >= beta) return beta;
             }
@@ -186,16 +187,13 @@ int negamax(Stats &stats, int alpha, int beta, int depth, bool null) {
 
             score += Score_value(piece::Type::PAWN);
             if (score < beta && depth < 4) {
-                if (scoreNew < beta)
-                    return (scoreNew > score) ? scoreNew : score;
+                if (scoreNew < beta) return (scoreNew > score) ? scoreNew : score;
             }
         }
 
         // futility pruning condition
         static const int margin[] = {0, 100, 300, 500};
-        if (depth < 4 && abs(alpha) < MATE_SCORE &&
-            staticEval + margin[depth] <= alpha)
-            futility = 1;
+        if (depth < 4 && abs(alpha) < MATE_SCORE && staticEval + margin[depth] <= alpha) futility = 1;
     }
 
     std::vector<MoveE> list = move_list_generate(stats.board);
@@ -210,8 +208,7 @@ int negamax(Stats &stats, int alpha, int beta, int depth, bool null) {
         legal_moves++;
 
         // futility pruning
-        if (futility && searched && !move_capture(move) &&
-            !move_promote(move) && !stats.board.is_check()) {
+        if (futility && searched && !move_capture(move) && !move_promote(move) && !stats.board.is_check()) {
             stats_move_unmake(stats, copy);
             continue;
         }
@@ -220,15 +217,12 @@ int negamax(Stats &stats, int alpha, int beta, int depth, bool null) {
             score = -negamax(stats, -beta, -alpha, depth - 1, true);
         } else {
             // Late Move Reduction
-            if (!pv_node && searched >= FULL_DEPTH &&
-                depth >= REDUCTION_LIMIT && !isCheck && !move_capture(move) &&
-                !move_promote(move) &&
+            if (!pv_node && searched >= FULL_DEPTH && depth >= REDUCTION_LIMIT && !isCheck &&
+                !move_capture(move) && !move_promote(move) &&
                 (move_source(move) != move_source(stats.killer[0][stats.ply]) ||
-                 move_target(move) !=
-                     move_target(stats.killer[0][stats.ply])) &&
+                 move_target(move) != move_target(stats.killer[0][stats.ply])) &&
                 (move_source(move) != move_source(stats.killer[1][stats.ply]) ||
-                 move_target(move) !=
-                     move_target(stats.killer[1][stats.ply]))) {
+                 move_target(move) != move_target(stats.killer[1][stats.ply]))) {
                 score = -negamax(stats, -alpha - 1, -alpha, depth - 2, true);
             } else
                 score = alpha + 1;
@@ -249,8 +243,7 @@ int negamax(Stats &stats, int alpha, int beta, int depth, bool null) {
 
         if (score > alpha) {
             if (!move_capture(move)) {
-                stats.history[move_piece(move).index][move_target(move)] +=
-                    depth;
+                stats.history[move_piece(move).index][move_target(move)] += depth;
             }
 
             alpha = score;
@@ -259,8 +252,7 @@ int negamax(Stats &stats, int alpha, int beta, int depth, bool null) {
             stats_pv_store(stats, move);
 
             if (score >= beta) {
-                stats.ttable.write(stats, bestMove, beta, depth,
-                                   HasheFlag::Beta);
+                stats.ttable.write(stats, bestMove, beta, depth, HasheFlag::Beta);
 
                 if (!move_capture(move)) {
                     stats.killer[1][stats.ply] = stats.killer[0][stats.ply];
@@ -284,8 +276,7 @@ int negamax(Stats &stats, int alpha, int beta, int depth, bool null) {
 }
 
 void move_print_UCI(Move move) {
-    printf("%s%s",
-           square_to_coordinates(static_cast<Square>(move_source(move))),
+    printf("%s%s", square_to_coordinates(static_cast<Square>(move_source(move))),
            square_to_coordinates(static_cast<Square>(move_target(move))));
     if (move_promote(move)) printf("%c", (move_piece_promote(move).code));
 }
@@ -309,14 +300,13 @@ void search_position(Board &board, int depth) {
 
         if (stats.pv_length[0]) {
             if (score > -MATE_VALUE && score < -MATE_SCORE) {
-                printf("info score mate %d depth %d nodes %ld pv ",
-                       -(score + MATE_VALUE) / 2 - 1, crnt, stats.nodes);
-            } else if (score > MATE_SCORE && score < MATE_VALUE) {
-                printf("info score mate %d depth %d nodes %ld pv ",
-                       (MATE_VALUE - score) / 2 + 1, crnt, stats.nodes);
-            } else {
-                printf("info score cp %d depth %d nodes %ld pv ", score, crnt,
+                printf("info score mate %d depth %d nodes %ld pv ", -(score + MATE_VALUE) / 2 - 1, crnt,
                        stats.nodes);
+            } else if (score > MATE_SCORE && score < MATE_VALUE) {
+                printf("info score mate %d depth %d nodes %ld pv ", (MATE_VALUE - score) / 2 + 1, crnt,
+                       stats.nodes);
+            } else {
+                printf("info score cp %d depth %d nodes %ld pv ", score, crnt, stats.nodes);
             }
 
             for (int i = 0; i < stats.pv_length[0]; i++) {
@@ -364,7 +354,9 @@ void Instruction_free(Instruction **p) {
     delete (*p);
 }
 
-char *Instruction_token(Instruction *self) { return self->token; }
+char *Instruction_token(Instruction *self) {
+    return self->token;
+}
 char *Instruction_token_n(Instruction *self, int n) {
     while (isspace(*self->crnt) && *self->crnt != '\0')
         self->crnt++;
@@ -376,8 +368,7 @@ char *Instruction_token_n(Instruction *self, int n) {
 
     char *p = self->token;
     while (n--) {
-        while (!isspace(*self->crnt) && *self->crnt != '\0' &&
-               *self->crnt != ';')
+        while (!isspace(*self->crnt) && *self->crnt != '\0' && *self->crnt != ';')
             *p++ = *self->crnt++;
         if (*self->crnt == '\0') {
             p++;
@@ -405,8 +396,7 @@ Move parse_move(Board &board, char *move_string) {
     for (const auto [move, _] : list) {
         if (move_source(move) == source && move_target(move) == target) {
             if (move_string[4]) {
-                if (tolower(move_piece_promote(move).code) != move_string[4])
-                    continue;
+                if (tolower(move_piece_promote(move).code) != move_string[4]) continue;
             }
             result = move;
             break;
@@ -444,7 +434,7 @@ Board *Instruction_parse(Instruction *self, Board &board) {
         if (strcmp(token, "moves") == 0) {
             while ((token = Instruction_token_next(self))) {
                 Move move = parse_move(board, token);
-                if (!move_cmp(move, (Move){0})) {
+                if (!move_cmp(move, {0})) {
                     move_make(move, board, 0);
                 } else {
                     printf("Invalid move %s!\n", token);
@@ -456,8 +446,7 @@ Board *Instruction_parse(Instruction *self, Board &board) {
 
         if (strcmp(token, "go") == 0) {
             int depth = 6;
-            for (token = Instruction_token_next(self); token;
-                 token = Instruction_token_next(self)) {
+            for (token = Instruction_token_next(self); token; token = Instruction_token_next(self)) {
 
                 if (token && strcmp(token, "depth") == 0) {
                     token = Instruction_token_next(self);
@@ -509,7 +498,6 @@ void uci_loop(void) {
 /* MAIN */
 
 void init(void) {
-    attacks_init();
     zobrist_init();
 }
 

@@ -4,12 +4,13 @@
 #include <algorithm>
 #include <iomanip>
 
-int move_cmp(Move a, Move b) { return *(uint32_t *)&a == *(uint32_t *)&b; }
+int move_cmp(Move a, Move b) {
+    return *(uint32_t *)&a == *(uint32_t *)&b;
+}
 
-Move move_encode(uint8_t src, uint8_t tgt, const piece::Piece *piece,
-                 const piece::Piece *capture, const piece::Piece *promote,
-                 bool dbl, bool enpassant, bool castle) {
-    return (Move){
+Move move_encode(uint8_t src, uint8_t tgt, const piece::Piece *piece, const piece::Piece *capture,
+                 const piece::Piece *promote, bool dbl, bool enpassant, bool castle) {
+    return {
         .source = src,
         .target = tgt,
         .piece = piece->index,
@@ -24,8 +25,7 @@ Move move_encode(uint8_t src, uint8_t tgt, const piece::Piece *piece,
 }
 
 void move_list_sort(std::vector<MoveE> &list) {
-    std::sort(list.begin(), list.end(),
-              [](const MoveE &a, const MoveE &b) { return a.score < b.score; });
+    std::sort(list.begin(), list.end(), [](const MoveE &a, const MoveE &b) { return a.score < b.score; });
 }
 
 void move_list_print(const std::vector<MoveE> &list) {

@@ -2,7 +2,9 @@
 
 U32 state = C32(1804289383);
 
-void random_state_reset() { state = C32(1804289383); }
+void random_state_reset() {
+    state = C32(1804289383);
+}
 
 U32 random_get_U32() {
     U32 number = state;
