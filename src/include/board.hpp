@@ -40,7 +40,6 @@ class Board {
     U64 get_bitboard_piece_attacks(piece::Type piece, Color color, Square square) const;
     U64 get_bitboard_piece_attacks(const piece::Piece &piece, Square square) const;
 
-    // exception if not found
     Color get_square_piece_color(Square square) const;
     piece::Type get_square_piece_type(Square square) const;
     const piece::Piece *get_square_piece(Square square) const;
@@ -75,7 +74,5 @@ class Board {
     Square enpassant = Square::no_sq;
     uint8_t castle = 0;
 };
-
-const piece::Piece &board_square_piece(const Board *self, Square square, Color side);
 
 #endif

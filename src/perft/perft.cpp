@@ -1,3 +1,4 @@
+#include <iomanip>
 #include <pthread.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -99,7 +100,6 @@ void *perft_thread(void *arg) {
 
         copy = board;
         if (!move_make(move, copy, 0)) continue;
-        // std::cout << copy << std::endl;
 
         if (shared->depth != 1) {
             perft_driver(copy, shared->depth - 1, &result);
@@ -157,8 +157,6 @@ int main(int argc, char *argv[]) {
             abort();
         }
     }
-
-    zobrist_init();
 
     PerftResult res = perft_test(fen, depth, thread_num);
     perft_result_print(res);

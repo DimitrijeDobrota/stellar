@@ -8,7 +8,6 @@ endif()
 target_link_libraries(perft
     PRIVATE board
     PRIVATE moves
-    PRIVATE random
 )
 
 target_link_libraries(perft PRIVATE "cul")

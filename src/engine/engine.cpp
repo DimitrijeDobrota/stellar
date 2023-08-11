@@ -497,12 +497,7 @@ void uci_loop(void) {
 
 /* MAIN */
 
-void init(void) {
-    zobrist_init();
-}
-
 int main(void) {
-    init();
     uci_loop();
     return 0;
 }

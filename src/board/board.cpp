@@ -83,13 +83,13 @@ void Board::and_castle(uint8_t right) {
 
 void Board::switch_side(void) {
     side = (side == Color::BLACK) ? Color::WHITE : Color::BLACK;
-    hash ^= zobrist_key_side();
+    hash ^= Zobrist::key_side();
 }
 
 void Board::set_enpassant(Square target) {
-    if (enpassant != Square::no_sq) hash ^= zobrist_key_enpassant(enpassant);
+    if (enpassant != Square::no_sq) hash ^= Zobrist::key_enpassant(enpassant);
 
-    if (target != Square::no_sq) hash ^= zobrist_key_enpassant(target);
+    if (target != Square::no_sq) hash ^= Zobrist::key_enpassant(target);
     enpassant = target;
 }
 
@@ -184,7 +184,7 @@ Board::Board(const std::string &fen) {
     }
 
     if (fen[++i] != '-') enpassant = square_from_coordinates(fen.data() + i);
-    hash = zobrist_hash(*this);
+    hash = Zobrist::hash(*this);
 }
 
 std::ostream &operator<<(std::ostream &os, const Board &board) {

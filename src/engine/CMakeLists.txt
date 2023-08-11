@@ -7,7 +7,6 @@ add_executable(engine
 target_link_libraries(engine
     PRIVATE board
     PRIVATE moves
-    PRIVATE random
 )
 
 target_link_libraries(engine PRIVATE "cul")

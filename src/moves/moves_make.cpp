@@ -17,12 +17,12 @@ const int castling_rights[64] = {
 
 void _piece_remove(Board &board, const piece::Piece &piece, Square square) {
     board.pop_piece(piece, square);
-    board.xor_hash(zobrist_key_piece(piece, square));
+    board.xor_hash(Zobrist::key_piece(piece, square));
 }
 
 void _piece_set(Board &board, const piece::Piece &piece, Square square) {
     board.set_piece(piece, square);
-    board.xor_hash(zobrist_key_piece(piece, square));
+    board.xor_hash(Zobrist::key_piece(piece, square));
 }
 
 void _piece_move(Board &board, const piece::Piece &piece, Square source, Square target) {
@@ -74,10 +74,10 @@ int move_make(Move move, Board &board, int flag) {
             if (target == Square::c8) _piece_move(board, rook_black, Square::a8, Square::d8);
         }
 
-        board.xor_hash(zobrist_key_castle(board.get_castle()));
+        board.xor_hash(Zobrist::key_castle(board.get_castle()));
         board.and_castle(castling_rights[move_source(move)]);
         board.and_castle(castling_rights[move_target(move)]);
-        board.xor_hash(zobrist_key_castle(board.get_castle()));
+        board.xor_hash(Zobrist::key_castle(board.get_castle()));
 
         if (!board.is_check()) {
             board.switch_side();
