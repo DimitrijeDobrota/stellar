@@ -139,7 +139,6 @@ PerftResult perft_test(const char *fen, int depth, int thread_num) {
 }
 
 int main(int argc, char *argv[]) {
-
     int c, depth = 1, thread_num = 1;
     std::string s(tricky_position);
     const char *fen = s.data();

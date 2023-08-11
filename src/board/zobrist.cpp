@@ -5,7 +5,7 @@
 
 U64 castle_keys[16];
 U64 enpassant_keys[64];
-U64 piece_keys[16][64];
+U64 piece_keys[12][64];
 U64 side_key;
 
 U64 zobrist_key_side(void) { return side_key; }
@@ -56,7 +56,7 @@ U64 zobrist_hash(const Board &board) {
         }
 
         const piece::Piece &piece_black = piece::get(type, Color::BLACK);
-        int piece_black_index = piece_white.index;
+        int piece_black_index = piece_black.index;
         U64 bitboard_black = board.get_bitboard_piece(piece_black);
 
         bitboard_for_each_bit(square, bitboard_black) {

@@ -68,16 +68,18 @@ int move_make(Move move, Board &board, int flag) {
         board.set_enpassant(move_double(move) ? ntarget : Square::no_sq);
 
         if (move_castle(move)) {
-            static const piece::Piece &rook =
-                piece::get(piece::Type::ROOK, board.get_side());
+            static constexpr const piece::Piece &rook_white =
+                piece::get(piece::Type::ROOK, Color::WHITE);
+            static constexpr const piece::Piece &rook_black =
+                piece::get(piece::Type::ROOK, Color::BLACK);
             if (target == Square::g1)
-                _piece_move(board, rook, Square::h1, Square::f1);
+                _piece_move(board, rook_white, Square::h1, Square::f1);
             if (target == Square::c1)
-                _piece_move(board, rook, Square::a1, Square::d1);
+                _piece_move(board, rook_white, Square::a1, Square::d1);
             if (target == Square::g8)
-                _piece_move(board, rook, Square::h8, Square::f8);
+                _piece_move(board, rook_black, Square::h8, Square::f8);
             if (target == Square::c8)
-                _piece_move(board, rook, Square::a8, Square::d8);
+                _piece_move(board, rook_black, Square::a8, Square::d8);
         }
 
         board.xor_hash(zobrist_key_castle(board.get_castle()));

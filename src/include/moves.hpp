@@ -4,6 +4,7 @@
 #include "board.hpp"
 #include "piece.hpp"
 
+#include <iostream>
 #include <vector>
 
 struct Move {
@@ -17,6 +18,8 @@ struct Move {
     bool castle : 1;
     bool capture : 1;
     bool promote : 1;
+
+    friend std::ostream &operator<<(std::ostream &os, const Move &Move);
 };
 
 struct MoveE {
@@ -31,7 +34,6 @@ std::vector<MoveE> move_list_generate(const Board &board);
 int move_make(Move move, Board &board, int flag);
 void move_list_sort(std::vector<MoveE> &list);
 int move_cmp(Move a, Move b);
-void move_print(Move move);
 
 #define move_source(move) (move.source)
 #define move_target(move) (move.target)
