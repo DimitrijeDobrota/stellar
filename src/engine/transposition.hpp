@@ -2,7 +2,6 @@
 #define STELLAR_TRANSPOSITION_H
 
 #include "move.hpp"
-#include "stats.hpp"
 #include "utils_cpp.hpp"
 
 #include <vector>
@@ -31,8 +30,8 @@ class TTable {
     TTable(U64 size) : table(size, {0}) {}
 
     void clear() { table.clear(); };
-    void write(const Stats &stats, Move best, int score, int depth, HasheFlag flag);
-    int read(const Stats &stats, Move *best, int alpha, int beta, int depth) const;
+    int read(const Board &board, int ply, Move *best, int alpha, int beta, int depth) const;
+    void write(const Board &board, int ply, Move best, int score, int depth, HasheFlag flag);
 
   private:
     std::vector<Hashe> table;
