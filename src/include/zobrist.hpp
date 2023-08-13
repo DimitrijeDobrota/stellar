@@ -13,17 +13,11 @@ class Zobrist {
   public:
     Zobrist() = delete;
 
-    static inline constexpr U64 key_side(void) {
-        return keys_side;
-    }
+    static inline constexpr U64 key_side(void) { return keys_side; }
 
-    static inline constexpr U64 key_castle(int exp) {
-        return keys_castle[exp];
-    }
+    static inline constexpr U64 key_castle(int exp) { return keys_castle[exp]; }
 
-    static inline constexpr U64 key_enpassant(Square square) {
-        return keys_enpassant[to_underlying(square)];
-    }
+    static inline constexpr U64 key_enpassant(Square square) { return keys_enpassant[to_underlying(square)]; }
 
     static inline constexpr U64 key_piece(const piece::Piece &piece, Square square) {
         return keys_piece[piece.index][to_underlying(square)];

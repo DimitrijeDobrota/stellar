@@ -10,30 +10,18 @@
 
 /* Getters */
 
-Color Board::get_side(void) const {
-    return side;
-}
-U64 Board::get_hash(void) const {
-    return hash;
-}
-uint8_t Board::get_castle(void) const {
-    return castle;
-}
-Square Board::get_enpassant(void) const {
-    return enpassant;
-}
+Color Board::get_side(void) const { return side; }
+U64 Board::get_hash(void) const { return hash; }
+uint8_t Board::get_castle(void) const { return castle; }
+Square Board::get_enpassant(void) const { return enpassant; }
 
-U64 Board::get_bitboard_color(Color side) const {
-    return colors[to_underlying(side)];
-}
+U64 Board::get_bitboard_color(Color side) const { return colors[to_underlying(side)]; }
 
 U64 Board::get_bitboard_occupancy(void) const {
     return colors[to_underlying(Color::WHITE)] | colors[to_underlying(Color::BLACK)];
 }
 
-U64 Board::get_bitboard_piece(piece::Type piece) const {
-    return pieces[to_underlying(piece)];
-}
+U64 Board::get_bitboard_piece(piece::Type piece) const { return pieces[to_underlying(piece)]; }
 
 U64 Board::get_bitboard_piece(const piece::Piece &piece) const {
     return get_bitboard_piece(piece.type, piece.color);
@@ -49,6 +37,14 @@ U64 Board::get_bitboard_piece_attacks(piece::Type piece, Color color, Square squ
 
 U64 Board::get_bitboard_piece_attacks(const piece::Piece &piece, Square square) const {
     return piece(square, get_bitboard_occupancy());
+}
+
+U64 Board::get_bitboard_piece_moves(piece::Type piece, Color color, Square square) const {
+    return get_bitboard_piece_moves(piece::get(piece, color), square);
+}
+
+U64 Board::get_bitboard_piece_moves(const piece::Piece &piece, Square square) const {
+    return get_bitboard_piece_attacks(piece, square) & ~get_bitboard_color(piece.color);
 }
 
 Color Board::get_square_piece_color(Square square) const {
@@ -74,12 +70,8 @@ const piece::Piece *Board::get_square_piece(Square square) const {
 
 /* Setters */
 
-void Board::xor_hash(U64 op) {
-    hash ^= op;
-}
-void Board::and_castle(uint8_t right) {
-    castle &= right;
-}
+void Board::xor_hash(U64 op) { hash ^= op; }
+void Board::and_castle(uint8_t right) { castle &= right; }
 
 void Board::switch_side(void) {
     side = (side == Color::BLACK) ? Color::WHITE : Color::BLACK;
@@ -135,6 +127,10 @@ bool Board::is_square_attacked(Square square, Color side) const {
     }
 
     return 0;
+}
+
+bool Board::is_piece_attack_square(const piece::Piece &piece, Square source, Square target) const {
+    return get_bitboard_piece_attacks(piece, source) & (C64(1) << to_underlying(target));
 }
 
 bool Board::is_check(void) const {

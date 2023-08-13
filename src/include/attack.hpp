@@ -50,9 +50,7 @@ class SliderRook : public Slider {
         return (key * rook_magic_numbers[square_i]) >> (64 - relevant_bits[square_i]);
     }
 
-    virtual constexpr U64 mask(Square square) const override {
-        return masks[to_underlying(square)];
-    }
+    virtual constexpr U64 mask(Square square) const override { return masks[to_underlying(square)]; }
 
     virtual constexpr U64 mask_fly(Square square, U64 block) const override {
         uint8_t square_i = to_underlying(square);
@@ -98,9 +96,7 @@ class SliderBishop : public Slider {
         return (key * bishop_magic_numbers[square_i]) >> (64 - relevant_bits[square_i]);
     }
 
-    virtual constexpr U64 mask(Square square) const override {
-        return masks[to_underlying(square)];
-    }
+    virtual constexpr U64 mask(Square square) const override { return masks[to_underlying(square)]; }
 
     virtual constexpr U64 mask_fly(Square square, U64 block) const override {
         uint8_t square_i = to_underlying(square);
@@ -197,8 +193,7 @@ class Bishop : public Attack {
 
 class King : public Attack {
   public:
-    constexpr King() {
-    }
+    constexpr King() {}
 
     virtual constexpr U64 operator()(Square square, U64 occupancy) const override {
         return attacks[to_underlying(square)];
@@ -229,8 +224,7 @@ class King : public Attack {
 
 class Knight : public Attack {
   public:
-    constexpr Knight() {
-    }
+    constexpr Knight() {}
 
     virtual constexpr U64 operator()(Square square, U64 occupancy) const override {
         return attacks[to_underlying(square)];
@@ -264,8 +258,7 @@ class Knight : public Attack {
 
 class PawnW : public Attack {
   public:
-    constexpr PawnW() {
-    }
+    constexpr PawnW() {}
 
     virtual constexpr U64 operator()(Square square, U64 occupancy) const override {
         return attacks[to_underlying(square)];
@@ -290,8 +283,7 @@ class PawnW : public Attack {
 
 class PawnB : public Attack {
   public:
-    constexpr PawnB() {
-    }
+    constexpr PawnB() {}
 
     virtual constexpr U64 operator()(Square square, U64 occupancy) const override {
         return attacks[to_underlying(square)];
@@ -323,8 +315,7 @@ inline constexpr const PawnB pawnB;
 
 class Queen : public Attack {
   public:
-    constexpr Queen() {
-    }
+    constexpr Queen() {}
 
     virtual constexpr U64 operator()(Square square, U64 occupancy) const override {
         return rook(square, occupancy) | bishop(square, occupancy);

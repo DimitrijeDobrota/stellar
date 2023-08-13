@@ -1,5 +1,5 @@
 #include "score.hpp"
-#include "moves.hpp"
+#include "move.hpp"
 #include "stats.hpp"
 #include "utils_cpp.hpp"
 
@@ -98,33 +98,26 @@ const Square mirror_score[128] =
 };
 // clang-format on
 
-int Score_value(piece::Type piece) {
-    return Scores[to_underlying(piece)].value;
-}
+int Score_value(piece::Type piece) { return Scores[to_underlying(piece)].value; }
 
 int Score_position(piece::Type piece, Color color, Square square) {
     if (color == Color::BLACK) square = mirror_score[to_underlying(square)];
     return Scores[to_underlying(piece)].position[to_underlying(square)];
 }
 
-int Score_move(const Stats &stats, Move move) {
-    const int piece = to_underlying(move_piece(move).type);
-    const int capture = to_underlying(move_piece_capture(move).type);
+U32 Score_move(const Stats &stats, Move move) {
+    const int piece = to_underlying(move.piece().type);
+    const int capture = to_underlying(move.piece_capture().type);
 
-    if (move_capture(move)) {
-        return Scores[piece].capture[capture] + 10000;
-    }
+    if (move.is_capture()) return Scores[piece].capture[capture] + 10000;
+    if (stats.killer[0][stats.ply] == move) return 9000;
+    if (stats.killer[1][stats.ply] == move) return 8000;
 
-    if (move_cmp(stats.killer[0][stats.ply], move))
-        return 9000;
-    else if (move_cmp(stats.killer[1][stats.ply], move))
-        return 8000;
-
-    return stats.history[piece][move_target(move)];
+    return stats.history[piece][to_underlying(move.target())];
 }
 
-void Score_move_list(const Stats &stats, std::vector<MoveE> &list) {
-    for (MoveE &move : list) {
-        move.score = Score_move(stats, move.move);
+void Score_move_list(const Stats &stats, MoveList &list) {
+    for (auto &moveE : list) {
+        moveE.score = Score_move(stats, moveE.move);
     }
 }

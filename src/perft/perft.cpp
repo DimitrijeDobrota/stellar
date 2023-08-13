@@ -7,7 +7,8 @@
 
 #include "attack.hpp"
 #include "board.hpp"
-#include "moves.hpp"
+#include "move.hpp"
+#include "movelist.hpp"
 #include "perft.hpp"
 #include "utils_cpp.hpp"
 #include "zobrist.hpp"
@@ -46,15 +47,11 @@ void perft_result_add(PerftResult *base, PerftResult *add) {
 #endif
 }
 
-typedef std::vector<MoveE> MoveList;
-
 void perft_driver(Board &board, int depth, PerftResult *result) {
-    MoveList moveList = move_list_generate(board);
     Board copy;
-
-    for (const auto [move, _] : moveList) {
+    for (const auto [move, _] : MoveList(board)) {
         copy = board;
-        if (!move_make(move, copy, 0)) continue;
+        if (!move.make(copy, 0)) continue;
 
         if (depth != 1) {
             perft_driver(copy, depth - 1, result);
@@ -62,10 +59,10 @@ void perft_driver(Board &board, int depth, PerftResult *result) {
             result->node++;
 #ifdef USE_FULL_COUNT
             if (copy.is_check()) result->check++;
-            if (move_capture(move)) result->capture++;
-            if (move_enpassant(move)) result->enpassant++;
-            if (move_castle(move)) result->castle++;
-            if (move_promote(move)) result->promote++;
+            if (move.get_capture()) result->capture++;
+            if (move.get_enpassant()) result->enpassant++;
+            if (move.get_castle()) result->castle++;
+            if (move.get_promote()) result->promote++;
 #endif
         }
     }
@@ -73,7 +70,7 @@ void perft_driver(Board &board, int depth, PerftResult *result) {
 
 typedef struct perf_shared perf_shared;
 struct perf_shared {
-    MoveList list;
+    const MoveList &list;
     int depth;
     const char *fen;
     pthread_mutex_t mutex;
@@ -99,7 +96,7 @@ void *perft_thread(void *arg) {
         result = {0};
 
         copy = board;
-        if (!move_make(move, copy, 0)) continue;
+        if (!move.make(copy, 0)) continue;
 
         if (shared->depth != 1) {
             perft_driver(copy, shared->depth - 1, &result);
@@ -107,10 +104,10 @@ void *perft_thread(void *arg) {
             result.node++;
 #ifdef USE_FULL_COUNT
             if (copy.is_check()) result.check++;
-            if (move_capture(move)) result.capture++;
-            if (move_enpassant(move)) result.enpassant++;
-            if (move_castle(move)) result.castle++;
-            if (move_promote(move)) result.promote++;
+            if (move.get_capture()) result.capture++;
+            if (move.get_enpassant()) result.enpassant++;
+            if (move.get_castle()) result.castle++;
+            if (move.get_promote()) result.promote++;
 #endif
         }
     }
@@ -119,8 +116,10 @@ void *perft_thread(void *arg) {
 
 PerftResult perft_test(const char *fen, int depth, int thread_num) {
     pthread_t *threads = new pthread_t(thread_num);
+    MoveList *list = new MoveList(Board(fen));
+
     perf_shared shared = {
-        .list = move_list_generate(Board(fen)),
+        .list = *list,
         .depth = depth,
         .fen = fen,
     };
@@ -132,6 +131,7 @@ PerftResult perft_test(const char *fen, int depth, int thread_num) {
     for (int i = 0; i < thread_num; i++)
         pthread_join(threads[i], NULL);
 
+    delete list;
     delete threads;
     return shared.result;
 }

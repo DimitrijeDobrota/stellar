@@ -17,8 +17,7 @@ class Board {
         BQ = 8
     };
 
-    Board() {
-    }
+    Board() {}
     Board(const std::string &fen);
 
     friend std::ostream &operator<<(std::ostream &os, const Board &board);
@@ -39,6 +38,8 @@ class Board {
 
     U64 get_bitboard_piece_attacks(piece::Type piece, Color color, Square square) const;
     U64 get_bitboard_piece_attacks(const piece::Piece &piece, Square square) const;
+    U64 get_bitboard_piece_moves(piece::Type piece, Color color, Square square) const;
+    U64 get_bitboard_piece_moves(const piece::Piece &piece, Square square) const;
 
     Color get_square_piece_color(Square square) const;
     piece::Type get_square_piece_type(Square square) const;
@@ -64,6 +65,7 @@ class Board {
 
     bool is_square_attacked(Square Square, Color side) const;
     bool is_square_occupied(Square Square) const;
+    bool is_piece_attack_square(const piece::Piece &piece, Square source, Square target) const;
     bool is_check(void) const;
 
   private:

@@ -1,7 +1,7 @@
 #ifndef STELLAR_TRANSPOSITION_H
 #define STELLAR_TRANSPOSITION_H
 
-#include "moves.hpp"
+#include "move.hpp"
 #include "stats.hpp"
 #include "utils_cpp.hpp"
 
@@ -28,12 +28,9 @@ struct Hashe {
 
 class TTable {
   public:
-    TTable(U64 size) : table(size, {0}) {
-    }
+    TTable(U64 size) : table(size, {0}) {}
 
-    void clear() {
-        table.clear();
-    };
+    void clear() { table.clear(); };
     void write(const Stats &stats, Move best, int score, int depth, HasheFlag flag);
     int read(const Stats &stats, Move *best, int alpha, int beta, int depth) const;
 

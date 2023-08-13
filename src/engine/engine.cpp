@@ -5,7 +5,8 @@
 
 #include "attack.hpp"
 #include "board.hpp"
-#include "moves.hpp"
+#include "move.hpp"
+#include "movelist.hpp"
 #include "score.hpp"
 #include "stats.hpp"
 #include "transposition.hpp"
@@ -17,26 +18,6 @@
 #define REDUCTION_MOVE 2
 
 #define WINDOW 50
-
-void move_list_sort_pv(std::vector<MoveE> &list, Stats &stats, Move best) {
-    for (MoveE &move : list) {
-        if (move_cmp(best, move.move)) {
-            move.score = 30000;
-            return;
-        }
-    }
-
-    if (stats.ply && stats.follow_pv) {
-        stats.follow_pv = 0;
-        for (MoveE &move : list) {
-            if (move_cmp(stats.pv_table[0][stats.ply], move.move)) {
-                move.score = 20000;
-                stats.follow_pv = 1;
-                break;
-            }
-        }
-    }
-}
 
 /* SEARCHING */
 
@@ -65,13 +46,11 @@ int evaluate(const Board &board) {
     return score;
 }
 
-int is_repetition() {
-    return 0;
-}
+int is_repetition() { return 0; }
 
 int stats_move_make(Stats &stats, Board &copy, Move move, int flag) {
     copy = stats.board;
-    if (!move_make(move, stats.board, flag)) {
+    if (!move.make(stats.board, flag)) {
         stats.board = copy;
         return 0;
     }
@@ -110,12 +89,20 @@ int quiescence(Stats &stats, int alpha, int beta) {
     if (score > alpha) alpha = score;
 
     Board copy;
-    std::vector<MoveE> list = move_list_generate(stats.board);
-    Score_move_list(stats, list);
-    move_list_sort_pv(list, stats, {0});
-    move_list_sort(list);
+    bool pv_flag = false;
+    const auto score_move = [&stats, &pv_flag](Move move) -> U32 {
+        if (stats.ply && stats.follow_pv) {
+            stats.follow_pv = 0;
+            if (stats.pv_table[0][stats.ply] == move) {
+                pv_flag = true;
+                return 20000;
+            }
+        }
+        return Score_move(stats, move);
+    };
+    stats.follow_pv = pv_flag;
 
-    for (const auto [move, _] : list) {
+    for (const auto [move, _] : MoveList(stats.board, score_move)) {
         if (!stats_move_make(stats, copy, move, 1)) continue;
         score = -quiescence(stats, -beta, -alpha);
         stats_move_unmake(stats, copy);
@@ -133,8 +120,8 @@ int quiescence(Stats &stats, int alpha, int beta) {
 int negamax(Stats &stats, int alpha, int beta, int depth, bool null) {
     int pv_node = (beta - alpha) > 1;
     HasheFlag flag = HasheFlag::Alpha;
-    Move bestMove = {0};
     int futility = 0;
+    Move bestMove;
     Board copy;
 
     stats.pv_length[stats.ply] = stats.ply;
@@ -196,19 +183,28 @@ int negamax(Stats &stats, int alpha, int beta, int depth, bool null) {
         if (depth < 4 && abs(alpha) < MATE_SCORE && staticEval + margin[depth] <= alpha) futility = 1;
     }
 
-    std::vector<MoveE> list = move_list_generate(stats.board);
-    Score_move_list(stats, list);
-    move_list_sort_pv(list, stats, bestMove);
-    move_list_sort(list);
+    bool pv_flag = false;
+    const auto score_move = [&stats, &bestMove, &pv_flag](Move move) -> U32 {
+        if (move == bestMove) return 30000;
+        if (stats.ply && stats.follow_pv) {
+            stats.follow_pv = 0;
+            if (stats.pv_table[0][stats.ply] == move) {
+                pv_flag = true;
+                return 20000;
+            }
+        }
+        return Score_move(stats, move);
+    };
+    stats.follow_pv = pv_flag;
 
     int legal_moves = 0;
     int searched = 0;
-    for (const auto [move, _] : list) {
+    for (const auto [move, _] : MoveList(stats.board, score_move)) {
         if (!stats_move_make(stats, copy, move, 0)) continue;
         legal_moves++;
 
         // futility pruning
-        if (futility && searched && !move_capture(move) && !move_promote(move) && !stats.board.is_check()) {
+        if (futility && searched && !move.is_capture() && !move.is_promote() && !stats.board.is_check()) {
             stats_move_unmake(stats, copy);
             continue;
         }
@@ -218,11 +214,11 @@ int negamax(Stats &stats, int alpha, int beta, int depth, bool null) {
         } else {
             // Late Move Reduction
             if (!pv_node && searched >= FULL_DEPTH && depth >= REDUCTION_LIMIT && !isCheck &&
-                !move_capture(move) && !move_promote(move) &&
-                (move_source(move) != move_source(stats.killer[0][stats.ply]) ||
-                 move_target(move) != move_target(stats.killer[0][stats.ply])) &&
-                (move_source(move) != move_source(stats.killer[1][stats.ply]) ||
-                 move_target(move) != move_target(stats.killer[1][stats.ply]))) {
+                !move.is_capture() && !move.is_promote() &&
+                (move.source() != stats.killer[0][stats.ply].source() ||
+                 move.target() != stats.killer[0][stats.ply].target()) &&
+                (move.source() != stats.killer[1][stats.ply].source() ||
+                 move.target() != stats.killer[1][stats.ply].target())) {
                 score = -negamax(stats, -alpha - 1, -alpha, depth - 2, true);
             } else
                 score = alpha + 1;
@@ -242,8 +238,8 @@ int negamax(Stats &stats, int alpha, int beta, int depth, bool null) {
         searched++;
 
         if (score > alpha) {
-            if (!move_capture(move)) {
-                stats.history[move_piece(move).index][move_target(move)] += depth;
+            if (!move.is_capture()) {
+                stats.history[move.piece().index][to_underlying(move.target())] += depth;
             }
 
             alpha = score;
@@ -254,7 +250,7 @@ int negamax(Stats &stats, int alpha, int beta, int depth, bool null) {
             if (score >= beta) {
                 stats.ttable.write(stats, bestMove, beta, depth, HasheFlag::Beta);
 
-                if (!move_capture(move)) {
+                if (!move.is_capture()) {
                     stats.killer[1][stats.ply] = stats.killer[0][stats.ply];
                     stats.killer[0][stats.ply] = move;
                 }
@@ -276,23 +272,22 @@ int negamax(Stats &stats, int alpha, int beta, int depth, bool null) {
 }
 
 void move_print_UCI(Move move) {
-    printf("%s%s", square_to_coordinates(static_cast<Square>(move_source(move))),
-           square_to_coordinates(static_cast<Square>(move_target(move))));
-    if (move_promote(move)) printf("%c", (move_piece_promote(move).code));
+    std::cout << square_to_coordinates(move.source()) << square_to_coordinates(move.target());
+    if (move.is_promote()) std::cout << move.piece_promote().code;
 }
 
 TTable ttable(C64(0x400000));
 void search_position(Board &board, int depth) {
-    Stats stats = {ttable, board, 0};
+    Stats stats = {ttable, board};
 
-    int alpha = -INFINITY, beta = INFINITY;
+    int alpha = -SCORE_INFINITY, beta = SCORE_INFINITY;
     for (int crnt = 1; crnt <= depth;) {
         stats.follow_pv = 1;
 
         int score = negamax(stats, alpha, beta, crnt, true);
         if ((score <= alpha) || (score >= beta)) {
-            alpha = -INFINITY;
-            beta = INFINITY;
+            alpha = -SCORE_INFINITY;
+            beta = SCORE_INFINITY;
             continue;
         }
         alpha = score - WINDOW;
@@ -300,27 +295,28 @@ void search_position(Board &board, int depth) {
 
         if (stats.pv_length[0]) {
             if (score > -MATE_VALUE && score < -MATE_SCORE) {
-                printf("info score mate %d depth %d nodes %ld pv ", -(score + MATE_VALUE) / 2 - 1, crnt,
-                       stats.nodes);
+                std::cout << "info score mate " << -(score + MATE_VALUE) / 2 - 1;
             } else if (score > MATE_SCORE && score < MATE_VALUE) {
-                printf("info score mate %d depth %d nodes %ld pv ", (MATE_VALUE - score) / 2 + 1, crnt,
-                       stats.nodes);
+                std::cout << "info score mate " << (MATE_VALUE - score) / 2 + 1;
             } else {
-                printf("info score cp %d depth %d nodes %ld pv ", score, crnt, stats.nodes);
+                std::cout << "info score " << score;
             }
 
+            std::cout << " depth " << crnt;
+            std::cout << " nodes " << stats.nodes;
+            std::cout << " pv ";
             for (int i = 0; i < stats.pv_length[0]; i++) {
                 move_print_UCI(stats.pv_table[0][i]);
-                printf(" ");
+                std::cout << " ";
             }
-            printf("\n");
+            std::cout << "\n";
         }
         crnt++;
     }
 
-    printf("bestmove ");
+    std::cout << "bestmove ";
     move_print_UCI(stats.pv_table[0][0]);
-    printf("\n");
+    std::cout << "\n";
 }
 
 void print_info(void) {
@@ -354,9 +350,7 @@ void Instruction_free(Instruction **p) {
     delete (*p);
 }
 
-char *Instruction_token(Instruction *self) {
-    return self->token;
-}
+char *Instruction_token(Instruction *self) { return self->token; }
 char *Instruction_token_n(Instruction *self, int n) {
     while (isspace(*self->crnt) && *self->crnt != '\0')
         self->crnt++;
@@ -382,28 +376,21 @@ char *Instruction_token_n(Instruction *self, int n) {
     return self->token;
 }
 
-char *Instruction_token_next(Instruction *self) {
-    return Instruction_token_n(self, 1);
-}
+char *Instruction_token_next(Instruction *self) { return Instruction_token_n(self, 1); }
 
-Move parse_move(Board &board, char *move_string) {
-    Move result = {0};
+Move parse_move(const Board &board, char *move_string) {
+    Square source = square_from_coordinates(move_string);
+    Square target = square_from_coordinates(move_string + 2);
 
-    uint8_t source = to_underlying(square_from_coordinates(move_string));
-    uint8_t target = to_underlying(square_from_coordinates(move_string + 2));
-
-    std::vector<MoveE> list = move_list_generate(board);
-    for (const auto [move, _] : list) {
-        if (move_source(move) == source && move_target(move) == target) {
+    for (const auto [move, _] : MoveList(board)) {
+        if (move.source() == source && move.target() == target) {
             if (move_string[4]) {
-                if (tolower(move_piece_promote(move).code) != move_string[4]) continue;
+                if (tolower(move.piece_promote().code) != move_string[4]) continue;
             }
-            result = move;
-            break;
+            return move;
         }
     }
-
-    return result;
+    return {};
 }
 
 Board *Instruction_parse(Instruction *self, Board &board) {
@@ -434,8 +421,8 @@ Board *Instruction_parse(Instruction *self, Board &board) {
         if (strcmp(token, "moves") == 0) {
             while ((token = Instruction_token_next(self))) {
                 Move move = parse_move(board, token);
-                if (!move_cmp(move, {0})) {
-                    move_make(move, board, 0);
+                if (move == Move()) {
+                    move.make(board, 0);
                 } else {
                     printf("Invalid move %s!\n", token);
                 }

@@ -1,7 +1,7 @@
 #ifndef STELLAR_STATS_H
 #define STELLAR_STATS_H
 
-#include "moves.hpp"
+#include "move.hpp"
 #include "utils_cpp.hpp"
 
 #define MAX_PLY 64

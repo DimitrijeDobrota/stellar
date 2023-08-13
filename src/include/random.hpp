@@ -5,18 +5,12 @@
 
 class Random {
   public:
-    constexpr Random(void) {
-    }
-    constexpr Random(U64 seed) : state(seed) {
-    }
+    constexpr Random(void) {}
+    constexpr Random(U64 seed) : state(seed) {}
 
-    constexpr U64 operator()(void) {
-        return get_U64();
-    }
+    constexpr U64 operator()(void) { return get_U64(); }
 
-    constexpr void reset(void) {
-        state = seed;
-    }
+    constexpr void reset(void) { state = seed; }
 
     constexpr U32 get_U32(void) {
         U32 number = state;

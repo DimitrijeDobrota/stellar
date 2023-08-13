@@ -21,9 +21,7 @@ typedef Iterator<Type, Type::PAWN, Type::KING> TypeIter;
 
 class Piece {
   public:
-    constexpr U64 operator()(Square square, U64 occupancy) const {
-        return attack(square, occupancy);
-    }
+    constexpr U64 operator()(Square square, U64 occupancy) const { return attack(square, occupancy); }
 
     const Type type;
     const Color color;
@@ -34,8 +32,7 @@ class Piece {
   protected:
     constexpr Piece(Type type, Color color, char code, const char *symbol, const attack::Attack &attack)
         : type(type), color(color), code(code), symbol(symbol), index(index_calc(color, type)),
-          attack(attack) {
-    }
+          attack(attack) {}
 
     constexpr uint8_t index_calc(Color color, Type type) {
         return to_underlying(color) * 6 + to_underlying(type);
@@ -50,48 +47,42 @@ class Pawn : public Piece {
     constexpr Pawn(Color color)
         : Piece(Type::PAWN, color, color == Color::WHITE ? 'P' : 'p', color == Color::WHITE ? "■ " : "■ ",
                 color == Color::WHITE ? *(attack::Attack *)&attack::pawnW
-                                      : *(attack::Attack *)&attack::pawnB) {
-    }
+                                      : *(attack::Attack *)&attack::pawnB) {}
 };
 
 class Knight : public Piece {
   public:
     constexpr Knight(Color color)
         : Piece(Type::KNIGHT, color, color == Color::WHITE ? 'N' : 'n', color == Color::WHITE ? "■ " : "■ ",
-                attack::knight) {
-    }
+                attack::knight) {}
 };
 
 class Bishop : public Piece {
   public:
     constexpr Bishop(Color color)
         : Piece(Type::BISHOP, color, color == Color::WHITE ? 'B' : 'b', color == Color::WHITE ? "■ " : "■ ",
-                attack::bishop) {
-    }
+                attack::bishop) {}
 };
 
 class Rook : public Piece {
   public:
     constexpr Rook(Color color)
         : Piece(Type::ROOK, color, color == Color::WHITE ? 'R' : 'r', color == Color::WHITE ? "■ " : "■ ",
-                attack::rook) {
-    }
+                attack::rook) {}
 };
 
 class Queen : public Piece {
   public:
     constexpr Queen(Color color)
         : Piece(Type::QUEEN, color, color == Color::WHITE ? 'Q' : 'q', color == Color::WHITE ? "■ " : "■ ",
-                attack::queen) {
-    }
+                attack::queen) {}
 };
 
 class King : public Piece {
   public:
     constexpr King(Color color)
         : Piece(Type::KING, color, color == Color::WHITE ? 'K' : 'k', color == Color::WHITE ? "■ " : "■ ",
-                attack::king) {
-    }
+                attack::king) {}
 };
 
 const constexpr Piece table[2][6] = {
@@ -116,9 +107,7 @@ constexpr const Piece &get_from_code(char code) {
     throw std::exception();
 }
 
-constexpr const Piece &get_from_index(uint8_t index) {
-    return table[index / 6][index % 6];
-}
+constexpr const Piece &get_from_index(uint8_t index) { return table[index / 6][index % 6]; }
 
 } // namespace piece
 
