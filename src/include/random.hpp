@@ -5,7 +5,7 @@
 
 class Random {
   public:
-    constexpr Random(void) {}
+    constexpr Random(void) = default;
     constexpr Random(U64 seed) : state(seed) {}
 
     constexpr U64 operator()(void) { return get_U64(); }

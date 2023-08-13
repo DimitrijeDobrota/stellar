@@ -91,7 +91,7 @@ bool Move::make(Board &board, bool attack_only) const {
     }
 }
 
-std::ostream &operator<<(std::ostream &os, const Move &move) {
+std::ostream &operator<<(std::ostream &os, Move move) {
     os << square_to_coordinates(move.source()) << " ";
     os << square_to_coordinates(move.target()) << " ";
     os << move.piece().code << " ";

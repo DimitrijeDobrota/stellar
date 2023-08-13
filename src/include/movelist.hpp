@@ -11,7 +11,6 @@
 
 class MoveList {
   public:
-    typedef std::function<U32(const Move &)> score_f;
     struct MoveListE {
         Move move;
         U32 score;
@@ -23,10 +22,9 @@ class MoveList {
     using list_t = std::vector<MoveListE>;
 
   public:
-    MoveList(const Board &board, score_f score = nullptr) : list(), score_move(score) {
+    MoveList(const Board &board) : list() {
         list.reserve(256);
         generate(board);
-        sort(list.begin(), list.end());
     }
 
     auto size() const { return list.size(); }
@@ -48,15 +46,13 @@ class MoveList {
     const_iterator cend() const { return list.cend(); }
 
   private:
-    void push_back(const MoveListE &&mle) { list.push_back(mle); }
-    void push_back(const Move &&move) { push_back({move, score_move ? score_move(move) : 0}); }
+    void push_back(const Move &&move) { list.push_back({move, 0}); }
 
     void generate(const Board &board);
 
     void clear() { list.clear(); }
 
     list_t list;
-    score_f score_move;
 };
 
 #endif

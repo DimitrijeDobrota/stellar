@@ -9,7 +9,7 @@
 #include <vector>
 
 struct Move {
-    Move(){};
+    Move() = default;
 
     Move(Square source, Square target, const piece::Piece *piece, const piece::Piece *capture,
          const piece::Piece *promote, bool dbl, bool enpassant, bool castle)
@@ -35,7 +35,7 @@ struct Move {
 
     bool make(Board &board, bool attack_only) const;
 
-    friend std::ostream &operator<<(std::ostream &os, const Move &Move);
+    friend std::ostream &operator<<(std::ostream &os, Move move);
 
   private:
     void piece_remove(Board &board, const piece::Piece &piece, Square square) const;

@@ -16,7 +16,7 @@ class Perft {
   public:
     typedef std::counting_semaphore<THREAD_MAX> semaphore_t;
     Perft(semaphore_t &sem) : sem(sem) {}
-    void operator()(const Board &board_start, const Move &move, int depth) {
+    void operator()(const Board &board_start, Move move, int depth) {
         sem.acquire();
         Board board = board_start;
         if (move.make(board, 0)) {
@@ -67,7 +67,7 @@ class Perft {
                 score(copy, move);
         }
     }
-    void score(const Board &board, const Move &move) {
+    void score(const Board &board, Move move) {
         local.node++;
 #ifdef USE_FULL_COUNT
         if (board.is_check()) local.check++;

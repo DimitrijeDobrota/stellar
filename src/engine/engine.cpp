@@ -25,9 +25,47 @@ Move pv_table[MAX_PLY][MAX_PLY];
 Move killer[2][MAX_PLY];
 U32 history[16][64];
 int pv_length[MAX_PLY];
-int follow_pv;
-long nodes;
-int ply;
+bool follow_pv;
+U64 nodes;
+U32 ply;
+
+Move move_list_best_move;
+U32 inline move_list_score(Move move) {
+    const piece::Type type = move.piece().type;
+    if (move.is_capture()) return piece::score(type, move.piece_capture().type) + 10000;
+    if (killer[0][ply] == move) return 9000;
+    if (killer[1][ply] == move) return 8000;
+    return history[to_underlying(type)][to_underlying(move.target())];
+}
+
+void move_list_sort(MoveList &list, bool check_best = true) {
+    for (auto &[move, score] : list)
+        score = move_list_score(move);
+
+    bool best = false;
+    if (check_best) {
+        for (auto &[move, score] : list) {
+            if (move == move_list_best_move) {
+                score = 30000;
+                best = true;
+                break;
+            }
+        }
+    }
+
+    if (!best && ply && follow_pv) {
+        follow_pv = false;
+        for (auto &[move, score] : list) {
+            if (move == pv_table[0][ply]) {
+                score = 20000;
+                follow_pv = true;
+                break;
+            }
+        }
+    }
+
+    sort(list.begin(), list.end());
+}
 
 int evaluate(const Board &board) {
     Color side = board.get_side();
@@ -96,25 +134,10 @@ int quiescence(int alpha, int beta) {
     if (score > alpha) alpha = score;
 
     Board copy;
-    bool pv_flag = false;
-    const auto score_move = [&pv_flag](Move move) -> U32 {
-        if (ply && follow_pv) {
-            follow_pv = 0;
-            if (pv_table[0][ply] == move) {
-                pv_flag = true;
-                return 20000;
-            }
-        }
 
-        const piece::Type type = move.piece().type;
-        if (move.is_capture()) return piece::score(type, move.piece_capture().type) + 10000;
-        if (killer[0][ply] == move) return 9000;
-        if (killer[1][ply] == move) return 8000;
-        return history[to_underlying(type)][to_underlying(move.target())];
-    };
-    follow_pv = pv_flag;
-
-    for (const auto [move, _] : MoveList(board, score_move)) {
+    MoveList list(board);
+    move_list_sort(list, false);
+    for (const auto [move, _] : list) {
         if (!stats_move_make(copy, move, 1)) continue;
         score = -quiescence(-beta, -alpha);
         stats_move_unmake(copy);
@@ -201,27 +224,13 @@ int negamax(int alpha, int beta, int depth, bool null) {
         if (depth < 4 && abs(alpha) < MATE_SCORE && staticEval + margin[depth] <= alpha) futility = 1;
     }
 
-    bool pv_flag = false;
-    const auto score_move = [&bestMove, &pv_flag](Move move) -> U32 {
-        if (move == bestMove) return 30000;
-        if (ply && follow_pv) {
-            follow_pv = 0;
-            if (pv_table[0][ply] == move) {
-                pv_flag = true;
-                return 20000;
-            }
-        }
-        const piece::Type type = move.piece().type;
-        if (move.is_capture()) return piece::score(type, move.piece_capture().type) + 10000;
-        if (killer[0][ply] == move) return 9000;
-        if (killer[1][ply] == move) return 8000;
-        return history[to_underlying(type)][to_underlying(move.target())];
-    };
-    follow_pv = pv_flag;
-
     int legal_moves = 0;
     int searched = 0;
-    for (const auto [move, _] : MoveList(board, score_move)) {
+
+    move_list_best_move = bestMove;
+    MoveList list(board);
+    move_list_sort(list);
+    for (const auto [move, _] : list) {
         if (!stats_move_make(copy, move, 0)) continue;
         legal_moves++;
 
@@ -475,7 +484,6 @@ Board *Instruction_parse(Instruction *self) {
 }
 
 void uci_loop(void) {
-    Board board;
     Instruction *instruction;
     char input[200000];
 

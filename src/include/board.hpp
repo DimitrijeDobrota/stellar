@@ -17,7 +17,7 @@ class Board {
         BQ = 8
     };
 
-    Board() {}
+    Board() = default;
     Board(const std::string &fen);
 
     friend std::ostream &operator<<(std::ostream &os, const Board &board);

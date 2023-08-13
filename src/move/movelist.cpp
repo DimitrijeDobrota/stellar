@@ -1,4 +1,5 @@
 #include "movelist.hpp"
+#include <iomanip>
 
 #define pawn_canPromote(color, source)                                                                       \
     ((color == Color::WHITE && source >= Square::a7 && source <= Square::h7) ||                              \
@@ -112,7 +113,7 @@ void MoveList::generate(const Board &board) {
 }
 
 std::ostream &operator<<(std::ostream &os, const MoveList &list) {
-    os << "Size: " << list.list.size();
+    os << "Size: " << std::dec << list.size() << "\n";
     for (const auto &moveE : list.list) {
         os << moveE.score << ": " << moveE.move << "\n";
     }
