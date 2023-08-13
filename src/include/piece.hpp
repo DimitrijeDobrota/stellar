@@ -21,7 +21,7 @@ typedef Iterator<Type, Type::PAWN, Type::KING> TypeIter;
 
 class Piece {
   public:
-    constexpr U64 operator()(Square square, U64 occupancy) const { return attack(square, occupancy); }
+    constexpr U64 operator()(Square from, U64 occupancy) const { return attack(from, occupancy); }
 
     const Type type;
     const Color color;
@@ -108,6 +108,100 @@ constexpr const Piece &get_from_code(char code) {
 }
 
 constexpr const Piece &get_from_index(uint8_t index) { return table[index / 6][index % 6]; }
+
+static inline constexpr const Square mirror[65] = {
+    // clang-format off
+        Square::a8, Square::b8, Square::c8, Square::d8, Square::e8, Square::f8, Square::g8, Square::h8,
+        Square::a7, Square::b7, Square::c7, Square::d7, Square::e7, Square::f7, Square::g7, Square::h7,
+        Square::a6, Square::b6, Square::c6, Square::d6, Square::e6, Square::f6, Square::g6, Square::h6,
+        Square::a5, Square::b5, Square::c5, Square::d5, Square::e5, Square::f5, Square::g5, Square::h5,
+        Square::a4, Square::b4, Square::c4, Square::d4, Square::e4, Square::f4, Square::g4, Square::h4,
+        Square::a3, Square::b3, Square::c3, Square::d3, Square::e3, Square::f3, Square::g3, Square::h3,
+        Square::a2, Square::b2, Square::c2, Square::d2, Square::e2, Square::f2, Square::g2, Square::h2,
+        Square::a1, Square::b1, Square::c1, Square::d1, Square::e1, Square::f1, Square::g1, Square::h1, Square::no_sq,
+    // clang-format on
+};
+
+static constexpr inline const uint16_t value[6] = {100, 300, 350, 500, 1000, 10000};
+static constexpr inline const uint16_t capture[6][6] = {
+    // clang-format off
+    {105, 205, 305, 405, 505, 605},
+    {104, 204, 304, 404, 504, 604},
+    {103, 203, 303, 403, 503, 603},
+    {102, 202, 302, 402, 502, 602},
+    {101, 201, 301, 401, 501, 601},
+    {100, 200, 300, 400, 500, 600},
+    // clang-format on
+};
+static constexpr inline const int8_t position[6][64] = {
+    // clang-format off
+    {
+         0,   0,   0,   0,   0,   0,   0,   0,
+         0,   0,   0, -10, -10,   0,   0,   0,
+         0,   0,   0,   5,   5,   0,   0,   0,
+         5,   5,  10,  20,  20,   5,   5,   5,
+        10,  10,  10,  20,  20,  10,  10,  10,
+        20,  20,  20,  30,  30,  30,  20,  20,
+        30,  30,  30,  40,  40,  30,  30,  30,
+        90,  90,  90,  90,  90,  90,  90,  90
+    }, {
+        -5,  -10 , 0,   0,   0,   0, -10,  -5,
+        -5,   0,   0,   0,   0,   0,   0,  -5,
+        -5,   5,  20,  10,  10,  20,   5,  -5,
+        -5,  10,  20,  30,  30,  20,  10,  -5,
+        -5,  10,  20,  30,  30,  20,  10,  -5,
+        -5,   5,  20,  20,  20,  20,   5,  -5,
+        -5,   0,   0,  10,  10,   0,   0,  -5,
+        -5,   0,   0,   0,   0,   0,   0,  -5
+    }, {
+         0,   0, -10,   0,   0, -10,   0,   0,
+         0,  30,   0,   0,   0,   0,  30,   0,
+         0,  10,   0,   0,   0,   0,  10,   0,
+         0,   0,  10,  20,  20,  10,   0,   0,
+         0,   0,  10,  20,  20,  10,   0,   0,
+         0,   0,   0,  10,  10,   0,   0,   0,
+         0,   0,   0,   0,   0,   0,   0,   0,
+         0,   0,   0,   0,   0,   0,   0,   0
+    }, {
+         0,   0,   0,  20,  20,   0,   0,   0,
+         0,   0,  10,  20,  20,  10,   0,   0,
+         0,   0,  10,  20,  20,  10,   0,   0,
+         0,   0,  10,  20,  20,  10,   0,   0,
+         0,   0,  10,  20,  20,  10,   0,   0,
+         0,   0,  10,  20,  20,  10,   0,   0,
+        50,  50,  50,  50,  50,  50,  50,  50,
+        50,  50,  50,  50,  50,  50,  50,  50
+    }, {
+         0,   0,   0,   0,   0,   0,   0,   0,
+         0,   0,   0,   0,   0,   0,   0,   0,
+         0,   0,   0,   0,   0,   0,   0,   0,
+         0,   0,   0,   0,   0,   0,   0,   0,
+         0,   0,   0,   0,   0,   0,   0,   0,
+         0,   0,   0,   0,   0,   0,   0,   0,
+         0,   0,   0,   0,   0,   0,   0,   0,
+         0,   0,   0,   0,   0,   0,   0,   0
+    }, {
+         0,   0,   5,   0, -15,   0,  10,   0,
+         0,   5,   5,  -5,  -5,   0,   5,   0,
+         0,   0,   5,  10,  10,   5,   0,   0,
+         0,   5,  10,  20,  20,  10,   5,   0,
+         0,   5,  10,  20,  20,  10,   5,   0,
+         0,   5,   5,  10,  10,   5,   5,   0,
+         0,   0,   5,   5,   5,   5,   0,   0,
+         0,   0,   0,   0,   0,   0,   0,   0
+    },
+    // clang-format on
+};
+
+constexpr uint16_t score(Type piece) { return value[to_underlying(piece)]; }
+constexpr uint16_t score(Type piece, Type captured) {
+    return capture[to_underlying(piece)][to_underlying(captured)];
+}
+
+constexpr int8_t score(Type type, Color color, Square square) {
+    if (color == Color::BLACK) square = mirror[to_underlying(square)];
+    return position[to_underlying(type)][to_underlying(square)];
+}
 
 } // namespace piece
 

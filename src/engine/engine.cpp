@@ -29,16 +29,16 @@ int evaluate(const Board &board) {
     uint8_t square_i;
 
     int score = 0;
-    for (piece::Type type : piece::TypeIter()) {
+    for (const piece::Type type : piece::TypeIter()) {
         U64 bitboard = board.get_bitboard_piece(type);
         bitboard_for_each_bit(square_i, bitboard) {
             Square square = static_cast<Square>(square_i);
             if (bit_get(occupancy, square_i)) {
-                score += Score_value(type);
-                score += Score_position(type, side, square);
+                score += piece::score(type);
+                score += piece::score(type, side, square);
             } else {
-                score -= Score_value(type);
-                score -= Score_position(type, sideOther, square);
+                score -= piece::score(type);
+                score -= piece::score(type, sideOther, square);
             }
         }
     }
@@ -98,7 +98,12 @@ int quiescence(Stats &stats, int alpha, int beta) {
                 return 20000;
             }
         }
-        return Score_move(stats, move);
+
+        const piece::Type type = move.piece().type;
+        if (move.is_capture()) return piece::score(type, move.piece_capture().type) + 10000;
+        if (stats.killer[0][stats.ply] == move) return 9000;
+        if (stats.killer[1][stats.ply] == move) return 8000;
+        return stats.history[to_underlying(type)][to_underlying(move.target())];
     };
     stats.follow_pv = pv_flag;
 
@@ -147,11 +152,12 @@ int negamax(Stats &stats, int alpha, int beta, int depth, bool null) {
     if (isCheck) depth++;
 
     if (!pv_node && !isCheck) {
+        static constexpr const U32 score_pawn = piece::score(piece::Type::PAWN);
         int staticEval = evaluate(stats.board);
 
         // evaluation pruning
         if (depth < 3 && abs(beta - 1) > -MATE_VALUE + 100) {
-            int marginEval = Score_value(piece::Type::PAWN) * depth;
+            int marginEval = score_pawn * depth;
             if (staticEval - marginEval >= beta) return staticEval - marginEval;
         }
 
@@ -165,21 +171,26 @@ int negamax(Stats &stats, int alpha, int beta, int depth, bool null) {
             }
 
             // razoring
-            score = staticEval + Score_value(piece::Type::PAWN);
+            score = staticEval + score_pawn;
             int scoreNew = quiescence(stats, alpha, beta);
 
             if (score < beta && depth == 1) {
                 return (scoreNew > score) ? scoreNew : score;
             }
 
-            score += Score_value(piece::Type::PAWN);
+            score += score_pawn;
             if (score < beta && depth < 4) {
                 if (scoreNew < beta) return (scoreNew > score) ? scoreNew : score;
             }
         }
 
         // futility pruning condition
-        static const int margin[] = {0, 100, 300, 500};
+        static constexpr const int margin[] = {
+            0,
+            piece::score(piece::Type::PAWN),
+            piece::score(piece::Type::KNIGHT),
+            piece::score(piece::Type::ROOK),
+        };
         if (depth < 4 && abs(alpha) < MATE_SCORE && staticEval + margin[depth] <= alpha) futility = 1;
     }
 
@@ -193,7 +204,11 @@ int negamax(Stats &stats, int alpha, int beta, int depth, bool null) {
                 return 20000;
             }
         }
-        return Score_move(stats, move);
+        const piece::Type type = move.piece().type;
+        if (move.is_capture()) return piece::score(type, move.piece_capture().type) + 10000;
+        if (stats.killer[0][stats.ply] == move) return 9000;
+        if (stats.killer[1][stats.ply] == move) return 8000;
+        return stats.history[to_underlying(type)][to_underlying(move.target())];
     };
     stats.follow_pv = pv_flag;
 

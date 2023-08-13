@@ -1,6 +1,5 @@
 add_executable(engine
     engine.cpp
-    score.cpp
     transposition.cpp
 )
 
