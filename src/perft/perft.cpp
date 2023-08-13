@@ -1,139 +1,113 @@
 #include <iomanip>
-#include <pthread.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
+#include <semaphore>
+#include <thread>
 
-#include "attack.hpp"
 #include "board.hpp"
 #include "move.hpp"
 #include "movelist.hpp"
-#include "perft.hpp"
 #include "utils_cpp.hpp"
-#include "zobrist.hpp"
 
 // FEN debug positions
 #define tricky_position "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1 "
 
-void perft_result_print(PerftResult res) {
-    printf("           - Perft Results -\n\n");
-    printf("            Nodes: %llu\n", res.node);
-#ifdef USE_FULL_COUNT
-    printf("         Captures: %llu\n", res.capture);
-    printf("       Enpassants: %llu\n", res.enpassant);
-    printf("          Castles: %llu\n", res.castle);
-    printf("       Promotions: %llu\n", res.promote);
-    printf("           Checks: %llu\n", res.check);
-    //     printf("Discovered Checks: %llu\n", res.checkDiscovered);
-    //     printf("    Dobule Checks: %llu\n", res.checkDouble);
-    //     printf("       Checkmates: %llu\n", res.checkmate);
-#else
-    printf("Other stats are disabled in this build...\n");
-#endif
-}
+#define THREAD_MAX 64
 
-void perft_result_add(PerftResult *base, PerftResult *add) {
-    base->node += add->node;
-#ifdef USE_FULL_COUNT
-    base->capture += add->capture;
-    base->enpassant += add->enpassant;
-    base->castle += add->castle;
-    base->promote += add->promote;
-    base->check += add->check;
-    //     base->checkDiscovered += add->checkDiscovered;
-    //     base->checkDouble += add->checkDouble;
-    //     base->checkmate += add->checkmate;
-#endif
-}
-
-void perft_driver(Board &board, int depth, PerftResult *result) {
-    Board copy;
-    for (const auto [move, _] : MoveList(board)) {
-        copy = board;
-        if (!move.make(copy, 0)) continue;
-
-        if (depth != 1) {
-            perft_driver(copy, depth - 1, result);
-        } else {
-            result->node++;
-#ifdef USE_FULL_COUNT
-            if (copy.is_check()) result->check++;
-            if (move.get_capture()) result->capture++;
-            if (move.get_enpassant()) result->enpassant++;
-            if (move.get_castle()) result->castle++;
-            if (move.get_promote()) result->promote++;
-#endif
+class Perft {
+  public:
+    typedef std::counting_semaphore<THREAD_MAX> semaphore_t;
+    Perft(semaphore_t &sem) : sem(sem) {}
+    void operator()(const Board &board_start, const Move &move, int depth) {
+        sem.acquire();
+        Board board = board_start;
+        if (move.make(board, 0)) {
+            if (depth > 1)
+                test(board, depth - 1);
+            else
+                score(board, move);
         }
+        mutex.acquire();
+        result += local;
+        mutex.release();
+        sem.release();
     }
-}
 
-typedef struct perf_shared perf_shared;
-struct perf_shared {
-    const MoveList &list;
-    int depth;
-    const char *fen;
-    pthread_mutex_t mutex;
-    unsigned int index;
-    PerftResult result;
-};
-
-void *perft_thread(void *arg) {
-    PerftResult result = {0};
-    perf_shared *shared = (perf_shared *)arg;
-    Board board = Board(shared->fen), copy;
-
-    while (1) {
-        pthread_mutex_lock(&shared->mutex);
-        perft_result_add(&shared->result, &result);
-        if (shared->index >= shared->list.size()) {
-            pthread_mutex_unlock(&shared->mutex);
-            break;
-        }
-        Move move = shared->list[shared->index++].move;
-        pthread_mutex_unlock(&shared->mutex);
-
-        result = {0};
-
-        copy = board;
-        if (!move.make(copy, 0)) continue;
-
-        if (shared->depth != 1) {
-            perft_driver(copy, shared->depth - 1, &result);
-        } else {
-            result.node++;
+    struct result_t {
+        U64 node = 0;
 #ifdef USE_FULL_COUNT
-            if (copy.is_check()) result.check++;
-            if (move.get_capture()) result.capture++;
-            if (move.get_enpassant()) result.enpassant++;
-            if (move.get_castle()) result.castle++;
-            if (move.get_promote()) result.promote++;
+        U64 check = 0;
+        U64 castle = 0;
+        U64 promote = 0;
+        U64 capture = 0;
+        U64 enpassant = 0;
 #endif
+        result_t &operator+=(const result_t res) {
+            node += res.node;
+#ifdef USE_FULL_COUNT
+            check += res.check;
+            castle += res.castle;
+            promote += res.promote;
+            capture += res.capture;
+            enpassant += res.enpassant;
+#endif
+            return *this;
         }
-    }
-    return NULL;
-}
-
-PerftResult perft_test(const char *fen, int depth, int thread_num) {
-    pthread_t *threads = new pthread_t(thread_num);
-    MoveList *list = new MoveList(Board(fen));
-
-    perf_shared shared = {
-        .list = *list,
-        .depth = depth,
-        .fen = fen,
     };
 
-    pthread_mutex_init(&shared.mutex, NULL);
-    for (int i = 0; i < thread_num; i++)
-        pthread_create(threads + i, NULL, perft_thread, (void *)(&shared));
+    static result_t result;
 
-    for (int i = 0; i < thread_num; i++)
-        pthread_join(threads[i], NULL);
+  private:
+    void test(const Board &board, int depth) {
+        for (const auto [move, _] : MoveList(board)) {
+            Board copy = board;
+            if (!move.make(copy, 0)) continue;
 
-    delete list;
-    delete threads;
-    return shared.result;
+            if (depth != 1)
+                test(copy, depth - 1);
+            else
+                score(copy, move);
+        }
+    }
+    void score(const Board &board, const Move &move) {
+        local.node++;
+#ifdef USE_FULL_COUNT
+        if (board.is_check()) local.check++;
+        if (move.is_capture()) local.capture++;
+        if (move.is_enpassant()) local.enpassant++;
+        if (move.is_castle()) local.castle++;
+        if (move.is_promote()) local.promote++;
+#endif
+    }
+
+    result_t local;
+    semaphore_t &sem;
+    static std::binary_semaphore mutex;
+};
+
+std::binary_semaphore Perft::mutex{1};
+Perft::result_t Perft::result;
+
+void perft_test(const char *fen, int depth, int thread_num) {
+    const Board board = Board(fen);
+    const MoveList list = MoveList(board);
+    std::vector<std::thread> threads(list.size());
+
+    Perft::semaphore_t sem(thread_num);
+
+    int index = 0;
+    for (const auto &[move, _] : list)
+        threads[index++] = std::thread(Perft(sem), board, move, depth);
+
+    for (auto &thread : threads)
+        thread.join();
+
+    std::cout << "     Nodes: " << Perft::result.node << "\n";
+#ifdef USE_FULL_COUNT
+    std::cout << "  Captures: " << Perft::result.capture << "\n";
+    std::cout << "Enpassants: " << Perft::result.enpassant << "\n";
+    std::cout << "   Castles: " << Perft::result.castle << "\n";
+    std::cout << "Promotions: " << Perft::result.promote << "\n";
+    std::cout << "    Checks: " << Perft::result.check << "\n";
+#endif
 }
 
 int main(int argc, char *argv[]) {
@@ -144,7 +118,7 @@ int main(int argc, char *argv[]) {
         switch (c) {
         case 't':
             thread_num = atoi(optarg);
-            if (thread_num <= 0) abort();
+            if (thread_num <= 0 && thread_num > THREAD_MAX) abort();
             break;
         case 'f':
             fen = optarg;
@@ -158,6 +132,6 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    PerftResult res = perft_test(fen, depth, thread_num);
-    perft_result_print(res);
+    perft_test(fen, depth, thread_num);
+    return 0;
 }
