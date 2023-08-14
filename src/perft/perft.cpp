@@ -17,14 +17,16 @@ class Perft {
     typedef std::counting_semaphore<THREAD_MAX> semaphore_t;
     Perft(semaphore_t &sem) : sem(sem) {}
     void operator()(const Board &board_start, Move move, int depth) {
-        sem.acquire();
         Board board = board_start;
-        if (move.make(board, 0)) {
-            if (depth > 1)
-                test(board, depth - 1);
-            else
-                score(board, move);
+        if (!move.make(board, 0)) return;
+        sem.acquire();
+
+        if (depth > 1) {
+            test(board, depth - 1);
+        } else {
+            score(board, move);
         }
+
         mutex.acquire();
         result += local;
         mutex.release();
@@ -67,6 +69,13 @@ class Perft {
                 score(copy, list[i]);
         }
     }
+
+    void debug(const Board &before, Move move, const Board &after) {
+        std::cout << std::setw(16) << std::hex << before.get_hash() << " ";
+        std::cout << move << " ";
+        std::cout << std::setw(16) << std::hex << after.get_hash() << "\n";
+    }
+
     void score(const Board &board, Move move) {
         local.node++;
 #ifdef USE_FULL_COUNT
@@ -77,7 +86,6 @@ class Perft {
         if (move.is_promote()) local.promote++;
 #endif
     }
-
     result_t local;
     semaphore_t &sem;
     static std::binary_semaphore mutex;
@@ -100,6 +108,7 @@ void perft_test(const char *fen, int depth, int thread_num) {
     for (auto &thread : threads)
         thread.join();
 
+    std::cout << std::dec;
     std::cout << "     Nodes: " << Perft::result.node << "\n";
 #ifdef USE_FULL_COUNT
     std::cout << "  Captures: " << Perft::result.capture << "\n";

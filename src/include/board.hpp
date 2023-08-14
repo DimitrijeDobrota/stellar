@@ -33,12 +33,9 @@ class Board {
 
     U64 get_bitboard_piece(piece::Type piece) const;
     U64 get_bitboard_piece(piece::Type piece, Color color) const;
-    U64 get_bitboard_piece(const piece::Piece &piece) const;
 
-    U64 get_bitboard_piece_attacks(piece::Type piece, Color color, Square square) const;
-    U64 get_bitboard_piece_attacks(const piece::Piece &piece, Square square) const;
-    U64 get_bitboard_piece_moves(piece::Type piece, Color color, Square square) const;
-    U64 get_bitboard_piece_moves(const piece::Piece &piece, Square square) const;
+    U64 get_bitboard_piece_attacks(piece::Type piece, Color color, Square from) const;
+    U64 get_bitboard_piece_moves(piece::Type piece, Color color, Square from) const;
 
     Color get_square_piece_color(Square square) const;
     piece::Type get_square_piece_type(Square square) const;
@@ -54,17 +51,17 @@ class Board {
     void pop_bitboard_color(Color color, Square square);
     void set_bitboard_color(Color color, Square square);
 
-    void pop_bitboard_piece(const piece::Piece &piece, Square square);
-    void set_bitboard_piece(const piece::Piece &piece, Square square);
+    void pop_bitboard_piece(piece::Type type, Square square);
+    void set_bitboard_piece(piece::Type type, Square square);
 
-    void pop_piece(const piece::Piece &piece, Square square);
-    void set_piece(const piece::Piece &piece, Square square);
+    void pop_piece(piece::Type type, Color side, Square square);
+    void set_piece(piece::Type type, Color side, Square square);
 
     /* Queries */
 
     bool is_square_attacked(Square Square, Color side) const;
     bool is_square_occupied(Square Square) const;
-    bool is_piece_attack_square(const piece::Piece &piece, Square source, Square target) const;
+    bool is_piece_attack_square(piece::Type type, Color color, Square source, Square target) const;
     bool is_check(void) const;
 
   private:

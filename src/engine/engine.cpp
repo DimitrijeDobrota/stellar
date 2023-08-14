@@ -23,7 +23,7 @@ Board board;
 TTable ttable(C64(0x400000));
 Move pv_table[MAX_PLY][MAX_PLY];
 Move killer[2][MAX_PLY];
-U32 history[16][64];
+U32 history[12][64];
 int pv_length[MAX_PLY];
 bool follow_pv;
 U64 nodes;
@@ -31,8 +31,8 @@ U32 ply;
 
 Move move_list_best_move;
 U32 inline move_list_score(Move move) {
-    const piece::Type type = move.piece().type;
-    if (move.is_capture()) return piece::score(type, move.piece_capture().type) + 10000;
+    const piece::Type type = move.piece();
+    if (move.is_capture()) return piece::score(type, move.captured()) + 10000;
     if (killer[0][ply] == move) return 9000;
     if (killer[1][ply] == move) return 8000;
     return history[to_underlying(type)][to_underlying(move.target())];
@@ -268,7 +268,8 @@ int negamax(int alpha, int beta, int depth, bool null) {
 
         if (score > alpha) {
             if (!move.is_capture()) {
-                history[move.piece().index][to_underlying(move.target())] += depth;
+                int index = piece::get(move.piece(), board.get_side()).index;
+                history[index][to_underlying(move.target())] += depth;
             }
 
             alpha = score;
@@ -302,7 +303,7 @@ int negamax(int alpha, int beta, int depth, bool null) {
 
 void move_print_UCI(Move move) {
     std::cout << square_to_coordinates(move.source()) << square_to_coordinates(move.target());
-    if (move.is_promote()) std::cout << move.piece_promote().code;
+    // if (move.is_promote()) std::cout << move.piece_promote().code;
 }
 
 void search_position(int depth) {
@@ -413,7 +414,8 @@ Move parse_move(char *move_string) {
         const Move move = list[i];
         if (move.source() == source && move.target() == target) {
             if (move_string[4]) {
-                if (tolower(move.piece_promote().code) != move_string[4]) continue;
+                char code = piece::get(move.promoted(), board.get_side()).code;
+                if (tolower(code) != move_string[4]) continue;
             }
             return move;
         }

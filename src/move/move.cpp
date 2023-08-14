@@ -5,20 +5,22 @@
 #include <algorithm>
 #include <iomanip>
 
-void Move::piece_remove(Board &board, const piece::Piece &piece, Square square) const {
-    board.pop_piece(piece, square);
-    board.xor_hash(Zobrist::key_piece(piece, square));
+void Move::piece_remove(Board &board, piece::Type type, Color color, Square square) const {
+    board.pop_piece(type, color, square);
+    board.xor_hash(Zobrist::key_piece(type, color, square));
 }
 
-void Move::piece_set(Board &board, const piece::Piece &piece, Square square) const {
-    board.set_piece(piece, square);
-    board.xor_hash(Zobrist::key_piece(piece, square));
+void Move::piece_set(Board &board, piece::Type type, Color color, Square square) const {
+    board.set_piece(type, color, square);
+    board.xor_hash(Zobrist::key_piece(type, color, square));
 }
 
-void Move::piece_move(Board &board, const piece::Piece &piece, Square source, Square target) const {
-    piece_remove(board, piece, source);
-    piece_set(board, piece, target);
+void Move::piece_move(Board &board, piece::Type type, Color color, Square source, Square target) const {
+    piece_remove(board, type, color, source);
+    piece_set(board, type, color, target);
 }
+
+using piece::Type::ROOK;
 
 bool Move::make(Board &board, bool attack_only) const {
     static constexpr const int castling_rights[64] = {
@@ -38,8 +40,8 @@ bool Move::make(Board &board, bool attack_only) const {
         if (is_capture()) return make(board, false);
         return 0;
     } else {
-        const piece::Piece &piece = this->piece();
         const Color color = board.get_side();
+    Color colorOther = color == Color::BLACK ? Color::WHITE : Color::BLACK;
         const Square source = this->source();
         const Square target = this->target();
 
@@ -48,34 +50,32 @@ bool Move::make(Board &board, bool attack_only) const {
 
         if (!is_capture()) {
             if (is_promote()) {
-                piece_remove(board, piece, source);
-                piece_set(board, piece_promote(), target);
+                piece_remove(board, piece(), color, source);
+                piece_set(board, promoted(), color, target);
             } else {
-                piece_move(board, piece, source, target);
+                piece_move(board, piece(), color, source, target);
             }
         } else {
             if (is_enpassant()) {
-                piece_move(board, piece, source, target);
-                piece_remove(board, piece_capture(), ntarget);
+                piece_move(board, piece(), color, source, target);
+                piece_remove(board, captured(), colorOther, ntarget);
             } else if (is_promote()) {
-                piece_remove(board, piece, source);
-                piece_remove(board, piece_capture(), target);
-                piece_set(board, piece_promote(), target);
+                piece_remove(board, piece(), color, source);
+                piece_remove(board, captured(), colorOther, target);
+                piece_set(board, promoted(), color, target);
             } else {
-                piece_remove(board, piece_capture(), target);
-                piece_move(board, piece, source, target);
+                piece_remove(board, captured(), colorOther, target);
+                piece_move(board, piece(), color, source, target);
             }
         }
 
         board.set_enpassant(is_double() ? ntarget : Square::no_sq);
 
         if (is_castle()) {
-            static constexpr const piece::Piece &rook_white = piece::get(piece::Type::ROOK, Color::WHITE);
-            static constexpr const piece::Piece &rook_black = piece::get(piece::Type::ROOK, Color::BLACK);
-            if (target == Square::g1) piece_move(board, rook_white, Square::h1, Square::f1);
-            if (target == Square::c1) piece_move(board, rook_white, Square::a1, Square::d1);
-            if (target == Square::g8) piece_move(board, rook_black, Square::h8, Square::f8);
-            if (target == Square::c8) piece_move(board, rook_black, Square::a8, Square::d8);
+            if (target == Square::g1) piece_move(board, ROOK, Color::WHITE, Square::h1, Square::f1);
+            if (target == Square::c1) piece_move(board, ROOK, Color::WHITE, Square::a1, Square::d1);
+            if (target == Square::g8) piece_move(board, ROOK, Color::BLACK, Square::h8, Square::f8);
+            if (target == Square::c8) piece_move(board, ROOK, Color::BLACK, Square::a8, Square::d8);
         }
 
         board.xor_hash(Zobrist::key_castle(board.get_castle()));
@@ -94,9 +94,9 @@ bool Move::make(Board &board, bool attack_only) const {
 std::ostream &operator<<(std::ostream &os, Move move) {
     os << square_to_coordinates(move.source()) << " ";
     os << square_to_coordinates(move.target()) << " ";
-    os << move.piece().code << " ";
-    os << (move.is_capture() ? move.piece_capture().code : '.') << " ";
-    os << (move.is_promote() ? move.piece_promote().code : '.') << " ";
+    os << piece::get_code(move.piece()) << " ";
+    os << (move.is_capture() ? piece::get_code(move.captured()) : '.') << " ";
+    os << (move.is_promote() ? piece::get_code(move.promoted()) : '.') << " ";
     os << move.is_double() << " ";
     os << move.is_enpassant() << " ";
     os << move.is_castle();

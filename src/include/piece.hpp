@@ -15,7 +15,7 @@ enum class Type {
     ROOK,
     QUEEN,
     KING,
-    TypeSIZE
+    NONE = 7,
 };
 typedef Iterator<Type, Type::PAWN, Type::KING> TypeIter;
 
@@ -96,6 +96,12 @@ constexpr const Piece &get(Type type, Color color) {
     return table[static_cast<int>(color)][static_cast<int>(type)];
 }
 
+constexpr const U64 get_attack(Type type, Color color, Square from, U64 occupancy) {
+    return get(type, color)(from, occupancy);
+}
+
+constexpr const char get_code(Type type, Color color = Color::WHITE) { return get(type, color).code; }
+constexpr const U64 get_index(Type type, Color color) { return get(type, color).index; }
 constexpr const Piece &get_from_code(char code) {
     Color color = isupper(code) ? Color::WHITE : Color::BLACK;
 

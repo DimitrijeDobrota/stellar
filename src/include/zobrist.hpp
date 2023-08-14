@@ -16,8 +16,8 @@ class Zobrist {
     static inline constexpr U64 key_side(void) { return keys_side; }
     static inline constexpr U64 key_castle(int exp) { return keys_castle[exp]; }
     static inline constexpr U64 key_enpassant(Square square) { return keys_enpassant[to_underlying(square)]; }
-    static inline constexpr U64 key_piece(const piece::Piece &piece, Square square) {
-        return keys_piece[piece.index][to_underlying(square)];
+    static inline constexpr U64 key_piece(piece::Type type, Color color, Square square) {
+        return keys_piece[piece::get_index(type, color)][to_underlying(square)];
     }
 
     static inline U64 hash(const Board &board) {
@@ -25,18 +25,14 @@ class Zobrist {
         uint8_t square;
 
         for (piece::Type type : piece::TypeIter()) {
-            const piece::Piece &piece_white = piece::get(type, Color::WHITE);
-            int piece_white_index = piece_white.index;
-            U64 bitboard_white = board.get_bitboard_piece(piece_white);
-
+            int piece_white_index = piece::get_index(type, Color::WHITE);
+            U64 bitboard_white = board.get_bitboard_piece(type, Color::WHITE);
             bitboard_for_each_bit(square, bitboard_white) {
                 key_final ^= keys_piece[piece_white_index][square];
             }
 
-            const piece::Piece &piece_black = piece::get(type, Color::BLACK);
-            int piece_black_index = piece_black.index;
-            U64 bitboard_black = board.get_bitboard_piece(piece_black);
-
+            int piece_black_index = piece::get_index(type, Color::BLACK);
+            U64 bitboard_black = board.get_bitboard_piece(type, Color::BLACK);
             bitboard_for_each_bit(square, bitboard_black) {
                 key_final ^= keys_piece[piece_black_index][square];
             }

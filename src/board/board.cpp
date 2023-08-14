@@ -23,28 +23,16 @@ U64 Board::get_bitboard_occupancy(void) const {
 
 U64 Board::get_bitboard_piece(piece::Type piece) const { return pieces[to_underlying(piece)]; }
 
-U64 Board::get_bitboard_piece(const piece::Piece &piece) const {
-    return get_bitboard_piece(piece.type, piece.color);
-}
-
 U64 Board::get_bitboard_piece(piece::Type piece, Color color) const {
     return pieces[to_underlying(piece)] & colors[to_underlying(color)];
 }
 
-U64 Board::get_bitboard_piece_attacks(piece::Type piece, Color color, Square square) const {
-    return get_bitboard_piece_attacks(piece::get(piece, color), square);
+U64 Board::get_bitboard_piece_attacks(piece::Type type, Color color, Square from) const {
+    return piece::get_attack(type, color, from, get_bitboard_occupancy());
 }
 
-U64 Board::get_bitboard_piece_attacks(const piece::Piece &piece, Square square) const {
-    return piece(square, get_bitboard_occupancy());
-}
-
-U64 Board::get_bitboard_piece_moves(piece::Type piece, Color color, Square square) const {
-    return get_bitboard_piece_moves(piece::get(piece, color), square);
-}
-
-U64 Board::get_bitboard_piece_moves(const piece::Piece &piece, Square square) const {
-    return get_bitboard_piece_attacks(piece, square) & ~get_bitboard_color(piece.color);
+U64 Board::get_bitboard_piece_moves(piece::Type type, Color color, Square square) const {
+    return get_bitboard_piece_attacks(type, color, square) & ~get_bitboard_color(color);
 }
 
 Color Board::get_square_piece_color(Square square) const {
@@ -57,7 +45,7 @@ piece::Type Board::get_square_piece_type(Square square) const {
     for (piece::Type type : piece::TypeIter()) {
         if (bit_get(pieces[to_underlying(type)], to_underlying(square))) return type;
     }
-    throw std::exception();
+    return piece::Type::NONE;
 }
 
 const piece::Piece *Board::get_square_piece(Square square) const {
@@ -93,22 +81,22 @@ void Board::set_bitboard_color(Color color, Square square) {
     bit_set(colors[to_underlying(color)], to_underlying(square));
 }
 
-void Board::pop_bitboard_piece(const piece::Piece &piece, Square square) {
-    bit_pop(pieces[to_underlying(piece.type)], to_underlying(square));
+void Board::pop_bitboard_piece(piece::Type type, Square square) {
+    bit_pop(pieces[to_underlying(type)], to_underlying(square));
 }
 
-void Board::set_bitboard_piece(const piece::Piece &piece, Square square) {
-    bit_set(pieces[to_underlying(piece.type)], to_underlying(square));
+void Board::set_bitboard_piece(piece::Type type, Square square) {
+    bit_set(pieces[to_underlying(type)], to_underlying(square));
 }
 
-void Board::pop_piece(const piece::Piece &piece, Square square) {
-    pop_bitboard_color(piece.color, square);
-    pop_bitboard_piece(piece, square);
+void Board::pop_piece(piece::Type type, Color side, Square square) {
+    pop_bitboard_color(side, square);
+    pop_bitboard_piece(type, square);
 }
 
-void Board::set_piece(const piece::Piece &piece, Square square) {
-    set_bitboard_color(piece.color, square);
-    set_bitboard_piece(piece, square);
+void Board::set_piece(piece::Type type, Color side, Square square) {
+    set_bitboard_color(side, square);
+    set_bitboard_piece(type, square);
 }
 
 /* Queries */
@@ -121,16 +109,16 @@ bool Board::is_square_attacked(Square square, Color side) const {
     Color side_other = (side == Color::BLACK) ? Color::WHITE : Color::BLACK;
 
     for (piece::Type type : piece::TypeIter()) {
-        if (get_bitboard_piece_attacks(piece::get(type, side_other), square) &
-            get_bitboard_piece(piece::get(type, side)))
+        if (get_bitboard_piece_attacks(type, side_other, square) & get_bitboard_piece(type, side)) {
             return 1;
+        }
     }
 
     return 0;
 }
 
-bool Board::is_piece_attack_square(const piece::Piece &piece, Square source, Square target) const {
-    return get_bitboard_piece_attacks(piece, source) & (C64(1) << to_underlying(target));
+bool Board::is_piece_attack_square(piece::Type type, Color color, Square source, Square target) const {
+    return get_bitboard_piece_attacks(type, color, source) & (C64(1) << to_underlying(target));
 }
 
 bool Board::is_check(void) const {
@@ -144,7 +132,8 @@ Board::Board(const std::string &fen) {
     int file = 0, rank = 7, i;
     for (i = 0; fen[i] != ' '; i++) {
         if (isalpha(fen[i])) {
-            set_piece(piece::get_from_code(fen[i]), static_cast<Square>(rank * 8 + file));
+            const piece::Piece &piece = piece::get_from_code(fen[i]);
+            set_piece(piece.type, piece.color, static_cast<Square>(rank * 8 + file));
             file++;
         } else if (isdigit(fen[i])) {
             file += fen[i] - '0';
