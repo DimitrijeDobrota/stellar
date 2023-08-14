@@ -27,17 +27,21 @@ void MoveList::generate(const Board &board) {
         const Square tgt = static_cast<Square>(tgt_i = src_i + add);
         if (!board.is_square_occupied(tgt)) {
             if (pawn_canPromote(color, src)) {
-                push_back(Move(src, tgt, &pawn, nullptr, &piece::get(piece::Type::KNIGHT, color), 0, 0, 0));
-                push_back(Move(src, tgt, &pawn, nullptr, &piece::get(piece::Type::BISHOP, color), 0, 0, 0));
-                push_back(Move(src, tgt, &pawn, nullptr, &piece::get(piece::Type::ROOK, color), 0, 0, 0));
-                push_back(Move(src, tgt, &pawn, nullptr, &piece::get(piece::Type::QUEEN, color), 0, 0, 0));
+                list.push_back(
+                    Move(src, tgt, &pawn, nullptr, &piece::get(piece::Type::KNIGHT, color), 0, 0, 0));
+                list.push_back(
+                    Move(src, tgt, &pawn, nullptr, &piece::get(piece::Type::BISHOP, color), 0, 0, 0));
+                list.push_back(
+                    Move(src, tgt, &pawn, nullptr, &piece::get(piece::Type::ROOK, color), 0, 0, 0));
+                list.push_back(
+                    Move(src, tgt, &pawn, nullptr, &piece::get(piece::Type::QUEEN, color), 0, 0, 0));
             } else {
-                push_back(Move(src, tgt, &pawn, 0, 0, 0, 0, 0));
+                list.push_back(Move(src, tgt, &pawn, 0, 0, 0, 0, 0));
 
                 // two ahead
                 const Square tgt = static_cast<Square>(tgt_i + add);
                 if (pawn_onStart(color, src) && !board.is_square_occupied(tgt))
-                    push_back(Move(src, tgt, &pawn, 0, 0, 1, 0, 0));
+                    list.push_back(Move(src, tgt, &pawn, 0, 0, 1, 0, 0));
             }
         }
 
@@ -47,19 +51,24 @@ void MoveList::generate(const Board &board) {
             const Square tgt = static_cast<Square>(tgt_i);
             const piece::Piece *capture = board.get_square_piece(tgt);
             if (pawn_canPromote(color, src)) {
-                push_back(Move(src, tgt, &pawn, capture, &piece::get(piece::Type::KNIGHT, color), 0, 0, 0));
-                push_back(Move(src, tgt, &pawn, capture, &piece::get(piece::Type::BISHOP, color), 0, 0, 0));
-                push_back(Move(src, tgt, &pawn, capture, &piece::get(piece::Type::ROOK, color), 0, 0, 0));
-                push_back(Move(src, tgt, &pawn, capture, &piece::get(piece::Type::QUEEN, color), 0, 0, 0));
+                list.push_back(
+                    Move(src, tgt, &pawn, capture, &piece::get(piece::Type::KNIGHT, color), 0, 0, 0));
+                list.push_back(
+                    Move(src, tgt, &pawn, capture, &piece::get(piece::Type::BISHOP, color), 0, 0, 0));
+                list.push_back(
+                    Move(src, tgt, &pawn, capture, &piece::get(piece::Type::ROOK, color), 0, 0, 0));
+                list.push_back(
+                    Move(src, tgt, &pawn, capture, &piece::get(piece::Type::QUEEN, color), 0, 0, 0));
             } else {
-                push_back(Move(src, tgt, &pawn, capture, 0, 0, 0, 0));
+                list.push_back(Move(src, tgt, &pawn, capture, 0, 0, 0, 0));
             }
         }
 
         // en passant
         const Square enpassant = board.get_enpassant();
         if (enpassant != Square::no_sq && board.is_piece_attack_square(pawn, src, enpassant))
-            push_back(Move(src, enpassant, &pawn, &piece::get(piece::Type::PAWN, colorOther), 0, 0, 1, 0));
+            list.push_back(
+                Move(src, enpassant, &pawn, &piece::get(piece::Type::PAWN, colorOther), 0, 0, 1, 0));
     }
 
     // All piece move
@@ -71,7 +80,7 @@ void MoveList::generate(const Board &board) {
             U64 attack = board.get_bitboard_piece_moves(piece, src);
             bitboard_for_each_bit(tgt_i, attack) {
                 const Square tgt = static_cast<Square>(tgt_i);
-                push_back(Move(src, tgt, &piece, board.get_square_piece(tgt), 0, 0, 0, 0));
+                list.push_back(Move(src, tgt, &piece, board.get_square_piece(tgt), 0, 0, 0, 0));
             }
         }
     }
@@ -83,14 +92,14 @@ void MoveList::generate(const Board &board) {
             if (board.get_castle() & to_underlying(Board::Castle::WK)) {
                 if (!board.is_square_occupied(Square::f1) && !board.is_square_occupied(Square::g1) &&
                     !board.is_square_attacked(Square::f1, Color::BLACK))
-                    push_back(Move(Square::e1, Square::g1, &piece, 0, 0, 0, 0, 1));
+                    list.push_back(Move(Square::e1, Square::g1, &piece, 0, 0, 0, 0, 1));
             }
             if (board.get_castle() & to_underlying(Board::Castle::WQ)) {
                 if (!board.is_square_occupied(Square::d1) && !board.is_square_occupied(Square::c1) &&
                     !board.is_square_occupied(Square::b1) &&
                     !board.is_square_attacked(Square::d1, Color::BLACK) &&
                     !board.is_square_attacked(Square::c1, Color::BLACK))
-                    push_back(Move(Square::e1, Square::c1, &piece, 0, 0, 0, 0, 1));
+                    list.push_back(Move(Square::e1, Square::c1, &piece, 0, 0, 0, 0, 1));
             }
         }
     } else {
@@ -99,14 +108,14 @@ void MoveList::generate(const Board &board) {
             if (board.get_castle() & to_underlying(Board::Castle::BK)) {
                 if (!board.is_square_occupied(Square::f8) && !board.is_square_occupied(Square::g8) &&
                     !board.is_square_attacked(Square::f8, Color::WHITE))
-                    push_back(Move(Square::e8, Square::g8, &piece, 0, 0, 0, 0, 1));
+                    list.push_back(Move(Square::e8, Square::g8, &piece, 0, 0, 0, 0, 1));
             }
             if (board.get_castle() & to_underlying(Board::Castle::BQ)) {
                 if (!board.is_square_occupied(Square::d8) && !board.is_square_occupied(Square::c8) &&
                     !board.is_square_occupied(Square::b8) &&
                     !board.is_square_attacked(Square::d8, Color::WHITE) &&
                     !board.is_square_attacked(Square::c8, Color::WHITE))
-                    push_back(Move(Square::e8, Square::c8, &piece, 0, 0, 0, 0, 1));
+                    list.push_back(Move(Square::e8, Square::c8, &piece, 0, 0, 0, 0, 1));
             }
         }
     }
@@ -114,8 +123,8 @@ void MoveList::generate(const Board &board) {
 
 std::ostream &operator<<(std::ostream &os, const MoveList &list) {
     os << "Size: " << std::dec << list.size() << "\n";
-    for (const auto &moveE : list.list) {
-        os << moveE.score << ": " << moveE.move << "\n";
+    for (const Move move : list.list) {
+        os << move << "\n";
     }
     return os;
 }

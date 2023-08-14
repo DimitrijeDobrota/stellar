@@ -38,33 +38,32 @@ U32 inline move_list_score(Move move) {
     return history[to_underlying(type)][to_underlying(move.target())];
 }
 
-void move_list_sort(MoveList &list, bool check_best = true) {
-    for (auto &[move, score] : list)
-        score = move_list_score(move);
+void move_list_sort(MoveList &list, std::vector<int> &index, bool bestCheck = true) {
+    static std::vector<int> score(256);
 
     bool best = false;
-    if (check_best) {
-        for (auto &[move, score] : list) {
-            if (move == move_list_best_move) {
-                score = 30000;
-                best = true;
-                break;
-            }
+    for (int i = 0; i < list.size(); i++) {
+        score[i] = move_list_score(list[i]);
+        index[i] = i;
+        if (bestCheck && list[i] == move_list_best_move) {
+            score[i] = 30000;
+            bestCheck = false;
+            best = true;
         }
     }
 
     if (!best && ply && follow_pv) {
         follow_pv = false;
-        for (auto &[move, score] : list) {
-            if (move == pv_table[0][ply]) {
-                score = 20000;
+        for (int i = 0; i < list.size(); i++) {
+            if (list[i] == pv_table[0][ply]) {
+                score[i] = 20000;
                 follow_pv = true;
                 break;
             }
         }
     }
 
-    sort(list.begin(), list.end());
+    sort(index.begin(), index.begin() + list.size(), [&](int a, int b) { return score[a] > score[b]; });
 }
 
 int evaluate(const Board &board) {
@@ -136,15 +135,16 @@ int quiescence(int alpha, int beta) {
     Board copy;
 
     MoveList list(board);
-    move_list_sort(list, false);
-    for (const auto [move, _] : list) {
-        if (!stats_move_make(copy, move, 1)) continue;
+    std::vector<int> index(list.size());
+    move_list_sort(list, index, false);
+    for (int idx : index) {
+        if (!stats_move_make(copy, list[idx], 1)) continue;
         score = -quiescence(-beta, -alpha);
         stats_move_unmake(copy);
 
         if (score > alpha) {
             alpha = score;
-            stats_pv_store(move);
+            stats_pv_store(list[idx]);
             if (score >= beta) return beta;
         }
     }
@@ -229,8 +229,10 @@ int negamax(int alpha, int beta, int depth, bool null) {
 
     move_list_best_move = bestMove;
     MoveList list(board);
-    move_list_sort(list);
-    for (const auto [move, _] : list) {
+    std::vector<int> index(list.size());
+    move_list_sort(list, index);
+    for (int idx : index) {
+        const Move move = list[idx];
         if (!stats_move_make(copy, move, 0)) continue;
         legal_moves++;
 
@@ -406,7 +408,9 @@ Move parse_move(char *move_string) {
     Square source = square_from_coordinates(move_string);
     Square target = square_from_coordinates(move_string + 2);
 
-    for (const auto [move, _] : MoveList(board)) {
+    const MoveList list(board);
+    for (int i = 0; i < list.size(); i++) {
+        const Move move = list[i];
         if (move.source() == source && move.target() == target) {
             if (move_string[4]) {
                 if (tolower(move.piece_promote().code) != move_string[4]) continue;

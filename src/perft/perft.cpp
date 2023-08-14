@@ -57,14 +57,14 @@ class Perft {
 
   private:
     void test(const Board &board, int depth) {
-        for (const auto [move, _] : MoveList(board)) {
+        const MoveList list(board);
+        for (int i = 0; i < list.size(); i++) {
             Board copy = board;
-            if (!move.make(copy, 0)) continue;
-
+            if (!list[i].make(copy, 0)) continue;
             if (depth != 1)
                 test(copy, depth - 1);
             else
-                score(copy, move);
+                score(copy, list[i]);
         }
     }
     void score(const Board &board, Move move) {
@@ -94,8 +94,8 @@ void perft_test(const char *fen, int depth, int thread_num) {
     Perft::semaphore_t sem(thread_num);
 
     int index = 0;
-    for (const auto &[move, _] : list)
-        threads[index++] = std::thread(Perft(sem), board, move, depth);
+    for (int i = 0; i < list.size(); i++)
+        threads[index++] = std::thread(Perft(sem), board, list[i], depth);
 
     for (auto &thread : threads)
         thread.join();

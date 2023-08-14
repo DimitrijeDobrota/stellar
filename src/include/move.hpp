@@ -38,9 +38,9 @@ struct Move {
     friend std::ostream &operator<<(std::ostream &os, Move move);
 
   private:
-    void piece_remove(Board &board, const piece::Piece &piece, Square square) const;
-    void piece_set(Board &board, const piece::Piece &piece, Square square) const;
-    void piece_move(Board &board, const piece::Piece &piece, Square source, Square target) const;
+    inline void piece_remove(Board &board, const piece::Piece &piece, Square square) const;
+    inline void piece_set(Board &board, const piece::Piece &piece, Square square) const;
+    inline void piece_move(Board &board, const piece::Piece &piece, Square source, Square target) const;
 
     unsigned source_i : 6;
     unsigned target_i : 6;

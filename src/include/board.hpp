@@ -7,7 +7,6 @@
 #include <iostream>
 #include <string>
 
-typedef struct Board Board;
 class Board {
   public:
     enum class Castle : uint8_t {

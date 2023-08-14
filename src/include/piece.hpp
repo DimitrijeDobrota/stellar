@@ -109,7 +109,7 @@ constexpr const Piece &get_from_code(char code) {
 
 constexpr const Piece &get_from_index(uint8_t index) { return table[index / 6][index % 6]; }
 
-static inline constexpr const Square mirror[65] = {
+inline constexpr const Square mirror[65] = {
     // clang-format off
         Square::a8, Square::b8, Square::c8, Square::d8, Square::e8, Square::f8, Square::g8, Square::h8,
         Square::a7, Square::b7, Square::c7, Square::d7, Square::e7, Square::f7, Square::g7, Square::h7,
@@ -122,8 +122,8 @@ static inline constexpr const Square mirror[65] = {
     // clang-format on
 };
 
-static constexpr inline const uint16_t value[6] = {100, 300, 350, 500, 1000, 10000};
-static constexpr inline const uint16_t capture[6][6] = {
+constexpr inline const uint16_t value[6] = {100, 300, 350, 500, 1000, 10000};
+constexpr inline const uint16_t capture[6][6] = {
     // clang-format off
     {105, 205, 305, 405, 505, 605},
     {104, 204, 304, 404, 504, 604},
@@ -133,7 +133,7 @@ static constexpr inline const uint16_t capture[6][6] = {
     {100, 200, 300, 400, 500, 600},
     // clang-format on
 };
-static constexpr inline const int8_t position[6][64] = {
+constexpr inline const int8_t position[6][64] = {
     // clang-format off
     {
          0,   0,   0,   0,   0,   0,   0,   0,
