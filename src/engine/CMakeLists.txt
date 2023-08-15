@@ -8,8 +8,6 @@ target_link_libraries(engine
     PRIVATE moves
 )
 
-target_link_libraries(engine PRIVATE "cul")
-
 set_target_properties(engine PROPERTIES
     VERSION ${PROJECT_VERSION}
     SOVERSION ${PROJECT_VERSION_MAJOR}

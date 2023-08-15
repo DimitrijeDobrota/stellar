@@ -7,6 +7,7 @@
 #include "board.hpp"
 #include "move.hpp"
 #include "movelist.hpp"
+#include "piece.hpp"
 #include "score.hpp"
 #include "transposition.hpp"
 #include "utils_cpp.hpp"
@@ -35,7 +36,7 @@ U32 inline move_list_score(Move move) {
     if (move.is_capture()) return piece::score(type, move.captured()) + 10000;
     if (killer[0][ply] == move) return 9000;
     if (killer[1][ply] == move) return 8000;
-    return history[to_underlying(type)][to_underlying(move.target())];
+    return history[piece::get_index(type, board.get_side())][to_underlying(move.target())];
 }
 
 void move_list_sort(MoveList &list, std::vector<int> &index, bool bestCheck = true) {
@@ -268,8 +269,8 @@ int negamax(int alpha, int beta, int depth, bool null) {
 
         if (score > alpha) {
             if (!move.is_capture()) {
-                int index = piece::get(move.piece(), board.get_side()).index;
-                history[index][to_underlying(move.target())] += depth;
+                history[piece::get_index(move.piece(), board.get_side())][to_underlying(move.target())] +=
+                    depth;
             }
 
             alpha = score;
@@ -303,7 +304,7 @@ int negamax(int alpha, int beta, int depth, bool null) {
 
 void move_print_UCI(Move move) {
     std::cout << square_to_coordinates(move.source()) << square_to_coordinates(move.target());
-    // if (move.is_promote()) std::cout << move.piece_promote().code;
+    if (move.is_promote()) std::cout << piece::get_code(move.promoted(), board.get_side());
 }
 
 void search_position(int depth) {
@@ -363,8 +364,8 @@ char *Instruction_token_next(Instruction *self);
 
 Instruction *Instruction_new(char *command) {
     Instruction *p = new Instruction();
-    p->command = new char(strlen(command) + 1);
-    p->token = new char(strlen(command) + 1);
+    p->command = new char[strlen(command) + 1];
+    p->token = new char[strlen(command) + 1];
     strcpy(p->command, command);
     p->crnt = command;
     Instruction_token_next(p);
@@ -414,8 +415,7 @@ Move parse_move(char *move_string) {
         const Move move = list[i];
         if (move.source() == source && move.target() == target) {
             if (move_string[4]) {
-                char code = piece::get(move.promoted(), board.get_side()).code;
-                if (tolower(code) != move_string[4]) continue;
+                if (tolower(piece::get_code(move.promoted())) != move_string[4]) continue;
             }
             return move;
         }

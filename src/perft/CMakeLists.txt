@@ -10,8 +10,6 @@ target_link_libraries(perft
     PRIVATE moves
 )
 
-target_link_libraries(perft PRIVATE "cul")
-
 set_target_properties(perft PROPERTIES
     VERSION ${PROJECT_VERSION}
     SOVERSION ${PROJECT_VERSION_MAJOR}
