@@ -35,7 +35,7 @@ template <typename C, C beginVal, C endVal> class Iterator {
 typedef uint64_t U64;
 typedef uint32_t U32;
 
-enum class Color : uint8_t {
+enum class Color : bool {
     WHITE = 0,
     BLACK
 };
