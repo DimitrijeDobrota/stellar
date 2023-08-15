@@ -20,7 +20,7 @@ class Perft {
         Board board = board_start;
         if (!move.make(board, 0)) return;
         sem.acquire();
-        debug(board_start, move, board);
+        // debug(board_start, move, board);
 
         if (depth > 1) {
             test(board, depth - 1);
@@ -64,7 +64,7 @@ class Perft {
         for (int i = 0; i < list.size(); i++) {
             Board copy = board;
             if (!list[i].make(copy, 0)) continue;
-            debug(board, list[i], copy);
+            // debug(board, list[i], copy);
             if (depth != 1)
                 test(copy, depth - 1);
             else

@@ -35,17 +35,17 @@ void MoveList::generate(const Board &board) {
         const Square tgt = static_cast<Square>(tgt_i = src_i + add);
         if (!board.is_square_occupied(tgt)) {
             if (pawn_canPromote(color, src)) {
-                list.push_back(Move(src, tgt, PAWN, NONE, KNIGHT, 0, 0, 0));
-                list.push_back(Move(src, tgt, PAWN, NONE, BISHOP, 0, 0, 0));
-                list.push_back(Move(src, tgt, PAWN, NONE, ROOK, 0, 0, 0));
-                list.push_back(Move(src, tgt, PAWN, NONE, QUEEN, 0, 0, 0));
+                list.push_back({src, tgt, Move::PKNIGHT});
+                list.push_back({src, tgt, Move::PBISHOP});
+                list.push_back({src, tgt, Move::PROOK});
+                list.push_back({src, tgt, Move::PQUEEN});
             } else {
-                list.push_back(Move(src, tgt, PAWN, NONE, NONE, 0, 0, 0));
+                list.push_back({src, tgt, Move::QUIET});
 
                 // two ahead
                 const Square tgt = static_cast<Square>(tgt_i + add);
                 if (pawn_onStart(color, src) && !board.is_square_occupied(tgt))
-                    list.push_back(Move(src, tgt, PAWN, NONE, NONE, 1, 0, 0));
+                    list.push_back({src, tgt, Move::DOUBLE});
             }
         }
 
@@ -54,21 +54,20 @@ void MoveList::generate(const Board &board) {
             board.get_bitboard_piece_attacks(PAWN, color, src) & board.get_bitboard_color(colorOther);
         bitboard_for_each_bit(tgt_i, attack) {
             const Square tgt = static_cast<Square>(tgt_i);
-            const piece::Type capture = board.get_square_piece_type(tgt);
             if (pawn_canPromote(color, src)) {
-                list.push_back(Move(src, tgt, PAWN, capture, KNIGHT, 0, 0, 0));
-                list.push_back(Move(src, tgt, PAWN, capture, BISHOP, 0, 0, 0));
-                list.push_back(Move(src, tgt, PAWN, capture, ROOK, 0, 0, 0));
-                list.push_back(Move(src, tgt, PAWN, capture, QUEEN, 0, 0, 0));
+                list.push_back({src, tgt, Move::PCKNIGHT});
+                list.push_back({src, tgt, Move::PCBISHOP});
+                list.push_back({src, tgt, Move::PCROOK});
+                list.push_back({src, tgt, Move::PCQUEEN});
             } else {
-                list.push_back(Move(src, tgt, PAWN, capture, NONE, 0, 0, 0));
+                list.push_back({src, tgt, Move::CAPTURE});
             }
         }
 
         // en passant
         const Square enpassant = board.get_enpassant();
         if (enpassant != Square::no_sq && board.is_piece_attack_square(PAWN, color, src, enpassant))
-            list.push_back(Move(src, enpassant, PAWN, PAWN, NONE, 0, 1, 0));
+            list.push_back({src, enpassant, Move::ENPASSANT});
     }
 
     // All piece move
@@ -79,7 +78,7 @@ void MoveList::generate(const Board &board) {
             U64 attack = board.get_bitboard_piece_moves(type, color, src);
             bitboard_for_each_bit(tgt_i, attack) {
                 const Square tgt = static_cast<Square>(tgt_i);
-                list.push_back(Move(src, tgt, type, board.get_square_piece_type(tgt), NONE, 0, 0, 0));
+                list.push_back({src, tgt, board.is_square_occupied(tgt) ? Move::CAPTURE : Move::QUIET});
             }
         }
     }
@@ -90,14 +89,14 @@ void MoveList::generate(const Board &board) {
             if (board.get_castle() & to_underlying(Board::Castle::WK)) {
                 if (!board.is_square_occupied(Square::f1) && !board.is_square_occupied(Square::g1) &&
                     !board.is_square_attacked(Square::f1, Color::BLACK))
-                    list.push_back(Move(Square::e1, Square::g1, KING, NONE, NONE, 0, 0, 1));
+                    list.push_back({Square::e1, Square::g1, Move::CASTLEK});
             }
             if (board.get_castle() & to_underlying(Board::Castle::WQ)) {
                 if (!board.is_square_occupied(Square::d1) && !board.is_square_occupied(Square::c1) &&
                     !board.is_square_occupied(Square::b1) &&
                     !board.is_square_attacked(Square::d1, Color::BLACK) &&
                     !board.is_square_attacked(Square::c1, Color::BLACK))
-                    list.push_back(Move(Square::e1, Square::c1, KING, NONE, NONE, 0, 0, 1));
+                    list.push_back({Square::e1, Square::c1, Move::CASTLEQ});
             }
         }
     } else {
@@ -105,14 +104,14 @@ void MoveList::generate(const Board &board) {
             if (board.get_castle() & to_underlying(Board::Castle::BK)) {
                 if (!board.is_square_occupied(Square::f8) && !board.is_square_occupied(Square::g8) &&
                     !board.is_square_attacked(Square::f8, Color::WHITE))
-                    list.push_back(Move(Square::e8, Square::g8, KING, NONE, NONE, 0, 0, 1));
+                    list.push_back({Square::e8, Square::g8, Move::CASTLEK});
             }
             if (board.get_castle() & to_underlying(Board::Castle::BQ)) {
                 if (!board.is_square_occupied(Square::d8) && !board.is_square_occupied(Square::c8) &&
                     !board.is_square_occupied(Square::b8) &&
                     !board.is_square_attacked(Square::d8, Color::WHITE) &&
                     !board.is_square_attacked(Square::c8, Color::WHITE))
-                    list.push_back(Move(Square::e8, Square::c8, KING, NONE, NONE, 0, 0, 1));
+                    list.push_back({Square::e8, Square::c8, Move::CASTLEQ});
             }
         }
     }

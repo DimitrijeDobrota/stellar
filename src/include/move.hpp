@@ -9,28 +9,47 @@
 #include <vector>
 
 struct Move {
+    enum Flag : uint8_t {
+        QUIET,
+        DOUBLE,
+        CASTLEK,
+        CASTLEQ,
+        CAPTURE,
+        ENPASSANT,
+        PKNIGHT = 8,
+        PBISHOP,
+        PROOK,
+        PQUEEN,
+        PCKNIGHT,
+        PCBISHOP,
+        PCROOK,
+        PCQUEEN,
+    };
+
     Move() = default;
+    Move(Square source, Square target, Flag flags)
+        : source_i(to_underlying(source)), target_i(to_underlying(target)), flags_i(flags) {}
 
-    Move(Square source, Square target, piece::Type piece, piece::Type capture, piece::Type promote, bool dbl,
-         bool enpassant, bool castle)
-        : source_i(to_underlying(source)), target_i(to_underlying(target)), piece_i(to_underlying(piece)),
-          capture_i(to_underlying(capture)), promote_i(to_underlying(promote)), dbl(dbl),
-          enpassant(enpassant), castle(castle) {}
-
-    bool operator==(const Move &m) const = default;
+    bool operator==(Move &m) const {
+        return source_i == m.source_i && target_i == m.target_i && flags_i == m.flags_i;
+    }
 
     Square source(void) const { return static_cast<Square>(source_i); }
     Square target(void) const { return static_cast<Square>(target_i); }
 
-    bool is_double(void) const { return dbl; }
-    bool is_enpassant(void) const { return enpassant; }
-    bool is_castle(void) const { return castle; }
-    bool is_capture(void) const { return capture_i != to_underlying(piece::Type::NONE); }
-    bool is_promote(void) const { return promote_i != to_underlying(piece::Type::NONE); }
+    bool is_capture(void) const { return flags_i & CAPTURE; }
+    bool is_promote(void) const { return flags_i & 0x8; }
 
-    const piece::Type piece(void) const { return static_cast<piece::Type>(piece_i); }
-    const piece::Type captured(void) const { return static_cast<piece::Type>(capture_i); }
-    const piece::Type promoted(void) const { return static_cast<piece::Type>(promote_i); }
+    bool is_quiet(void) const { return flags_i == QUIET; }
+    bool is_double(void) const { return flags_i == DOUBLE; }
+
+    bool is_castle(void) const { return flags_i == CASTLEK || flags_i == CASTLEQ; }
+    bool is_castle_king(void) const { return flags_i == CASTLEK; }
+    bool is_castle_queen(void) const { return flags_i == CASTLEQ; }
+
+    bool is_enpassant(void) const { return flags_i == ENPASSANT; }
+
+    const piece::Type promoted(void) const { return static_cast<piece::Type>((flags_i & 0x3) + 1); }
 
     bool make(Board &board, bool attack_only) const;
 
@@ -43,12 +62,7 @@ struct Move {
 
     unsigned source_i : 6;
     unsigned target_i : 6;
-    unsigned piece_i : 3;
-    unsigned capture_i : 3;
-    unsigned promote_i : 3;
-    bool dbl : 1;
-    bool enpassant : 1;
-    bool castle : 1;
+    unsigned flags_i : 4;
 };
 
 #endif

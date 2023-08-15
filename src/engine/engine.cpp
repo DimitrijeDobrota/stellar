@@ -32,8 +32,11 @@ U32 ply;
 
 Move move_list_best_move;
 U32 inline move_list_score(Move move) {
-    const piece::Type type = move.piece();
-    if (move.is_capture()) return piece::score(type, move.captured()) + 10000;
+    const piece::Type type = board.get_square_piece_type(move.source());
+    if (move.is_capture()) {
+        const piece::Type captured = board.get_square_piece_type(move.target());
+        return piece::score(type, captured) + 10000;
+    }
     if (killer[0][ply] == move) return 9000;
     if (killer[1][ply] == move) return 8000;
     return history[piece::get_index(type, board.get_side())][to_underlying(move.target())];
@@ -269,8 +272,8 @@ int negamax(int alpha, int beta, int depth, bool null) {
 
         if (score > alpha) {
             if (!move.is_capture()) {
-                history[piece::get_index(move.piece(), board.get_side())][to_underlying(move.target())] +=
-                    depth;
+                const piece::Type piece = board.get_square_piece_type(move.source());
+                history[piece::get_index(piece, board.get_side())][to_underlying(move.target())] += depth;
             }
 
             alpha = score;
@@ -309,6 +312,7 @@ void move_print_UCI(Move move) {
 
 void search_position(int depth) {
     int alpha = -SCORE_INFINITY, beta = SCORE_INFINITY;
+    nodes = 0;
     for (int crnt = 1; crnt <= depth;) {
         follow_pv = 1;
 
@@ -327,7 +331,7 @@ void search_position(int depth) {
             } else if (score > MATE_SCORE && score < MATE_VALUE) {
                 std::cout << "info score mate " << (MATE_VALUE - score) / 2 + 1;
             } else {
-                std::cout << "info score " << score;
+                std::cout << "info score cp " << score;
             }
 
             std::cout << " depth " << crnt;
@@ -410,6 +414,7 @@ Move parse_move(char *move_string) {
     Square source = square_from_coordinates(move_string);
     Square target = square_from_coordinates(move_string + 2);
 
+
     const MoveList list(board);
     for (int i = 0; i < list.size(); i++) {
         const Move move = list[i];
@@ -451,7 +456,7 @@ Board *Instruction_parse(Instruction *self) {
         if (strcmp(token, "moves") == 0) {
             while ((token = Instruction_token_next(self))) {
                 Move move = parse_move(token);
-                if (move == Move()) {
+                if (move != Move()) {
                     move.make(board, 0);
                 } else {
                     printf("Invalid move %s!\n", token);
