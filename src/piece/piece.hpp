@@ -2,7 +2,7 @@
 #define STELLAR_PIECE_H
 
 #include "attack.hpp"
-#include "utils_cpp.hpp"
+#include "utils.hpp"
 
 #include <cctype>
 

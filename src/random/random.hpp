@@ -1,7 +1,7 @@
 #ifndef STELLAR_RANDOM_H
 #define STELLAR_RANDOM_H
 
-#include "utils_cpp.hpp"
+#include "utils.hpp"
 
 class Random {
   public:

@@ -1,13 +1,19 @@
 add_executable(perft perft.cpp)
 
-option(WITH_FULL_COUNT "Make count on types of moves" OFF)
-if(WITH_FULL_COUNT)
+option(STELLAR_FULL_COUNT "Make count on types of moves" OFF)
+if(STELLAR_FULL_COUNT)
     add_definitions(-DUSE_FULL_COUNT)
 endif()
 
 target_link_libraries(perft
     PRIVATE board
     PRIVATE moves
+    PRIVATE piece
+    PRIVATE utils
+)
+
+target_precompile_headers(perft
+    REUSE_FROM engine
 )
 
 set_target_properties(perft PROPERTIES

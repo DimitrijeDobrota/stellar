@@ -1,7 +1,6 @@
 #ifndef STELLAR_ZOBRIST_H
 #define STELLAR_ZOBRIST_H
 
-#include "board.hpp"
 #include "piece.hpp"
 #include "random.hpp"
 
@@ -9,42 +8,17 @@
 #include <array>
 #include <random>
 
+class Board;
 class Zobrist {
   public:
     Zobrist() = delete;
 
+    static inline U64 hash(const Board &board);
     static inline constexpr U64 key_side(void) { return keys_side; }
     static inline constexpr U64 key_castle(int exp) { return keys_castle[exp]; }
     static inline constexpr U64 key_enpassant(Square square) { return keys_enpassant[to_underlying(square)]; }
     static inline constexpr U64 key_piece(piece::Type type, Color color, Square square) {
         return keys_piece[piece::get_index(type, color)][to_underlying(square)];
-    }
-
-    static inline U64 hash(const Board &board) {
-        U64 key_final = C64(0);
-        uint8_t square;
-
-        for (piece::Type type : piece::TypeIter()) {
-            int piece_white_index = piece::get_index(type, Color::WHITE);
-            U64 bitboard_white = board.get_bitboard_piece(type, Color::WHITE);
-            bitboard_for_each_bit(square, bitboard_white) {
-                key_final ^= keys_piece[piece_white_index][square];
-            }
-
-            int piece_black_index = piece::get_index(type, Color::BLACK);
-            U64 bitboard_black = board.get_bitboard_piece(type, Color::BLACK);
-            bitboard_for_each_bit(square, bitboard_black) {
-                key_final ^= keys_piece[piece_black_index][square];
-            }
-        }
-
-        key_final ^= keys_castle[board.get_castle()];
-
-        if (board.get_side() == Color::BLACK) key_final ^= keys_side;
-        if (board.get_enpassant() != Square::no_sq)
-            key_final ^= keys_enpassant[to_underlying(board.get_enpassant())];
-
-        return key_final;
     }
 
   private:

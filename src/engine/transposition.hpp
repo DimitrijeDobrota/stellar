@@ -2,7 +2,7 @@
 #define STELLAR_TRANSPOSITION_H
 
 #include "move.hpp"
-#include "utils_cpp.hpp"
+#include "utils.hpp"
 
 #include <vector>
 

@@ -2,6 +2,13 @@ add_library(board OBJECT
     board.cpp
 )
 
-target_include_directories(board
-    PUBLIC "${PROJECT_SOURCE_DIR}/src/include"
+target_link_libraries(board
+    PRIVATE piece
+    PRIVATE utils
+    PUBLIC random
 )
+
+target_include_directories(board INTERFACE .)
+stellar_target_precompile_headers(board INTERFACE "board.hpp")
+
+

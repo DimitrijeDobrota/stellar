@@ -3,7 +3,7 @@
 
 #include "board.hpp"
 #include "piece.hpp"
-#include "utils_cpp.hpp"
+#include "utils.hpp"
 
 #include <iostream>
 #include <vector>

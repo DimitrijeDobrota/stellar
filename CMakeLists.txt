@@ -15,6 +15,13 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 include(CheckCXXCompilerFlag)
 
+option(STELLAR_ENABLE_PCH "Build using pre-compiled headers" ON)
+function(stellar_target_precompile_headers)
+    if(STELLAR_ENABLE_PCH)
+        target_precompile_headers(${ARGV})
+    endif()
+endfunction()
+
 CHECK_CXX_COMPILER_FLAG("-flto -fno-fat-lto-objects" COMPILER_SUPPORTS_LTO)
 if(COMPILER_SUPPORTS_LTO)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto -fno-fat-lto-objects")

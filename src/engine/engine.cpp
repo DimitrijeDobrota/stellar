@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <algorithm>
 
 #include "attack.hpp"
 #include "board.hpp"
@@ -10,8 +11,7 @@
 #include "piece.hpp"
 #include "score.hpp"
 #include "transposition.hpp"
-#include "utils_cpp.hpp"
-#include "zobrist.hpp"
+#include "utils.hpp"
 
 #define MAX_PLY 64
 #define FULL_DEPTH 4

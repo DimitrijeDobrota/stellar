@@ -6,6 +6,8 @@ add_executable(engine
 target_link_libraries(engine
     PRIVATE board
     PRIVATE moves
+    PRIVATE piece
+    PRIVATE utils
 )
 
 set_target_properties(engine PROPERTIES

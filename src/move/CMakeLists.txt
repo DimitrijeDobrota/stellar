@@ -3,6 +3,10 @@ add_library(moves OBJECT
     movelist.cpp
 )
 
-target_include_directories(moves
-    PUBLIC "${PROJECT_SOURCE_DIR}/src/include"
+target_link_libraries(moves
+    PRIVATE piece
+    PRIVATE board
+    PRIVATE utils
 )
+
+target_include_directories(moves INTERFACE .)

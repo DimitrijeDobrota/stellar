@@ -1,6 +1,5 @@
 #include "move.hpp"
-#include "utils_cpp.hpp"
-#include "zobrist.hpp"
+#include "utils.hpp"
 
 #include <algorithm>
 #include <iomanip>
@@ -42,7 +41,7 @@ bool Move::make(Board &board, bool attack_only) const {
         return 0;
     } else {
         const Color color = board.get_side();
-        Color colorOther = color == Color::BLACK ? Color::WHITE : Color::BLACK;
+        const Color colorOther = color == Color::BLACK ? Color::WHITE : Color::BLACK;
         const Square source = this->source();
         const Square target = this->target();
 
@@ -85,10 +84,9 @@ bool Move::make(Board &board, bool attack_only) const {
             }
         }
 
-        board.xor_hash(Zobrist::key_castle(board.get_castle()));
-        board.and_castle(castling_rights[to_underlying(this->source())]);
-        board.and_castle(castling_rights[to_underlying(this->target())]);
-        board.xor_hash(Zobrist::key_castle(board.get_castle()));
+        const U64 mask =
+            castling_rights[to_underlying(this->source())] && castling_rights[to_underlying(this->target())];
+        board.and_castle(mask);
 
         if (!board.is_check()) {
             board.switch_side();
