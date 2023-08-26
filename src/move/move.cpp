@@ -84,9 +84,8 @@ bool Move::make(Board &board, bool attack_only) const {
             }
         }
 
-        const U64 mask =
-            castling_rights[to_underlying(this->source())] && castling_rights[to_underlying(this->target())];
-        board.and_castle(mask);
+        board.and_castle(castling_rights[to_underlying(this->source())] &
+                         castling_rights[to_underlying(this->target())]);
 
         if (!board.is_check()) {
             board.switch_side();
