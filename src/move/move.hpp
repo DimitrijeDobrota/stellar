@@ -30,8 +30,8 @@ struct Move {
     Move(Square source, Square target, Flag flags)
         : source_i(to_underlying(source)), target_i(to_underlying(target)), flags_i(flags) {}
 
-    bool operator==(Move &m) const {
-        return source_i == m.source_i && target_i == m.target_i && flags_i == m.flags_i;
+    friend bool operator==(const Move a, const Move b) {
+        return a.source_i == b.source_i && a.target_i == b.target_i && a.flags_i == b.flags_i;
     }
 
     Square source(void) const { return static_cast<Square>(source_i); }

@@ -3,7 +3,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 project(
     Stellar
-	VERSION 0.0.21
+	VERSION 0.0.22
     DESCRIPTION "Chess engine written in C"
 	HOMEPAGE_URL https://git.dimitrijedobrota.com/stellar.git
     LANGUAGES C CXX
@@ -24,14 +24,24 @@ function(stellar_target_precompile_headers)
     endif()
 endfunction()
 
-CHECK_CXX_COMPILER_FLAG("-flto -fno-fat-lto-objects" COMPILER_SUPPORTS_LTO)
+CHECK_CXX_COMPILER_FLAG("-flto" COMPILER_SUPPORTS_LTO)
 if(COMPILER_SUPPORTS_LTO)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto -fno-fat-lto-objects")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto")
+endif()
+
+CHECK_CXX_COMPILER_FLAG("-fno-fat-lto-objects" COMPILER_SUPPORTS_LTO_NOFAT)
+if(COMPILER_SUPPORTS_LTO_NOFAT)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-fat-lto-objects")
 endif()
 
 CHECK_CXX_COMPILER_FLAG("-fconstexpr-ops-limit=10000000000" COMPILER_SUPPORTS_CONSTEXPR_OPS_LIMIT)
 if(COMPILER_SUPPORTS_CONSTEXPR_OPS_LIMIT)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fconstexpr-ops-limit=1000000000")
+endif()
+
+CHECK_CXX_COMPILER_FLAG("-fconstexpr-steps=1000000000" COMPILER_SUPPORTS_CONSTEXPR_STEPS)
+if(COMPILER_SUPPORTS_CONSTEXPR_STEPS)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fconstexpr-steps=1000000000")
 endif()
 
 CHECK_CXX_COMPILER_FLAG("-march=native" COMPILER_SUPPORTS_MARCH_NATIVE)

@@ -185,7 +185,7 @@ class Attack {
 
     static inline constexpr const auto slider_attacks =
         []<std::size_t size>(const Slider &slider) constexpr -> slider_attack_array<size> {
-        slider_attack_array<size> attacks;
+        slider_attack_array<size> attacks = {{{0}}};
         for (const Square square : SquareIter()) {
             uint8_t square_i = to_underlying(square);
             U64 attack_mask = slider.mask(square);
