@@ -1,16 +1,37 @@
 #include <iostream>
+#include <limits>
 #include <sstream>
 #include <string>
+#include <sys/time.h>
 
 #include "engine.hpp"
 #include "stellar_version.hpp"
 #include "uci.hpp"
 
 namespace uci {
+uint32_t get_time_ms(void) {
+    struct timeval time;
+    gettimeofday(&time, NULL);
+    return time.tv_sec * 1000 + time.tv_usec / 1000;
+}
 
 void move_print(const Board &board, Move move) {
     std::cout << square_to_coordinates(move.source()) << square_to_coordinates(move.target());
     if (move.is_promote()) std::cout << piece::get_code(move.promoted(), board.get_side());
+}
+
+void communicate(const uci::Settings *settings) {
+    if (!settings->infinite && uci::get_time_ms() > settings->stoptime) settings->stopped = true;
+
+    /*
+    if (std::cin.peek() == EOF || std::cin.peek() == '\n') {
+        std::cin.clear();
+        return;
+    }
+    std::string command;
+    std::cin >> command;
+    if (command == "stop" || command == "quit") settings->stopped = true;
+    */
 }
 
 inline bool parse_move(const Board &board, Move &move, const std::string &move_string) {
@@ -64,27 +85,30 @@ void loop(void) {
             }
             iss >> command;
             while (iss >> command) {
-                if (parse_move(settings.board, move, command))
-                    move.make(settings.board);
-                else
-                    break;
+                if (!parse_move(settings.board, move, command)) break;
+                move.make(settings.board);
             }
         } else if (command == "go") {
+            uint32_t wtime = 0, btime = 0, movetime = 0;
+            uint16_t winc = 0, binc = 0, movestogo = 30;
+
             while (iss >> command) {
                 if (command == "wtime")
-                    iss >> settings.wtime;
+                    iss >> wtime;
                 else if (command == "btime")
-                    iss >> settings.btime;
+                    iss >> btime;
                 else if (command == "winc")
-                    iss >> settings.winc;
+                    iss >> winc;
                 else if (command == "binc")
-                    iss >> settings.binc;
+                    iss >> binc;
                 else if (command == "depth")
                     iss >> settings.depth;
                 else if (command == "nodes")
                     iss >> settings.nodes;
                 else if (command == "movetime")
-                    iss >> settings.movetime;
+                    iss >> movetime;
+                else if (command == "movestogo")
+                    iss >> movestogo;
                 else if (command == "ponder")
                     settings.ponder = true;
                 else if (command == "mate")
@@ -93,13 +117,31 @@ void loop(void) {
                     settings.infinite = true;
                 else if (command == "searchmoves") {
                     while (iss >> command) {
-                        if (parse_move(settings.board, move, command))
-                            settings.searchmoves.push(move);
-                        else
-                            break;
+                        if (!parse_move(settings.board, move, command)) break;
+                        settings.searchmoves.push(move);
                     }
                 }
             }
+
+            settings.starttime = get_time_ms();
+            uint32_t time = (settings.board.get_side() == Color::WHITE) ? wtime : btime;
+
+            if (movetime != 0) {
+                time = movetime;
+                movestogo = 1;
+            }
+
+            if (time != 0) {
+                uint16_t inc = (settings.board.get_side() == Color::WHITE) ? winc : binc;
+                time /= movestogo;
+                time -= 50;
+                settings.stoptime = settings.starttime += time + inc;
+                settings.infinite = false;
+            }
+
+            if (!time) settings.infinite = true;
+
+            // std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
             engine::search_position(settings);
             settings.newgame = false;
         }

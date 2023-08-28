@@ -76,6 +76,7 @@ class TTable {
     std::vector<Hashe> table;
 };
 
+const uci::Settings *settings = nullptr;
 Board board;
 TTable ttable;
 Move pv_table[MAX_PLY][MAX_PLY];
@@ -184,6 +185,10 @@ void stats_pv_store(Move move) {
 }
 
 int quiescence(int16_t alpha, int16_t beta) {
+    if ((nodes & 2047) == 0) {
+        uci::communicate(settings);
+        if (settings->stopped) return 0;
+    }
     pv_length[ply] = ply;
     nodes++;
 
@@ -207,6 +212,8 @@ int quiescence(int16_t alpha, int16_t beta) {
             stats_pv_store(list[idx]);
             if (score >= beta) return beta;
         }
+
+        if (settings->stopped) return 0;
     }
 
     return alpha;
@@ -219,6 +226,10 @@ int negamax(int16_t alpha, int16_t beta, uint8_t depth, bool null) {
     Move bestMove;
     Board copy;
 
+    if ((nodes & 2047) == 0) {
+        uci::communicate(settings);
+        if (settings->stopped) return 0;
+    }
     pv_length[ply] = ply;
 
     int score = ttable.read(board, ply, &bestMove, alpha, beta, depth);
@@ -250,6 +261,8 @@ int negamax(int16_t alpha, int16_t beta, uint8_t depth, bool null) {
             int marginEval = score_pawn * depth;
             if (staticEval - marginEval >= beta) return staticEval - marginEval;
         }
+
+        if (settings->stopped) return 0;
 
         if (null) {
             // null move pruning
@@ -326,6 +339,7 @@ int negamax(int16_t alpha, int16_t beta, uint8_t depth, bool null) {
         stats_move_unmake(copy);
         searched++;
 
+        if (settings->stopped) return 0;
         if (score > alpha) {
             if (!move.is_capture()) {
                 const piece::Type piece = board.get_square_piece_type(move.source());
@@ -361,22 +375,27 @@ int negamax(int16_t alpha, int16_t beta, uint8_t depth, bool null) {
     return alpha;
 }
 
-void search_position(const uci::Settings &setting) {
+void search_position(const uci::Settings &settingsr) {
     int16_t alpha = -SCORE_INFINITY, beta = SCORE_INFINITY;
+    settings = &settingsr;
 
-    if (setting.newgame) {
+    if (settings->newgame) {
         ttable = TTable(C64(0x400000));
     }
 
     ply = 0;
     nodes = 0;
-    board = setting.board;
+    board = settings->board;
+    settings->stopped = false;
     memset(killer, 0x00, sizeof(killer));
     memset(history, 0x00, sizeof(history));
     memset(pv_table, 0x00, sizeof(pv_table));
     memset(pv_length, 0x00, sizeof(pv_length));
 
-    for (uint8_t depth_crnt = 1; depth_crnt <= setting.depth;) {
+    for (uint8_t depth_crnt = 1; depth_crnt <= settings->depth;) {
+        uci::communicate(settings);
+        if (settings->stopped) break;
+
         follow_pv = 1;
 
         int score = negamax(alpha, beta, depth_crnt, true);
