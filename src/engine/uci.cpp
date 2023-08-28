@@ -101,6 +101,7 @@ void loop(void) {
                 }
             }
             engine::search_position(settings);
+            settings.newgame = false;
         }
     }
 }

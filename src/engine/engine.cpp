@@ -10,7 +10,6 @@
 #include "movelist.hpp"
 #include "piece.hpp"
 #include "score.hpp"
-#include "transposition.hpp"
 #include "uci.hpp"
 #include "utils.hpp"
 
@@ -23,8 +22,62 @@
 
 namespace engine {
 
+struct Hashe {
+    enum class Flag : uint8_t {
+        Exact,
+        Alpha,
+        Beta
+    };
+    U64 key;
+    Move best;
+    uint8_t depth;
+    int16_t score;
+    Flag flag;
+};
+
+class TTable {
+  public:
+    static inline constexpr const uint16_t unknown = 32500;
+
+    TTable() {}
+    TTable(U64 size) : table(size, {0}) {}
+
+    void clear() { table.clear(); };
+    int16_t read(const Board &board, int ply, Move *best, int16_t alpha, int16_t beta, uint8_t depth) const {
+        U64 hash = board.get_hash();
+        const Hashe &phashe = table[hash % table.size()];
+        if (phashe.key == hash) {
+            if (phashe.depth >= depth) {
+                int16_t score = phashe.score;
+
+                if (score < -MATE_SCORE) score += ply;
+                if (score > MATE_SCORE) score -= ply;
+
+                if (phashe.flag == Hashe::Flag::Exact) return score;
+                if ((phashe.flag == Hashe::Flag::Alpha) && (score <= alpha)) return alpha;
+                if ((phashe.flag == Hashe::Flag::Beta) && (score >= beta)) return beta;
+            }
+            *best = phashe.best;
+        }
+        return unknown;
+    }
+
+    void write(const Board &board, int ply, Move best, int16_t score, uint8_t depth, Hashe::Flag flag) {
+        U64 hash = board.get_hash();
+        Hashe &phashe = table[hash % table.size()];
+
+        if (score < -MATE_SCORE) score += ply;
+        if (score > MATE_SCORE) score -= ply;
+
+        phashe = {hash, best, depth, score, flag};
+    }
+
+  private:
+    std::vector<Hashe> table;
+};
+
 Board board;
-TTable ttable(C64(0x400000));
+TTable ttable;
 Move pv_table[MAX_PLY][MAX_PLY];
 Move killer[2][MAX_PLY];
 U32 history[12][64];
@@ -130,7 +183,7 @@ void stats_pv_store(Move move) {
     pv_length[ply] = pv_length[ply + 1];
 }
 
-int quiescence(int alpha, int beta) {
+int quiescence(int16_t alpha, int16_t beta) {
     pv_length[ply] = ply;
     nodes++;
 
@@ -159,9 +212,9 @@ int quiescence(int alpha, int beta) {
     return alpha;
 }
 
-int negamax(int alpha, int beta, uint8_t depth, bool null) {
+int negamax(int16_t alpha, int16_t beta, uint8_t depth, bool null) {
     int pv_node = (beta - alpha) > 1;
-    HasheFlag flag = HasheFlag::Alpha;
+    Hashe::Flag flag = Hashe::Flag::Alpha;
     int futility = 0;
     Move bestMove;
     Board copy;
@@ -169,7 +222,7 @@ int negamax(int alpha, int beta, uint8_t depth, bool null) {
     pv_length[ply] = ply;
 
     int score = ttable.read(board, ply, &bestMove, alpha, beta, depth);
-    if (ply && score != TTABLE_UNKNOWN && !pv_node) return score;
+    if (ply && score != TTable::unknown && !pv_node) return score;
 
     // && fifty >= 100
     if (ply && is_repetition()) return 0;
@@ -280,12 +333,12 @@ int negamax(int alpha, int beta, uint8_t depth, bool null) {
             }
 
             alpha = score;
-            flag = HasheFlag::Exact;
+            flag = Hashe::Flag::Exact;
             bestMove = move;
             stats_pv_store(move);
 
             if (score >= beta) {
-                ttable.write(board, ply, bestMove, beta, depth, HasheFlag::Beta);
+                ttable.write(board, ply, bestMove, beta, depth, Hashe::Flag::Beta);
 
                 if (!move.is_capture()) {
                     killer[1][ply] = killer[0][ply];
@@ -309,10 +362,20 @@ int negamax(int alpha, int beta, uint8_t depth, bool null) {
 }
 
 void search_position(const uci::Settings &setting) {
-    int alpha = -SCORE_INFINITY, beta = SCORE_INFINITY;
+    int16_t alpha = -SCORE_INFINITY, beta = SCORE_INFINITY;
 
+    if (setting.newgame) {
+        ttable = TTable(C64(0x400000));
+    }
+
+    ply = 0;
     nodes = 0;
     board = setting.board;
+    memset(killer, 0x00, sizeof(killer));
+    memset(history, 0x00, sizeof(history));
+    memset(pv_table, 0x00, sizeof(pv_table));
+    memset(pv_length, 0x00, sizeof(pv_length));
+
     for (uint8_t depth_crnt = 1; depth_crnt <= setting.depth;) {
         follow_pv = 1;
 

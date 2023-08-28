@@ -22,6 +22,7 @@ struct Settings {
     bool debug = false;
     bool mate = false;
     bool infinite = false;
+    bool newgame = true;
 };
 
 void loop(void);
