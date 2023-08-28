@@ -20,7 +20,7 @@ typedef struct Hashe Hashe;
 struct Hashe {
     U64 key;
     Move best;
-    int depth;
+    uint8_t depth;
     int score;
     HasheFlag flag;
 };
@@ -30,8 +30,8 @@ class TTable {
     TTable(U64 size) : table(size, {0}) {}
 
     void clear() { table.clear(); };
-    int read(const Board &board, int ply, Move *best, int alpha, int beta, int depth) const;
-    void write(const Board &board, int ply, Move best, int score, int depth, HasheFlag flag);
+    int read(const Board &board, int ply, Move *best, int alpha, int beta, uint8_t depth) const;
+    void write(const Board &board, int ply, Move best, int score, uint8_t depth, HasheFlag flag);
 
   private:
     std::vector<Hashe> table;

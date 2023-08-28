@@ -2,7 +2,7 @@
 #include "board.hpp"
 #include "score.hpp"
 
-int TTable::read(const Board &board, int ply, Move *best, int alpha, int beta, int depth) const {
+int TTable::read(const Board &board, int ply, Move *best, int alpha, int beta, uint8_t depth) const {
 
     U64 hash = board.get_hash();
     const Hashe &phashe = table[hash % table.size()];
@@ -22,7 +22,7 @@ int TTable::read(const Board &board, int ply, Move *best, int alpha, int beta, i
     return TTABLE_UNKNOWN;
 }
 
-void TTable::write(const Board &board, int ply, Move best, int score, int depth, HasheFlag flag) {
+void TTable::write(const Board &board, int ply, Move best, int score, uint8_t depth, HasheFlag flag) {
 
     U64 hash = board.get_hash();
     Hashe &phashe = table[hash % table.size()];

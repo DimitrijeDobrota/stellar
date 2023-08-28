@@ -3,8 +3,8 @@ add_library(board OBJECT
 )
 
 target_link_libraries(board
-    PRIVATE piece
     PRIVATE utils
+    PUBLIC piece
     PUBLIC random
 )
 

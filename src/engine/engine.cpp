@@ -10,8 +10,8 @@
 #include "movelist.hpp"
 #include "piece.hpp"
 #include "score.hpp"
-#include "stellar_version.hpp"
 #include "transposition.hpp"
+#include "uci.hpp"
 #include "utils.hpp"
 
 #define MAX_PLY 64
@@ -20,6 +20,8 @@
 #define REDUCTION_MOVE 2
 
 #define WINDOW 50
+
+namespace engine {
 
 Board board;
 TTable ttable(C64(0x400000));
@@ -31,7 +33,6 @@ bool follow_pv;
 U64 nodes;
 U32 ply;
 
-Move move_list_best_move;
 U32 inline move_list_score(Move move) {
     const piece::Type type = board.get_square_piece_type(move.source());
     if (move.is_capture()) {
@@ -43,6 +44,7 @@ U32 inline move_list_score(Move move) {
     return history[piece::get_index(type, board.get_side())][to_underlying(move.target())];
 }
 
+Move move_list_best_move;
 void move_list_sort(MoveList &list, std::vector<int> &index, bool bestCheck = true) {
     static std::vector<int> score(256);
 
@@ -157,7 +159,7 @@ int quiescence(int alpha, int beta) {
     return alpha;
 }
 
-int negamax(int alpha, int beta, int depth, bool null) {
+int negamax(int alpha, int beta, uint8_t depth, bool null) {
     int pv_node = (beta - alpha) > 1;
     HasheFlag flag = HasheFlag::Alpha;
     int futility = 0;
@@ -306,18 +308,15 @@ int negamax(int alpha, int beta, int depth, bool null) {
     return alpha;
 }
 
-void move_print_UCI(Move move) {
-    std::cout << square_to_coordinates(move.source()) << square_to_coordinates(move.target());
-    if (move.is_promote()) std::cout << piece::get_code(move.promoted(), board.get_side());
-}
-
-void search_position(int depth) {
+void search_position(const uci::Settings &setting) {
     int alpha = -SCORE_INFINITY, beta = SCORE_INFINITY;
+
     nodes = 0;
-    for (int crnt = 1; crnt <= depth;) {
+    board = setting.board;
+    for (uint8_t depth_crnt = 1; depth_crnt <= setting.depth;) {
         follow_pv = 1;
 
-        int score = negamax(alpha, beta, crnt, true);
+        int score = negamax(alpha, beta, depth_crnt, true);
         if ((score <= alpha) || (score >= beta)) {
             alpha = -SCORE_INFINITY;
             beta = SCORE_INFINITY;
@@ -335,189 +334,25 @@ void search_position(int depth) {
                 std::cout << "info score cp " << score;
             }
 
-            std::cout << " depth " << crnt;
+            std::cout << " depth " << (unsigned)depth_crnt;
             std::cout << " nodes " << nodes;
             std::cout << " pv ";
             for (int i = 0; i < pv_length[0]; i++) {
-                move_print_UCI(pv_table[0][i]);
+                uci::move_print(board, pv_table[0][i]);
                 std::cout << " ";
             }
             std::cout << "\n";
         }
-        crnt++;
+        depth_crnt++;
     }
 
     std::cout << "bestmove ";
-    move_print_UCI(pv_table[0][0]);
+    uci::move_print(board, pv_table[0][0]);
     std::cout << "\n";
 }
-
-void print_info(void) {
-    std::cout << "id name Stellar " << getStellarVersion() << "\n";
-    std::cout << "id author Dimitrije Dobrota\n";
-    std::cout << "uciok\n";
-}
-
-typedef struct Instruction Instruction;
-struct Instruction {
-    char *command;
-    char *token;
-    char *crnt;
-};
-
-char *Instruction_token_next(Instruction *self);
-
-Instruction *Instruction_new(char *command) {
-    Instruction *p = new Instruction();
-    p->command = new char[strlen(command) + 1];
-    p->token = new char[strlen(command) + 1];
-    strcpy(p->command, command);
-    p->crnt = command;
-    Instruction_token_next(p);
-    return p;
-}
-
-void Instruction_free(Instruction **p) {
-    delete ((*p)->command);
-    delete ((*p)->token);
-    delete (*p);
-}
-
-char *Instruction_token(Instruction *self) { return self->token; }
-char *Instruction_token_n(Instruction *self, int n) {
-    while (isspace(*self->crnt) && *self->crnt != '\0')
-        self->crnt++;
-
-    if (*self->crnt == '\0') {
-        *self->token = '\0';
-        return NULL;
-    }
-
-    char *p = self->token;
-    while (n--) {
-        while (!isspace(*self->crnt) && *self->crnt != '\0' && *self->crnt != ';')
-            *p++ = *self->crnt++;
-        if (*self->crnt == '\0') {
-            p++;
-            break;
-        }
-        self->crnt++;
-        *p++ = ' ';
-    }
-    *--p = '\0';
-
-    return self->token;
-}
-
-char *Instruction_token_next(Instruction *self) { return Instruction_token_n(self, 1); }
-
-Move parse_move(char *move_string) {
-    Square source = square_from_coordinates(move_string);
-    Square target = square_from_coordinates(move_string + 2);
-
-    const MoveList list(board);
-    for (int i = 0; i < list.size(); i++) {
-        const Move move = list[i];
-        if (move.source() == source && move.target() == target) {
-            if (move_string[4]) {
-                if (tolower(piece::get_code(move.promoted())) != move_string[4]) continue;
-            }
-            return move;
-        }
-    }
-    return {};
-}
-
-Board *Instruction_parse(Instruction *self) {
-    char *token = Instruction_token(self);
-
-    do {
-        if (strcmp(token, "ucinewgame") == 0) {
-            board = Board(start_position);
-            continue;
-        }
-
-        if (strcmp(token, "quit") == 0) return nullptr;
-
-        if (strcmp(token, "position") == 0) {
-            token = Instruction_token_next(self);
-            if (token && strcmp(token, "startpos") == 0) {
-                board = Board(start_position);
-            } else if (token && strcmp(token, "fen") == 0) {
-                token = Instruction_token_n(self, 6);
-                board = Board(token);
-            } else {
-                printf("Unknown argument after position\n");
-            }
-            // board_print(board);
-            continue;
-        }
-
-        if (strcmp(token, "moves") == 0) {
-            while ((token = Instruction_token_next(self))) {
-                Move move = parse_move(token);
-                if (move != Move()) {
-                    move.make(board, 0);
-                } else {
-                    printf("Invalid move %s!\n", token);
-                }
-            }
-            return &board;
-        }
-
-        if (strcmp(token, "go") == 0) {
-            int depth = 6;
-            for (token = Instruction_token_next(self); token; token = Instruction_token_next(self)) {
-
-                if (token && strcmp(token, "depth") == 0) {
-                    token = Instruction_token_next(self);
-                    depth = atoi(token);
-                } else {
-                    // printf("Unknown argument %s after go\n", token);
-                }
-            }
-            search_position(depth);
-            continue;
-        }
-
-        if (strcmp(token, "isready") == 0) {
-            printf("readyok\n");
-            continue;
-        }
-
-        if (strcmp(token, "uci") == 0) {
-            print_info();
-            continue;
-        }
-    } while ((token = Instruction_token_next(self)));
-
-    return &board;
-}
-
-void uci_loop(void) {
-    Instruction *instruction;
-    char input[200000];
-
-    setbuf(stdin, NULL);
-    setbuf(stdout, NULL);
-
-    print_info();
-    while (1) {
-        memset(input, 0, sizeof(input));
-        fflush(stdout);
-        if (!fgets(input, sizeof(input), stdin)) continue;
-
-        instruction = Instruction_new(input);
-        if (!Instruction_parse(instruction)) break;
-        Instruction_free(&instruction);
-    }
-
-    Instruction_free(&instruction);
-}
-
-/* MAIN */
+} // namespace engine
 
 int main(void) {
-    uci_loop();
+    uci::loop();
     return 0;
 }

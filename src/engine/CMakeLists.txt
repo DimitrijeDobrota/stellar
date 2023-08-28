@@ -1,6 +1,7 @@
 add_executable(engine
     engine.cpp
     transposition.cpp
+    uci.cpp
 )
 
 target_link_libraries(engine

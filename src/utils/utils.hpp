@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <exception>
+#include <string>
 #include <type_traits>
 
 template <typename E> constexpr typename std::underlying_type<E>::type to_underlying(E e) noexcept {
@@ -55,7 +56,7 @@ enum class Square: uint8_t {
 
 typedef Iterator<Square, Square::a1, Square::h8> SquareIter;
 
-inline Square square_from_coordinates(const char *cord) {
+inline Square square_from_coordinates(const std::string &cord) {
     return static_cast<Square>((cord[1] - '1') * 8 + (cord[0] - 'a'));
 }
 

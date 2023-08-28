@@ -15,6 +15,7 @@ class MoveList {
     using index_t = std::vector<int>;
 
   public:
+    MoveList() : list(){};
     MoveList(const Board &board) : list() {
         list.reserve(256);
         generate(board);
@@ -22,6 +23,7 @@ class MoveList {
 
     int size() const { return list.size(); }
     const Move operator[](size_t idx) const { return list[idx]; }
+    void push(const Move move) { list.push_back(move); }
 
     friend std::ostream &operator<<(std::ostream &os, const MoveList &list);
 
