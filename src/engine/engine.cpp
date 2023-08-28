@@ -1,8 +1,8 @@
+#include <algorithm>
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <algorithm>
 
 #include "attack.hpp"
 #include "board.hpp"
@@ -10,6 +10,7 @@
 #include "movelist.hpp"
 #include "piece.hpp"
 #include "score.hpp"
+#include "stellar_version.hpp"
 #include "transposition.hpp"
 #include "utils.hpp"
 
@@ -352,9 +353,9 @@ void search_position(int depth) {
 }
 
 void print_info(void) {
-    printf("id name Stellar\n");
-    printf("id author Dimitrije Dobrota\n");
-    printf("uciok\n");
+    std::cout << "id name Stellar " << getStellarVersion() << "\n";
+    std::cout << "id author Dimitrije Dobrota\n";
+    std::cout << "uciok\n";
 }
 
 typedef struct Instruction Instruction;
@@ -413,7 +414,6 @@ char *Instruction_token_next(Instruction *self) { return Instruction_token_n(sel
 Move parse_move(char *move_string) {
     Square source = square_from_coordinates(move_string);
     Square target = square_from_coordinates(move_string + 2);
-
 
     const MoveList list(board);
     for (int i = 0; i < list.size(); i++) {

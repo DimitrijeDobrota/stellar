@@ -1,0 +1,7 @@
+#include "stellar_version.hpp"
+
+std::string getStellarVersion() { return "@Stellar_VERSION@"; }
+unsigned int getStellarVersionMajor() { return @Stellar_VERSION_MAJOR@ +0; }
+unsigned int getStellarVersionMinor() { return @Stellar_VERSION_MINOR@ +0; }
+unsigned int getStellarVersionPatch() { return @Stellar_VERSION_PATCH@ +0; }
+unsigned int getStellarVersionTweak() { return @Stellar_VERSION_TWEAK@ +0; }

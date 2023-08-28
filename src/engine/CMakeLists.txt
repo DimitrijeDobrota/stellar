@@ -4,6 +4,7 @@ add_executable(engine
 )
 
 target_link_libraries(engine
+    PRIVATE Stellar_version
     PRIVATE board
     PRIVATE moves
     PRIVATE piece

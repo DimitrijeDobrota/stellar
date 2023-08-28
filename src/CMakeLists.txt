@@ -7,3 +7,7 @@ foreach(file in ${files})
     endif()
 endforeach()
 
+
+configure_file(stellar_version.cpp.in stellar_version.cpp @ONLY)
+add_library(Stellar_version STATIC ${CMAKE_CURRENT_BINARY_DIR}/stellar_version.cpp)
+target_include_directories(Stellar_version PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
