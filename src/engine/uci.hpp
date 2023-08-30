@@ -9,7 +9,9 @@
 namespace uci {
 
 struct Settings {
-    MoveList searchmoves;
+    MoveList searchMoves;
+    MoveList madeMoves;
+
     Board board;
     uint32_t starttime;
     uint32_t stoptime;

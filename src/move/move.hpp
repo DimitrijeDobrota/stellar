@@ -16,6 +16,7 @@ struct Move {
         CASTLEQ,
         CAPTURE,
         ENPASSANT,
+        PQUIET,
         PKNIGHT = 8,
         PBISHOP,
         PROOK,
@@ -37,11 +38,12 @@ struct Move {
     Square source(void) const { return static_cast<Square>(source_i); }
     Square target(void) const { return static_cast<Square>(target_i); }
 
-    bool is_capture(void) const { return flags_i & CAPTURE; }
+    bool is_capture(void) const { return flags_i != PQUIET && (flags_i & CAPTURE); }
     bool is_promote(void) const { return flags_i & 0x8; }
 
-    bool is_quiet(void) const { return flags_i == QUIET; }
     bool is_double(void) const { return flags_i == DOUBLE; }
+    bool is_repetable(void) const { return flags_i == QUIET; }
+    bool is_quiet(void) const { return flags_i == QUIET || flags_i == PQUIET; }
 
     bool is_castle(void) const { return flags_i == CASTLEK || flags_i == CASTLEQ; }
     bool is_castle_king(void) const { return flags_i == CASTLEK; }

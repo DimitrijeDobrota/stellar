@@ -76,16 +76,46 @@ class TTable {
     std::vector<Hashe> table;
 };
 
-const uci::Settings *settings = nullptr;
-Board board;
-TTable ttable;
-Move pv_table[MAX_PLY][MAX_PLY];
-Move killer[2][MAX_PLY];
-U32 history[12][64];
-int pv_length[MAX_PLY];
-bool follow_pv;
-U64 nodes;
-U32 ply;
+class RTable {
+  public:
+    RTable() = default;
+
+    bool is_repetition(const U64 hash) const {
+        for (int i = repetitions.size() - 1; i >= 0; i--) {
+            if (repetitions[i] == hash) return true;
+            if (repetitions[i] == hashNull) return false;
+        }
+        return false;
+    }
+
+    void pop(void) { repetitions.pop_back(); }
+    void clear(void) { repetitions.clear(); }
+    void push_null(void) { repetitions.push_back(hashNull); }
+    void push_hash(U64 hash) { repetitions.push_back(hash); }
+
+    friend std::ostream &operator<<(std::ostream &os, const RTable &rtable) {
+        for (const U64 hash : rtable.repetitions)
+            os << hash << " ";
+        return os;
+    }
+
+  private:
+    std::vector<U64> repetitions;
+
+    const static int hashNull = 0;
+};
+
+static const uci::Settings *settings = nullptr;
+static Board board;
+static TTable ttable;
+static RTable rtable;
+static Move pv_table[MAX_PLY][MAX_PLY];
+static Move killer[2][MAX_PLY];
+static U32 history[12][64];
+static int pv_length[MAX_PLY];
+static bool follow_pv;
+static U64 nodes;
+static U32 ply;
 
 U32 inline move_list_score(Move move) {
     const piece::Type type = board.get_square_piece_type(move.source());
@@ -152,15 +182,15 @@ int evaluate(const Board &board) {
     return score;
 }
 
-int is_repetition() { return 0; }
-
-int stats_move_make(Board &copy, Move move, int flag) {
+int stats_move_make(Board &copy, const Move move, int flag) {
     copy = board;
     if (!move.make(board, flag)) {
         board = copy;
         return 0;
     }
     ply++;
+    rtable.push_hash(copy.get_hash());
+    if (!move.is_repetable()) rtable.push_null();
     return 1;
 }
 
@@ -171,8 +201,15 @@ void stats_move_make_pruning(Board &copy) {
     ply++;
 }
 
-void stats_move_unmake(Board &copy) {
+void stats_move_unmake_pruning(Board &copy) {
     board = copy;
+    ply--;
+}
+
+void stats_move_unmake(Board &copy, const Move move) {
+    board = copy;
+    if (!move.is_repetable()) rtable.pop();
+    rtable.pop();
     ply--;
 }
 
@@ -201,13 +238,14 @@ int quiescence(int16_t alpha, int16_t beta) {
 
     MoveList list(board);
     for (int idx : move_list_sort(list, Move())) {
+        const Move move = list[idx];
         if (!stats_move_make(copy, list[idx], 1)) continue;
         score = -quiescence(-beta, -alpha);
-        stats_move_unmake(copy);
+        stats_move_unmake(copy, move);
 
         if (score > alpha) {
             alpha = score;
-            stats_pv_store(list[idx]);
+            stats_pv_store(move);
             if (score >= beta) return beta;
         }
 
@@ -234,7 +272,7 @@ int negamax(int16_t alpha, int16_t beta, uint8_t depth, bool null) {
     if (ply && score != TTable::unknown && !pv_node) return score;
 
     // && fifty >= 100
-    if (ply && is_repetition()) return 0;
+    if (ply && rtable.is_repetition(board.get_hash())) return 0;
     if (depth == 0) {
         nodes++;
         int score = quiescence(alpha, beta);
@@ -267,7 +305,7 @@ int negamax(int16_t alpha, int16_t beta, uint8_t depth, bool null) {
             if (ply && depth > 2 && staticEval >= beta) {
                 stats_move_make_pruning(copy);
                 score = -negamax(-beta, -beta + 1, depth - 1 - REDUCTION_MOVE, false);
-                stats_move_unmake(copy);
+                stats_move_unmake_pruning(copy);
                 if (score >= beta) return beta;
             }
 
@@ -306,7 +344,7 @@ int negamax(int16_t alpha, int16_t beta, uint8_t depth, bool null) {
 
         // futility pruning
         if (futility && searched && !move.is_capture() && !move.is_promote() && !board.is_check()) {
-            stats_move_unmake(copy);
+            stats_move_unmake(copy, move);
             continue;
         }
 
@@ -331,7 +369,7 @@ int negamax(int16_t alpha, int16_t beta, uint8_t depth, bool null) {
             }
         }
 
-        stats_move_unmake(copy);
+        stats_move_unmake(copy, move);
         searched++;
 
         if (settings->stopped) return 0;
@@ -378,9 +416,16 @@ void search_position(const uci::Settings &settingsr) {
         ttable = TTable(C64(0x1000000));
     }
 
+    rtable.clear();
+    board = settings->board;
+    for (int i = 0; i < settings->madeMoves.size(); i++) {
+        rtable.push_hash(board.get_hash());
+        settings->madeMoves[i].make(board);
+        if (!settings->madeMoves[i].is_repetable()) rtable.push_null();
+    }
+
     ply = 0;
     nodes = 0;
-    board = settings->board;
     settings->stopped = false;
     memset(killer, 0x00, sizeof(killer));
     memset(history, 0x00, sizeof(history));

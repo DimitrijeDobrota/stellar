@@ -23,7 +23,7 @@ Board::Board(const std::string &fen) {
             file = 0;
             rank--;
         } else {
-            throw std::exception();
+            throw std::runtime_error("Invalid piece position");
         }
     }
 
@@ -33,7 +33,7 @@ Board::Board(const std::string &fen) {
     else if (fen[i] == 'b')
         side = Color::BLACK;
     else
-        throw std::exception();
+        throw std::runtime_error("Invalid player char");
 
     for (i += 2; fen[i] != ' '; i++) {
         if (fen[i] == 'K')
@@ -47,9 +47,10 @@ Board::Board(const std::string &fen) {
         else if (fen[i] == '-')
             break;
         else
-            throw std::exception();
+            throw std::runtime_error("Invalid castle rights");
     }
 
+    i++;
     if (fen[++i] != '-') enpassant = square_from_coordinates(fen.data() + i);
     hash = Zobrist::hash(*this);
 }

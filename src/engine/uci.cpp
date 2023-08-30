@@ -76,19 +76,26 @@ void loop(void) {
             settings = Settings();
             settings.board = Board(start_position);
         } else if (command == "position") {
+            settings.madeMoves.clear();
             iss >> command;
             if (command == "startpos") {
                 settings.board = Board(start_position);
             } else if (command == "fen") {
                 iss >> command;
-                settings.board = Board(command);
+                settings.board = Board(line.substr(13));
             }
-            iss >> command;
+
+            while (iss >> command)
+                if (command == "moves") break;
+
+            Board board = settings.board;
             while (iss >> command) {
-                if (!parse_move(settings.board, move, command)) break;
-                move.make(settings.board);
+                if (!parse_move(board, move, command)) break;
+                settings.madeMoves.push(move);
+                move.make(board);
             }
         } else if (command == "go") {
+            settings.searchMoves.clear();
             uint32_t wtime = 0, btime = 0, movetime = 0;
             uint16_t winc = 0, binc = 0, movestogo = 30;
 
@@ -118,7 +125,7 @@ void loop(void) {
                 else if (command == "searchmoves") {
                     while (iss >> command) {
                         if (!parse_move(settings.board, move, command)) break;
-                        settings.searchmoves.push(move);
+                        settings.searchMoves.push(move);
                     }
                 }
             }

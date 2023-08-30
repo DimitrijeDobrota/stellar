@@ -32,7 +32,7 @@ void MoveList::generate(const Board &board) {
                 list.push_back({src, tgt, Move::PROOK});
                 list.push_back({src, tgt, Move::PQUEEN});
             } else {
-                list.push_back({src, tgt, Move::QUIET});
+                list.push_back({src, tgt, Move::PQUIET});
 
                 // two ahead
                 const Square tgt = static_cast<Square>(tgt_i + add);
