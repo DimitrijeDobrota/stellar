@@ -98,22 +98,19 @@ U32 inline move_list_score(Move move) {
     return history[piece::get_index(type, board.get_side())][to_underlying(move.target())];
 }
 
-Move move_list_best_move;
-void move_list_sort(MoveList &list, std::vector<int> &index, bool bestCheck = true) {
+std::vector<int> move_list_sort(MoveList &list, const Move best) {
     static std::vector<int> score(256);
 
-    bool best = false;
+    bool best_found = false;
     for (int i = 0; i < list.size(); i++) {
         score[i] = move_list_score(list[i]);
-        index[i] = i;
-        if (bestCheck && list[i] == move_list_best_move) {
+        if (list[i] == best) {
             score[i] = 30000;
-            bestCheck = false;
-            best = true;
+            best_found = true;
         }
     }
 
-    if (!best && ply && follow_pv) {
+    if (!best_found && ply && follow_pv) {
         follow_pv = false;
         for (int i = 0; i < list.size(); i++) {
             if (list[i] == pv_table[0][ply]) {
@@ -124,7 +121,10 @@ void move_list_sort(MoveList &list, std::vector<int> &index, bool bestCheck = tr
         }
     }
 
-    sort(index.begin(), index.begin() + list.size(), [&](int a, int b) { return score[a] > score[b]; });
+    std::vector<int> index(list.size());
+    std::iota(begin(index), end(index), 0);
+    sort(begin(index), end(index), [&](int a, int b) { return score[a] > score[b]; });
+    return index;
 }
 
 int evaluate(const Board &board) {
@@ -200,9 +200,7 @@ int quiescence(int16_t alpha, int16_t beta) {
     Board copy;
 
     MoveList list(board);
-    std::vector<int> index(list.size());
-    move_list_sort(list, index, false);
-    for (int idx : index) {
+    for (int idx : move_list_sort(list, Move())) {
         if (!stats_move_make(copy, list[idx], 1)) continue;
         score = -quiescence(-beta, -alpha);
         stats_move_unmake(copy);
@@ -300,11 +298,8 @@ int negamax(int16_t alpha, int16_t beta, uint8_t depth, bool null) {
     int legal_moves = 0;
     int searched = 0;
 
-    move_list_best_move = bestMove;
     MoveList list(board);
-    std::vector<int> index(list.size());
-    move_list_sort(list, index);
-    for (int idx : index) {
+    for (int idx : move_list_sort(list, bestMove)) {
         const Move move = list[idx];
         if (!stats_move_make(copy, move, 0)) continue;
         legal_moves++;
@@ -380,7 +375,7 @@ void search_position(const uci::Settings &settingsr) {
     settings = &settingsr;
 
     if (settings->newgame) {
-        ttable = TTable(C64(0x400000));
+        ttable = TTable(C64(0x1000000));
     }
 
     ply = 0;

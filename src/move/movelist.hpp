@@ -29,7 +29,6 @@ class MoveList {
 
   private:
     void generate(const Board &board);
-    void clear() { list.clear(); }
 
     list_t list;
 };

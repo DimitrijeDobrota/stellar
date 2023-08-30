@@ -11,13 +11,6 @@ target_link_libraries(engine
     PRIVATE utils
 )
 
-stellar_target_precompile_headers(board
-    PRIVATE "board.hpp"
-    PRIVATE "move.hpp"
-    PRIVATE "movelist.hpp"
-    PRIVATE "piece.hpp"
-)
-
 set_target_properties(engine PROPERTIES
     VERSION ${PROJECT_VERSION}
     SOVERSION ${PROJECT_VERSION_MAJOR}

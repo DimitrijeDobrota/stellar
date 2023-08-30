@@ -10,17 +10,9 @@
     ((color == Color::BLACK && source >= Square::a7 && source <= Square::h7) ||                              \
      (color == Color::WHITE && source >= Square::a2 && source <= Square::h2))
 
-using piece::Type::BISHOP;
-using piece::Type::KING;
-using piece::Type::KNIGHT;
-using piece::Type::NONE;
 using piece::Type::PAWN;
-using piece::Type::QUEEN;
-using piece::Type::ROOK;
 
 void MoveList::generate(const Board &board) {
-    this->clear();
-
     uint8_t src_i, tgt_i;
 
     Color color = board.get_side();

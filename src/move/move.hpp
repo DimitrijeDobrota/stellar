@@ -26,7 +26,7 @@ struct Move {
         PCQUEEN,
     };
 
-    Move() = default;
+    Move() : source_i(0), target_i(0), flags_i(0) {}
     Move(Square source, Square target, Flag flags)
         : source_i(to_underlying(source)), target_i(to_underlying(target)), flags_i(flags) {}
 
