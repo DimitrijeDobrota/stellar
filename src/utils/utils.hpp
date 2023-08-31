@@ -108,6 +108,8 @@ constexpr uint8_t bit_lsb_index(U64 bitboard) {
 #define bitboard_for_each_bit(var, bb)                                                                       \
     for (var = bit_lsb_index(bb); bb; bit_lsb_pop(bb), var = bit_lsb_index(bb))
 
+void bitboard_print(U64 bitboard);
+
 // board moving
 inline constexpr const U64 universe = C64(0xffffffffffffffff);
 inline constexpr const U64 notAFile = C64(0xfefefefefefefefe);

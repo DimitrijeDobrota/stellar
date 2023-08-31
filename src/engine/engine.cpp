@@ -6,6 +6,7 @@
 
 #include "attack.hpp"
 #include "board.hpp"
+#include "evaluate.hpp"
 #include "move.hpp"
 #include "movelist.hpp"
 #include "piece.hpp"
@@ -156,31 +157,6 @@ std::vector<int> move_list_sort(MoveList &list, const Move best) {
     return index;
 }
 
-int16_t evaluate(const Board &board) {
-    Color side = board.get_side();
-    Color sideOther = (side == Color::BLACK) ? Color::WHITE : Color::BLACK;
-
-    U64 occupancy = board.get_bitboard_color(side);
-    uint8_t square_i;
-
-    int16_t score = 0;
-    for (const piece::Type type : piece::TypeIter()) {
-        U64 bitboard = board.get_bitboard_piece(type);
-        bitboard_for_each_bit(square_i, bitboard) {
-            Square square = static_cast<Square>(square_i);
-            if (bit_get(occupancy, square_i)) {
-                score += piece::score(type);
-                score += piece::score(type, side, square);
-            } else {
-                score -= piece::score(type);
-                score -= piece::score(type, sideOther, square);
-            }
-        }
-    }
-
-    return score;
-}
-
 int stats_move_make(Board &copy, const Move move) {
     copy = board;
     if (!move.make(board)) {
@@ -228,7 +204,7 @@ int16_t quiescence(int16_t alpha, int16_t beta) {
     pv_length[ply] = ply;
     nodes++;
 
-    int score = evaluate(board);
+    int score = evaluate::score_position(board);
     if (ply > MAX_PLY - 1) return score;
     if (score >= beta) return beta;
     if (score > alpha) alpha = score;
@@ -285,11 +261,11 @@ int16_t negamax(int16_t alpha, int16_t beta, uint8_t depth, bool null) {
     if (alpha < -MATE_VALUE) alpha = -MATE_VALUE;
     if (beta > MATE_VALUE - 1) beta = MATE_VALUE - 1;
     if (alpha >= beta) return alpha;
-    // if (ply > MAX_PLY - 1) return evaluate(board);
+    // if (ply > MAX_PLY - 1) return evaluate::score_position(board);
 
     if (!pv_node && !isCheck) {
         static constexpr const U32 score_pawn = piece::score(piece::Type::PAWN);
-        int16_t staticEval = evaluate(board);
+        int16_t staticEval = evaluate::score_position(board);
 
         // evaluation pruning
         if (depth < 3 && abs(beta - 1) > -MATE_VALUE + 100) {

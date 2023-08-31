@@ -1,4 +1,5 @@
 add_executable(engine
+    evaluate.cpp
     engine.cpp
     uci.cpp
 )
