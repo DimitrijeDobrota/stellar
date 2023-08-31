@@ -12,13 +12,12 @@
 class MoveList {
   private:
     using list_t = std::vector<Move>;
-    using index_t = std::vector<int>;
 
   public:
     MoveList() : list(){};
-    MoveList(const Board &board) : list() {
+    MoveList(const Board &board, bool attacks_only = false) : list() {
         list.reserve(256);
-        generate(board);
+        generate(board, attacks_only);
     }
 
     void clear() { list.clear(); }
@@ -30,7 +29,7 @@ class MoveList {
     friend std::ostream &operator<<(std::ostream &os, const MoveList &list);
 
   private:
-    void generate(const Board &board);
+    void generate(const Board &board, bool attacks_only);
 
     list_t list;
 };

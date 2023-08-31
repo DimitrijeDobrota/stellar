@@ -18,7 +18,7 @@ class Perft {
     Perft(semaphore_t &sem) : sem(sem) {}
     void operator()(const Board &board_start, Move move, int depth) {
         Board board = board_start;
-        if (!move.make(board, 0)) return;
+        if (!move.make(board)) return;
         sem.acquire();
         // debug(board_start, move, board);
 
@@ -63,7 +63,7 @@ class Perft {
         const MoveList list(board);
         for (int i = 0; i < list.size(); i++) {
             Board copy = board;
-            if (!list[i].make(copy, 0)) continue;
+            if (!list[i].make(copy)) continue;
             // debug(board, list[i], copy);
             if (depth != 1)
                 test(copy, depth - 1);

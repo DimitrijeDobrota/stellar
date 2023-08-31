@@ -20,18 +20,31 @@ void move_print(const Board &board, Move move) {
     if (move.is_promote()) std::cout << piece::get_code(move.promoted(), board.get_side());
 }
 
-void communicate(const uci::Settings *settings) {
-    if (!settings->infinite && uci::get_time_ms() > settings->stoptime) settings->stopped = true;
+void pv_print(int16_t score, uint8_t depth, uint64_t nodes, uint8_t pv_length[MAX_PLY],
+              Move pv_table[MAX_PLY][MAX_PLY], const Board &board) {
+    if (score > -MATE_VALUE && score < -MATE_SCORE) {
+        std::cout << "info score mate " << -(score + MATE_VALUE) / 2 - 1;
+    } else if (score > MATE_SCORE && score < MATE_VALUE) {
+        std::cout << "info score mate " << (MATE_VALUE - score) / 2 + 1;
+    } else {
+        std::cout << "info score cp " << score;
+    }
 
-    /*
-    if (std::cin.peek() == EOF || std::cin.peek() == '\n') {
-        std::cin.clear();
+    std::cout << " depth " << (unsigned)depth;
+    std::cout << " nodes " << nodes;
+    std::cout << " pv ";
+    for (int i = 0; i < pv_length[0]; i++) {
+        uci::move_print(board, pv_table[0][i]);
+        std::cout << " ";
+    }
+    std::cout << "\n";
+}
+
+void communicate(const uci::Settings *settings) {
+    if (!settings->infinite && uci::get_time_ms() > settings->stoptime) {
+        settings->stopped = true;
         return;
     }
-    std::string command;
-    std::cin >> command;
-    if (command == "stop" || command == "quit") settings->stopped = true;
-    */
 }
 
 inline bool parse_move(const Board &board, Move &move, const std::string &move_string) {
@@ -148,8 +161,11 @@ void loop(void) {
 
             if (!time) settings.infinite = true;
 
-            // std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-            engine::search_position(settings);
+            const Move best = engine::search_position(settings);
+            std::cout << "bestmove ";
+            uci::move_print(settings.board, best);
+            std::cout << "\n";
+
             settings.newgame = false;
         }
     }

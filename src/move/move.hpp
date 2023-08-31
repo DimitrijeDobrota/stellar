@@ -53,7 +53,7 @@ struct Move {
 
     const piece::Type promoted(void) const { return static_cast<piece::Type>((flags_i & 0x3) + 1); }
 
-    bool make(Board &board, bool attack_only = false) const;
+    bool make(Board &board) const;
 
     friend std::ostream &operator<<(std::ostream &os, Move move);
 

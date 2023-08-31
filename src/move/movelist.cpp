@@ -12,7 +12,7 @@
 
 using piece::Type::PAWN;
 
-void MoveList::generate(const Board &board) {
+void MoveList::generate(const Board &board, bool attacks_only) {
     uint8_t src_i, tgt_i;
 
     Color color = board.get_side();
@@ -25,7 +25,7 @@ void MoveList::generate(const Board &board) {
     bitboard_for_each_bit(src_i, bitboard) {
         const Square src = static_cast<Square>(src_i);
         const Square tgt = static_cast<Square>(tgt_i = src_i + add);
-        if (!board.is_square_occupied(tgt)) {
+        if (!attacks_only && !board.is_square_occupied(tgt)) {
             if (pawn_canPromote(color, src)) {
                 list.push_back({src, tgt, Move::PKNIGHT});
                 list.push_back({src, tgt, Move::PBISHOP});
@@ -70,10 +70,17 @@ void MoveList::generate(const Board &board) {
             U64 attack = board.get_bitboard_piece_moves(type, color, src);
             bitboard_for_each_bit(tgt_i, attack) {
                 const Square tgt = static_cast<Square>(tgt_i);
-                list.push_back({src, tgt, board.is_square_occupied(tgt) ? Move::CAPTURE : Move::QUIET});
+                if (board.is_square_occupied(tgt)) {
+                    list.push_back({src, tgt, Move::CAPTURE});
+                } else {
+                    if (attacks_only) continue;
+                    list.push_back({src, tgt, Move::QUIET});
+                }
             }
         }
     }
+
+    if (attacks_only) return;
 
     // Castling
     if (color == Color::WHITE) {

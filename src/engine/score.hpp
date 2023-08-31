@@ -1,6 +1,8 @@
 #ifndef STELLAR_SCORE_H
 #define STELLAR_SCORE_H
 
+#define MAX_PLY 64
+
 #define SCORE_INFINITY 32000
 #define MATE_VALUE 31000
 #define MATE_SCORE 30000

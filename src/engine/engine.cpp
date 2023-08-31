@@ -13,7 +13,6 @@
 #include "uci.hpp"
 #include "utils.hpp"
 
-#define MAX_PLY 64
 #define FULL_DEPTH 4
 #define REDUCTION_LIMIT 3
 #define REDUCTION_MOVE 2
@@ -37,7 +36,7 @@ struct Hashe {
 
 class TTable {
   public:
-    static inline constexpr const uint16_t unknown = 32500;
+    static inline constexpr const int16_t unknown = 32500;
 
     TTable() {}
     TTable(U64 size) : table(size, {0}) {}
@@ -112,7 +111,7 @@ static RTable rtable;
 static Move pv_table[MAX_PLY][MAX_PLY];
 static Move killer[2][MAX_PLY];
 static U32 history[12][64];
-static int pv_length[MAX_PLY];
+static uint8_t pv_length[MAX_PLY];
 static bool follow_pv;
 static U64 nodes;
 static U32 ply;
@@ -157,14 +156,14 @@ std::vector<int> move_list_sort(MoveList &list, const Move best) {
     return index;
 }
 
-int evaluate(const Board &board) {
+int16_t evaluate(const Board &board) {
     Color side = board.get_side();
     Color sideOther = (side == Color::BLACK) ? Color::WHITE : Color::BLACK;
 
     U64 occupancy = board.get_bitboard_color(side);
     uint8_t square_i;
 
-    int score = 0;
+    int16_t score = 0;
     for (const piece::Type type : piece::TypeIter()) {
         U64 bitboard = board.get_bitboard_piece(type);
         bitboard_for_each_bit(square_i, bitboard) {
@@ -182,9 +181,9 @@ int evaluate(const Board &board) {
     return score;
 }
 
-int stats_move_make(Board &copy, const Move move, int flag) {
+int stats_move_make(Board &copy, const Move move) {
     copy = board;
-    if (!move.make(board, flag)) {
+    if (!move.make(board)) {
         board = copy;
         return 0;
     }
@@ -221,7 +220,7 @@ void stats_pv_store(Move move) {
     pv_length[ply] = pv_length[ply + 1];
 }
 
-int quiescence(int16_t alpha, int16_t beta) {
+int16_t quiescence(int16_t alpha, int16_t beta) {
     if ((nodes & 2047) == 0) {
         uci::communicate(settings);
         if (settings->stopped) return 0;
@@ -235,11 +234,10 @@ int quiescence(int16_t alpha, int16_t beta) {
     if (score > alpha) alpha = score;
 
     Board copy;
-
-    MoveList list(board);
+    MoveList list(board, true);
     for (int idx : move_list_sort(list, Move())) {
         const Move move = list[idx];
-        if (!stats_move_make(copy, list[idx], 1)) continue;
+        if (!stats_move_make(copy, move)) continue;
         score = -quiescence(-beta, -alpha);
         stats_move_unmake(copy, move);
 
@@ -255,7 +253,7 @@ int quiescence(int16_t alpha, int16_t beta) {
     return alpha;
 }
 
-int negamax(int16_t alpha, int16_t beta, uint8_t depth, bool null) {
+int16_t negamax(int16_t alpha, int16_t beta, uint8_t depth, bool null) {
     int pv_node = (beta - alpha) > 1;
     Hashe::Flag flag = Hashe::Flag::Alpha;
     int futility = 0;
@@ -268,14 +266,18 @@ int negamax(int16_t alpha, int16_t beta, uint8_t depth, bool null) {
     }
     pv_length[ply] = ply;
 
-    int score = ttable.read(board, ply, &bestMove, alpha, beta, depth);
-    if (ply && score != TTable::unknown && !pv_node) return score;
-
     // && fifty >= 100
     if (ply && rtable.is_repetition(board.get_hash())) return 0;
+
+    int16_t score = ttable.read(board, ply, &bestMove, alpha, beta, depth);
+    if (ply && score != TTable::unknown && !pv_node) return score;
+
+    bool isCheck = board.is_check();
+    if (isCheck) depth++;
+
     if (depth == 0) {
         nodes++;
-        int score = quiescence(alpha, beta);
+        int16_t score = quiescence(alpha, beta);
         // ttable_write(board, ply, bestMove, score, depth, HasheFlag::Exact);
         return score;
     }
@@ -285,16 +287,13 @@ int negamax(int16_t alpha, int16_t beta, uint8_t depth, bool null) {
     if (alpha >= beta) return alpha;
     // if (ply > MAX_PLY - 1) return evaluate(board);
 
-    int isCheck = board.is_check();
-    if (isCheck) depth++;
-
     if (!pv_node && !isCheck) {
         static constexpr const U32 score_pawn = piece::score(piece::Type::PAWN);
-        int staticEval = evaluate(board);
+        int16_t staticEval = evaluate(board);
 
         // evaluation pruning
         if (depth < 3 && abs(beta - 1) > -MATE_VALUE + 100) {
-            int marginEval = score_pawn * depth;
+            int16_t marginEval = score_pawn * depth;
             if (staticEval - marginEval >= beta) return staticEval - marginEval;
         }
 
@@ -311,7 +310,7 @@ int negamax(int16_t alpha, int16_t beta, uint8_t depth, bool null) {
 
             // razoring
             score = staticEval + score_pawn;
-            int scoreNew = quiescence(alpha, beta);
+            int16_t scoreNew = quiescence(alpha, beta);
 
             if (score < beta && depth == 1) {
                 return (scoreNew > score) ? scoreNew : score;
@@ -324,7 +323,7 @@ int negamax(int16_t alpha, int16_t beta, uint8_t depth, bool null) {
         }
 
         // futility pruning condition
-        static constexpr const int margin[] = {
+        static constexpr const int16_t margin[] = {
             0,
             piece::score(piece::Type::PAWN),
             piece::score(piece::Type::KNIGHT),
@@ -333,13 +332,13 @@ int negamax(int16_t alpha, int16_t beta, uint8_t depth, bool null) {
         if (depth < 4 && abs(alpha) < MATE_SCORE && staticEval + margin[depth] <= alpha) futility = 1;
     }
 
-    int legal_moves = 0;
-    int searched = 0;
+    uint8_t legal_moves = 0;
+    uint8_t searched = 0;
 
     MoveList list(board);
     for (int idx : move_list_sort(list, bestMove)) {
         const Move move = list[idx];
-        if (!stats_move_make(copy, move, 0)) continue;
+        if (!stats_move_make(copy, move)) continue;
         legal_moves++;
 
         // futility pruning
@@ -408,7 +407,7 @@ int negamax(int16_t alpha, int16_t beta, uint8_t depth, bool null) {
     return alpha;
 }
 
-void search_position(const uci::Settings &settingsr) {
+Move search_position(const uci::Settings &settingsr) {
     int16_t alpha = -SCORE_INFINITY, beta = SCORE_INFINITY;
     settings = &settingsr;
 
@@ -421,7 +420,7 @@ void search_position(const uci::Settings &settingsr) {
     for (int i = 0; i < settings->madeMoves.size(); i++) {
         rtable.push_hash(board.get_hash());
         settings->madeMoves[i].make(board);
-        if (!settings->madeMoves[i].is_repetable()) rtable.push_null();
+        if (!settings->madeMoves[i].is_repetable()) rtable.clear();
     }
 
     ply = 0;
@@ -432,45 +431,27 @@ void search_position(const uci::Settings &settingsr) {
     memset(pv_table, 0x00, sizeof(pv_table));
     memset(pv_length, 0x00, sizeof(pv_length));
 
-    for (uint8_t depth_crnt = 1; depth_crnt <= settings->depth;) {
+    for (uint8_t depth = 1; depth <= settings->depth; depth++) {
         uci::communicate(settings);
         if (settings->stopped) break;
 
         follow_pv = 1;
 
-        int score = negamax(alpha, beta, depth_crnt, true);
+        int16_t score = negamax(alpha, beta, depth, true);
         if ((score <= alpha) || (score >= beta)) {
             alpha = -SCORE_INFINITY;
             beta = SCORE_INFINITY;
+            depth--;
             continue;
         }
         alpha = score - WINDOW;
         beta = score + WINDOW;
 
-        if (pv_length[0]) {
-            if (score > -MATE_VALUE && score < -MATE_SCORE) {
-                std::cout << "info score mate " << -(score + MATE_VALUE) / 2 - 1;
-            } else if (score > MATE_SCORE && score < MATE_VALUE) {
-                std::cout << "info score mate " << (MATE_VALUE - score) / 2 + 1;
-            } else {
-                std::cout << "info score cp " << score;
-            }
-
-            std::cout << " depth " << (unsigned)depth_crnt;
-            std::cout << " nodes " << nodes;
-            std::cout << " pv ";
-            for (int i = 0; i < pv_length[0]; i++) {
-                uci::move_print(board, pv_table[0][i]);
-                std::cout << " ";
-            }
-            std::cout << "\n";
-        }
-        depth_crnt++;
+        if (pv_length[0]) uci::pv_print(score, depth, nodes, pv_length, pv_table, board);
     }
 
-    std::cout << "bestmove ";
-    uci::move_print(board, pv_table[0][0]);
-    std::cout << "\n";
+    settings->board = board;
+    return pv_table[0][0];
 }
 } // namespace engine
 
