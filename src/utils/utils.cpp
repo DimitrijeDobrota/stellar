@@ -12,5 +12,5 @@ void bitboard_print(U64 bitboard) {
     }
 
     std::cout << "\n    A B C D E F G H\n\n";
-    std::cout << "    Bitboard: " << std::hex << bitboard << std::dec;
+    std::cout << "    Bitboard: " << std::hex << bitboard << std::dec << std::endl;
 }

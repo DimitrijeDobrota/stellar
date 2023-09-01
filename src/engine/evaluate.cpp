@@ -43,19 +43,15 @@ typedef std::array<std::array<U64, 64>, 2> mask_passed_array;
 inline constexpr const mask_passed_array mask_passed = []() constexpr -> mask_passed_array {
     mask_passed_array mask_passed;
 
+    U64 maskW, maskB;
     for (uint8_t file = 0; file < 8; file++) {
-        U64 mask = mask_file[file] | mask_isolated[file];
+        maskW = maskB = mask_file[file] | mask_isolated[file];
         for (uint8_t rank = 0; rank < 8; rank++) {
-            mask = nortOne(mask);
-            mask_passed[0][rank * 8 + file] = mask;
-        }
-    }
+            maskW = nortOne(maskW);
+            mask_passed[0][rank * 8 + file] = maskW;
 
-    for (uint8_t file = 0; file < 8; file++) {
-        U64 mask = mask_file[file] | mask_isolated[file];
-        for (int8_t rank = 7; rank >= 0; rank--) {
-            mask = soutOne(mask);
-            mask_passed[1][rank * 8 + file] = mask;
+            maskB = soutOne(maskB);
+            mask_passed[1][(7 - rank) * 8 + file] = maskB;
         }
     }
 
@@ -74,60 +70,73 @@ inline constexpr const int8_t score_open = 15;
 inline constexpr const std::array<std::array<int16_t, 8>, 2> bonus_pawn_passed = {
     {{0, 10, 30, 50, 75, 100, 150, 200}, {200, 150, 100, 75, 50, 30, 10, 0}}};
 
+using piece::Type::BISHOP;
 using piece::Type::KING;
+using piece::Type::KNIGHT;
 using piece::Type::PAWN;
+using piece::Type::QUEEN;
 using piece::Type::ROOK;
 
-int16_t score_position_side(const Board &board, Color side) {
-    static U64 bitboard;
-    uint8_t square_i;
+int16_t score_position_side(const Board &board, const Color side) {
+    U64 bitboard;
     int16_t score = 0;
+    int8_t square_i;
 
-    // Score all pieces except pawns
-    for (const piece::Type type : ++piece::TypeIter()) {
-        bitboard = board.get_bitboard_piece(type, side);
-        bitboard_for_each_bit(square_i, bitboard) {
-            Square square = static_cast<Square>(square_i);
-            score += piece::score(type);
-            score += piece::score(type, side, square);
-        }
-    }
-
+    const uint8_t side_i = to_underlying(side);
     const U64 pawns = board.get_bitboard_piece(PAWN);
     const U64 pawnsS = board.get_bitboard_piece(PAWN, side);
-    const U64 rookS = board.get_bitboard_piece(ROOK, side);
-    const U64 kingS = board.get_bitboard_piece(KING, side);
+    const U64 pawnsO = pawns & ~pawnsS;
 
-    for (uint8_t file = 0; file < 8; file++) {
-        // check doubled and isolated pawns
+    bitboard = board.get_bitboard_piece(PAWN, side);
+    bitboard_for_each_bit(square_i, bitboard) {
+        score += piece::score(PAWN);
+        score += piece::score(PAWN, side, square_i);
 
-        uint8_t pawnsS_count = bit_count(pawnsS & mask_file[file]);
-        uint8_t pawns_count = bit_count(pawns & mask_file[file]);
-
-        if (pawnsS_count > 1) score += (pawnsS_count - 1) * penalty_pawn_double;
-        if (!(mask_isolated[file] & pawnsS)) score += pawnsS_count * penalty_pawn_isolated;
-
-        // rooks on open and semi-open files
-        if (rookS & mask_file[file]) {
-            if (!pawns_count) score += score_open;
-            if (!pawnsS_count) score += score_open_semi;
-        }
-
-        // king on open and semi-open files
-        if (kingS & mask_file[file]) {
-            if (!pawns_count) score -= score_open;
-            if (!pawnsS_count) score -= score_open_semi;
-        }
+        // check isolated, doubled and passed pawns
+        const uint8_t file = get_file(square_i), rank = get_rank(square_i);
+        if (!(mask_isolated[file] & pawnsS)) score += penalty_pawn_isolated;
+        if (bit_count(pawnsS & mask_file[file]) > 1) score += penalty_pawn_double;
+        if (!(pawnsO & mask_passed[side_i][square_i])) score += bonus_pawn_passed[side_i][rank];
     }
 
-    // Score pawns, bonus for passed
-    bitboard = pawnsS;
+    bitboard = board.get_bitboard_piece(KNIGHT, side);
     bitboard_for_each_bit(square_i, bitboard) {
-        Square square = static_cast<Square>(square_i);
-        score += piece::score(PAWN);
-        score += piece::score(PAWN, side, square);
-        if (!(pawns & ~pawnsS & mask_passed[to_underlying(side)][square_i]))
-            score += bonus_pawn_passed[to_underlying(side)][get_rank(square_i)];
+        score += piece::score(KNIGHT);
+        score += piece::score(KNIGHT, side, square_i);
+    }
+
+    bitboard = board.get_bitboard_piece(BISHOP, side);
+    bitboard_for_each_bit(square_i, bitboard) {
+        score += piece::score(BISHOP);
+        score += piece::score(BISHOP, side, square_i);
+    }
+
+    bitboard = board.get_bitboard_piece(ROOK, side);
+    bitboard_for_each_bit(square_i, bitboard) {
+        score += piece::score(ROOK);
+        score += piece::score(ROOK, side, square_i);
+
+        // rook on open and semi-open files
+        const uint8_t file = get_file(square_i);
+        if (!(pawns & mask_file[file])) score += score_open;
+        if (!(pawnsS & mask_file[file])) score += score_open_semi;
+    }
+
+    bitboard = board.get_bitboard_piece(QUEEN, side);
+    bitboard_for_each_bit(square_i, bitboard) {
+        score += piece::score(QUEEN);
+        score += piece::score(QUEEN, side, square_i);
+    }
+
+    bitboard = board.get_bitboard_piece(KING, side);
+    bitboard_for_each_bit(square_i, bitboard) {
+        score += piece::score(KING);
+        score += piece::score(KING, side, square_i);
+
+        // king on open and semi-open files
+        const uint8_t file = get_file(square_i);
+        if (!(pawns & mask_file[file])) score -= score_open;
+        if (!(pawnsS & mask_file[file])) score -= score_open_semi;
     }
 
     return score;

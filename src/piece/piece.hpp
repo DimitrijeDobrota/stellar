@@ -204,9 +204,9 @@ constexpr uint16_t score(Type piece, Type captured) {
     return capture[to_underlying(piece)][to_underlying(captured)];
 }
 
-constexpr int8_t score(Type type, Color color, Square square) {
-    if (color == Color::BLACK) square = mirror[to_underlying(square)];
-    return position[to_underlying(type)][to_underlying(square)];
+constexpr int8_t score(Type type, Color color, uint8_t square_i) {
+    if (color == Color::BLACK) square_i = to_underlying(mirror[square_i]);
+    return position[to_underlying(type)][square_i];
 }
 
 } // namespace piece
