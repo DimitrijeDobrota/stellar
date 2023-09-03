@@ -16,8 +16,10 @@ class Zobrist {
     static inline U64 hash(const Board &board);
     static inline constexpr U64 key_side(void) { return keys_side; }
     static inline constexpr U64 key_castle(int exp) { return keys_castle[exp]; }
-    static inline constexpr U64 key_enpassant(Square square) { return keys_enpassant[to_underlying(square)]; }
-    static inline constexpr U64 key_piece(piece::Type type, Color color, Square square) {
+    static inline constexpr U64 key_enpassant(square::Square square) {
+        return keys_enpassant[to_underlying(square)];
+    }
+    static inline constexpr U64 key_piece(piece::Type type, color::Color color, square::Square square) {
         return keys_piece[piece::get_index(type, color)][to_underlying(square)];
     }
 
@@ -27,8 +29,8 @@ class Zobrist {
         key_piece_array key_piece;
         Random gen(C64(1804289383));
         for (piece::Type type : piece::TypeIter()) {
-            int piece_index_white = piece::get(type, Color::WHITE).index;
-            int piece_index_black = piece::get(type, Color::BLACK).index;
+            int piece_index_white = piece::get(type, color::Color::WHITE).index;
+            int piece_index_black = piece::get(type, color::Color::BLACK).index;
             for (int square = 0; square < 64; square++) {
                 key_piece[piece_index_white][square] = gen();
                 key_piece[piece_index_black][square] = gen();

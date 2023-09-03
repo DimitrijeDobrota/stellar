@@ -121,7 +121,7 @@ U32 inline move_list_score(Move move) {
     const piece::Type type = board.get_square_piece_type(move.source());
     if (move.is_capture()) {
         const piece::Type captured = board.get_square_piece_type(move.target());
-        return piece::score(type, captured) + 10000;
+        return score::get(type, captured) + 10000;
     }
     if (killer[0][ply] == move) return 9000;
     if (killer[1][ply] == move) return 8000;
@@ -172,7 +172,7 @@ int stats_move_make(Board &copy, const Move move) {
 void stats_move_make_pruning(Board &copy) {
     copy = board;
     board.switch_side();
-    board.set_enpassant(Square::no_sq);
+    board.set_enpassant(square::no_sq);
     ply++;
 }
 
@@ -264,7 +264,7 @@ int16_t negamax(int16_t alpha, int16_t beta, uint8_t depth, bool null) {
     // if (ply > MAX_PLY - 1) return evaluate::score_position(board);
 
     if (!pv_node && !isCheck) {
-        static constexpr const U32 score_pawn = piece::score(piece::Type::PAWN);
+        static constexpr const U32 score_pawn = score::get(piece::Type::PAWN);
         int16_t staticEval = evaluate::score_position(board);
 
         // evaluation pruning
@@ -301,9 +301,9 @@ int16_t negamax(int16_t alpha, int16_t beta, uint8_t depth, bool null) {
         // futility pruning condition
         static constexpr const int16_t margin[] = {
             0,
-            piece::score(piece::Type::PAWN),
-            piece::score(piece::Type::KNIGHT),
-            piece::score(piece::Type::ROOK),
+            score::get(piece::Type::PAWN),
+            score::get(piece::Type::KNIGHT),
+            score::get(piece::Type::ROOK),
         };
         if (depth < 4 && abs(alpha) < MATE_SCORE && staticEval + margin[depth] <= alpha) futility = 1;
     }

@@ -4,17 +4,18 @@
 #include <algorithm>
 #include <iomanip>
 
-void Move::piece_remove(Board &board, piece::Type type, Color color, Square square) const {
+void Move::piece_remove(Board &board, piece::Type type, color::Color color, square::Square square) const {
     board.pop_piece(type, color, square);
     board.xor_hash(Zobrist::key_piece(type, color, square));
 }
 
-void Move::piece_set(Board &board, piece::Type type, Color color, Square square) const {
+void Move::piece_set(Board &board, piece::Type type, color::Color color, square::Square square) const {
     board.set_piece(type, color, square);
     board.xor_hash(Zobrist::key_piece(type, color, square));
 }
 
-void Move::piece_move(Board &board, piece::Type type, Color color, Square source, Square target) const {
+void Move::piece_move(Board &board, piece::Type type, color::Color color, square::Square source,
+                      square::Square target) const {
     piece_remove(board, type, color, source);
     piece_set(board, type, color, target);
 }
@@ -36,13 +37,11 @@ bool Move::make(Board &board) const {
         // clang-format on
     };
 
-    const Color color = board.get_side();
-    const Color colorOther = color == Color::BLACK ? Color::WHITE : Color::BLACK;
-    const Square source = this->source();
-    const Square target = this->target();
+    const color::Color color = board.get_side(), colorOther = color::other(color);
+    const square::Square source = this->source(), target = this->target();
 
-    const Square ntarget =
-        static_cast<Square>(to_underlying(this->target()) + (color == Color::WHITE ? -8 : +8));
+    const square::Square ntarget =
+        static_cast<square::Square>(to_underlying(this->target()) + (color == color::Color::WHITE ? -8 : +8));
 
     const piece::Type piece = board.get_square_piece_type(source);
 
@@ -68,15 +67,19 @@ bool Move::make(Board &board) const {
         }
     }
 
-    board.set_enpassant(is_double() ? ntarget : Square::no_sq);
+    board.set_enpassant(is_double() ? ntarget : square::Square::no_sq);
 
     if (is_castle()) {
-        if (color == Color::WHITE) {
-            if (is_castle_king()) piece_move(board, ROOK, Color::WHITE, Square::h1, Square::f1);
-            if (is_castle_queen()) piece_move(board, ROOK, Color::WHITE, Square::a1, Square::d1);
+        if (color == color::Color::WHITE) {
+            if (is_castle_king())
+                piece_move(board, ROOK, color::Color::WHITE, square::Square::h1, square::Square::f1);
+            if (is_castle_queen())
+                piece_move(board, ROOK, color::Color::WHITE, square::Square::a1, square::Square::d1);
         } else {
-            if (is_castle_king()) piece_move(board, ROOK, Color::BLACK, Square::h8, Square::f8);
-            if (is_castle_queen()) piece_move(board, ROOK, Color::BLACK, Square::a8, Square::d8);
+            if (is_castle_king())
+                piece_move(board, ROOK, color::Color::BLACK, square::Square::h8, square::Square::f8);
+            if (is_castle_queen())
+                piece_move(board, ROOK, color::Color::BLACK, square::Square::a8, square::Square::d8);
         }
     }
 
@@ -91,8 +94,8 @@ bool Move::make(Board &board) const {
 }
 
 std::ostream &operator<<(std::ostream &os, Move move) {
-    os << square_to_coordinates(move.source()) << " ";
-    os << square_to_coordinates(move.target()) << " ";
+    os << square::to_coordinates(move.source()) << " ";
+    os << square::to_coordinates(move.target()) << " ";
     os << (move.is_promote() ? piece::get_code(move.promoted()) : '.') << " ";
     os << move.is_double() << " ";
     os << move.is_enpassant() << " ";

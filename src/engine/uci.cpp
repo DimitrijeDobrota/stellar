@@ -16,7 +16,7 @@ uint32_t get_time_ms(void) {
 }
 
 void move_print(const Board &board, Move move) {
-    std::cout << square_to_coordinates(move.source()) << square_to_coordinates(move.target());
+    std::cout << square::to_coordinates(move.source()) << square::to_coordinates(move.target());
     if (move.is_promote()) std::cout << piece::get_code(move.promoted(), board.get_side());
 }
 
@@ -48,8 +48,8 @@ void communicate(const uci::Settings *settings) {
 }
 
 inline bool parse_move(const Board &board, Move &move, const std::string &move_string) {
-    Square source = square_from_coordinates(move_string.substr(0, 2));
-    Square target = square_from_coordinates(move_string.substr(2, 2));
+    const square::Square source = square::from_coordinates(move_string.substr(0, 2));
+    const square::Square target = square::from_coordinates(move_string.substr(2, 2));
 
     const MoveList list(board);
     for (int i = 0; i < list.size(); i++) {
@@ -144,7 +144,7 @@ void loop(void) {
             }
 
             settings.starttime = get_time_ms();
-            uint32_t time = (settings.board.get_side() == Color::WHITE) ? wtime : btime;
+            uint32_t time = (settings.board.get_side() == color::WHITE) ? wtime : btime;
 
             if (movetime != 0) {
                 time = movetime;
@@ -152,7 +152,7 @@ void loop(void) {
             }
 
             if (time != 0) {
-                uint16_t inc = (settings.board.get_side() == Color::WHITE) ? winc : binc;
+                uint16_t inc = (settings.board.get_side() == color::WHITE) ? winc : binc;
                 time /= movestogo;
                 time -= 50;
                 settings.stoptime = settings.starttime += time + inc;
