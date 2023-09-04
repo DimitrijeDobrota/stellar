@@ -56,6 +56,7 @@ struct Move {
     bool make(Board &board) const;
 
     friend std::ostream &operator<<(std::ostream &os, Move move);
+    void print(void) const;
 
   private:
     inline void piece_remove(Board &board, piece::Type type, color::Color color, square::Square square) const;

@@ -9,19 +9,14 @@
 #include "uci.hpp"
 
 namespace uci {
+
 uint32_t get_time_ms(void) {
     struct timeval time;
     gettimeofday(&time, NULL);
     return time.tv_sec * 1000 + time.tv_usec / 1000;
 }
 
-void move_print(const Board &board, Move move) {
-    std::cout << square::to_coordinates(move.source()) << square::to_coordinates(move.target());
-    if (move.is_promote()) std::cout << piece::get_code(move.promoted(), board.get_side());
-}
-
-void pv_print(int16_t score, uint8_t depth, uint64_t nodes, uint8_t pv_length[MAX_PLY],
-              Move pv_table[MAX_PLY][MAX_PLY], const Board &board) {
+void pv_print(int16_t score, uint8_t depth, uint64_t nodes, const engine::PVTable &pvtable) {
     if (score > -MATE_VALUE && score < -MATE_SCORE) {
         std::cout << "info score mate " << -(score + MATE_VALUE) / 2 - 1;
     } else if (score > MATE_SCORE && score < MATE_VALUE) {
@@ -32,12 +27,7 @@ void pv_print(int16_t score, uint8_t depth, uint64_t nodes, uint8_t pv_length[MA
 
     std::cout << " depth " << (unsigned)depth;
     std::cout << " nodes " << nodes;
-    std::cout << " pv ";
-    for (int i = 0; i < pv_length[0]; i++) {
-        uci::move_print(board, pv_table[0][i]);
-        std::cout << " ";
-    }
-    std::cout << "\n";
+    std::cout << " pv " << pvtable << "\n";
 }
 
 void communicate(const uci::Settings *settings) {
@@ -110,7 +100,7 @@ void loop(void) {
         } else if (command == "go") {
             settings.searchMoves.clear();
             uint32_t wtime = 0, btime = 0, movetime = 0;
-            uint16_t winc = 0, binc = 0, movestogo = 30;
+            uint16_t winc = 0, binc = 0, movestogo = 60;
 
             while (iss >> command) {
                 if (command == "wtime")
@@ -162,9 +152,7 @@ void loop(void) {
             if (!time) settings.infinite = true;
 
             const Move best = engine::search_position(settings);
-            std::cout << "bestmove ";
-            uci::move_print(settings.board, best);
-            std::cout << "\n";
+            std::cout << "bestmove " << best << '\n';
 
             settings.newgame = false;
         }

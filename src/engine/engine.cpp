@@ -105,17 +105,43 @@ class RTable {
     const static int hashNull = 0;
 };
 
+class PVTable {
+  public:
+    Move best(uint8_t ply = 0) { return table[0][ply]; }
+
+    void start(uint8_t ply) { length[ply] = ply; }
+    void store(Move move, uint8_t ply) {
+        table[ply][ply] = move;
+        for (uint8_t i = ply + 1; i < length[ply + 1]; i++)
+            table[ply][i] = table[ply + 1][i];
+        length[ply] = length[ply + 1];
+    }
+
+    friend std::ostream &operator<<(std::ostream &os, const PVTable &pvtable);
+
+  private:
+    Move table[MAX_PLY][MAX_PLY] = {{}};
+    uint8_t length[MAX_PLY] = {0};
+};
+
+std::ostream &operator<<(std::ostream &os, const PVTable &pvtable) {
+    for (uint8_t i = 0; i < pvtable.length[0]; i++)
+        os << pvtable.table[0][i] << " ";
+    return os;
+}
+
 static const uci::Settings *settings = nullptr;
 static Board board;
 static TTable ttable;
 static RTable rtable;
-static Move pv_table[MAX_PLY][MAX_PLY];
+
+static PVTable pvtable;
+
 static Move killer[2][MAX_PLY];
 static U32 history[12][64];
-static uint8_t pv_length[MAX_PLY];
 static bool follow_pv;
 static U64 nodes;
-static U32 ply;
+static uint8_t ply;
 
 U32 inline move_list_score(Move move) {
     const piece::Type type = board.get_square_piece_type(move.source());
@@ -143,7 +169,7 @@ std::vector<int> move_list_sort(MoveList &list, const Move best) {
     if (!best_found && ply && follow_pv) {
         follow_pv = false;
         for (int i = 0; i < list.size(); i++) {
-            if (list[i] == pv_table[0][ply]) {
+            if (list[i] == pvtable.best(ply)) {
                 score[i] = 20000;
                 follow_pv = true;
                 break;
@@ -188,20 +214,12 @@ void stats_move_unmake(Board &copy, const Move move) {
     ply--;
 }
 
-void stats_pv_store(Move move) {
-    pv_table[ply][ply] = move;
-    for (int i = ply + 1; i < pv_length[ply + 1]; i++) {
-        pv_table[ply][i] = pv_table[ply + 1][i];
-    }
-    pv_length[ply] = pv_length[ply + 1];
-}
-
 int16_t quiescence(int16_t alpha, int16_t beta) {
     if ((nodes & 2047) == 0) {
         uci::communicate(settings);
         if (settings->stopped) return 0;
     }
-    pv_length[ply] = ply;
+    pvtable.start(ply);
     nodes++;
 
     int score = evaluate::score_position(board);
@@ -219,7 +237,7 @@ int16_t quiescence(int16_t alpha, int16_t beta) {
 
         if (score > alpha) {
             alpha = score;
-            stats_pv_store(move);
+            pvtable.store(move, ply);
             if (score >= beta) return beta;
         }
 
@@ -240,7 +258,7 @@ int16_t negamax(int16_t alpha, int16_t beta, uint8_t depth, bool null) {
         uci::communicate(settings);
         if (settings->stopped) return 0;
     }
-    pv_length[ply] = ply;
+    pvtable.start(ply);
 
     // && fifty >= 100
     if (ply && rtable.is_repetition(board.get_hash())) return 0;
@@ -357,7 +375,7 @@ int16_t negamax(int16_t alpha, int16_t beta, uint8_t depth, bool null) {
             alpha = score;
             flag = Hashe::Flag::Exact;
             bestMove = move;
-            stats_pv_store(move);
+            pvtable.store(move, ply);
 
             if (score >= beta) {
                 ttable.write(board, ply, bestMove, beta, depth, Hashe::Flag::Beta);
@@ -404,8 +422,7 @@ Move search_position(const uci::Settings &settingsr) {
     settings->stopped = false;
     memset(killer, 0x00, sizeof(killer));
     memset(history, 0x00, sizeof(history));
-    memset(pv_table, 0x00, sizeof(pv_table));
-    memset(pv_length, 0x00, sizeof(pv_length));
+    rtable = RTable();
 
     for (uint8_t depth = 1; depth <= settings->depth; depth++) {
         uci::communicate(settings);
@@ -423,11 +440,13 @@ Move search_position(const uci::Settings &settingsr) {
         alpha = score - WINDOW;
         beta = score + WINDOW;
 
-        if (pv_length[0]) uci::pv_print(score, depth, nodes, pv_length, pv_table, board);
+        uci::pv_print(score, depth, nodes, pvtable);
+        if (settings->depth == 64 && uci::get_time_ms() >= (settings->stoptime + settings->starttime) / 2)
+            break;
     }
 
     settings->board = board;
-    return pv_table[0][0];
+    return pvtable.best();
 }
 } // namespace engine
 

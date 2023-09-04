@@ -93,13 +93,18 @@ bool Move::make(Board &board) const {
     return 0;
 }
 
+void Move::print(void) const {
+    std::cout << square::to_coordinates(source()) << " ";
+    std::cout << square::to_coordinates(target()) << " ";
+    std::cout << (is_promote() ? piece::get_code(promoted()) : '.') << " ";
+    std::cout << is_double() << " ";
+    std::cout << is_enpassant() << " ";
+    std::cout << is_castle();
+}
+
 std::ostream &operator<<(std::ostream &os, Move move) {
-    os << square::to_coordinates(move.source()) << " ";
-    os << square::to_coordinates(move.target()) << " ";
-    os << (move.is_promote() ? piece::get_code(move.promoted()) : '.') << " ";
-    os << move.is_double() << " ";
-    os << move.is_enpassant() << " ";
-    os << move.is_castle();
+    std::cout << square::to_coordinates(move.source()) << square::to_coordinates(move.target());
+    if (move.is_promote()) std::cout << piece::get_code(move.promoted());
 
     return os;
 }

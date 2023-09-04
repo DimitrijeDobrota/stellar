@@ -7,6 +7,12 @@
 #include "score.hpp"
 #include "utils.hpp"
 
+namespace engine {
+
+class PVTable;
+
+} // namespace engine
+
 namespace uci {
 
 struct Settings {
@@ -30,12 +36,9 @@ struct Settings {
 };
 
 void loop(void);
-void pv_print(int16_t score, uint8_t depth, uint64_t nodes, uint8_t pv_length[MAX_PLY],
-              Move pv_table[MAX_PLY][MAX_PLY], const Board &board);
-void move_print(const Board &board, Move move);
-void communicate(const uci::Settings *settings);
 uint32_t get_time_ms(void);
+void communicate(const uci::Settings *settings);
+void pv_print(int16_t score, uint8_t depth, uint64_t nodes, const engine::PVTable &pvtable);
 
 } // namespace uci
-
 #endif

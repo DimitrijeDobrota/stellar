@@ -1,7 +1,7 @@
 add_executable(engine
     evaluate.cpp
-    engine.cpp
     uci.cpp
+    engine.cpp
 )
 
 target_link_libraries(engine
