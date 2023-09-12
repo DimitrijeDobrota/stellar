@@ -21,8 +21,8 @@ struct Settings {
     MoveList searchMoves;
     MoveList madeMoves;
 
-    uint32_t starttime;
-    uint32_t stoptime;
+    uint64_t starttime;
+    uint64_t stoptime;
     uint16_t depth = 64;
 
     uint32_t nodes = 0;

@@ -57,7 +57,7 @@ inline constexpr const U64 get_attack(const Type type, const color::Color color,
     return get(type, color).attack(from, occupancy);
 }
 
-inline constexpr const char get_code(const Type type, const color::Color color = color::WHITE) {
+inline constexpr const char get_code(const Type type, const color::Color color = color::BLACK) {
     return get(type, color).code;
 }
 

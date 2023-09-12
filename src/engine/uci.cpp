@@ -99,7 +99,7 @@ void loop(void) {
             }
         } else if (command == "go") {
             settings.searchMoves.clear();
-            uint32_t wtime = 0, btime = 0, movetime = 0;
+            uint64_t wtime = 0, btime = 0, movetime = 0;
             uint16_t winc = 0, binc = 0, movestogo = 60;
 
             while (iss >> command) {
@@ -145,7 +145,7 @@ void loop(void) {
                 uint16_t inc = (settings.board.get_side() == color::WHITE) ? winc : binc;
                 time /= movestogo;
                 time -= 50;
-                settings.stoptime = settings.starttime += time + inc;
+                settings.stoptime = settings.starttime + time + inc;
                 settings.infinite = false;
             }
 
