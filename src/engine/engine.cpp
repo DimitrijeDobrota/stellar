@@ -117,10 +117,21 @@ static U64 nodes;
 static uint8_t ply;
 
 U32 inline move_list_score(Move move) {
+    static constexpr const uint16_t capture[6][6] = {
+        // clang-format off
+        {105, 205, 305, 405, 505, 605},
+        {104, 204, 304, 404, 504, 604},
+        {103, 203, 303, 403, 503, 603},
+        {102, 202, 302, 402, 502, 602},
+        {101, 201, 301, 401, 501, 601},
+        {100, 200, 300, 400, 500, 600},
+        // clang-format on
+    };
+
     const piece::Type type = board.get_square_piece_type(move.source());
     if (move.is_capture()) {
         const piece::Type captured = board.get_square_piece_type(move.target());
-        return score::get(type, captured) + 10000;
+        return capture[to_underlying(type)][to_underlying(captured)] + 10000;
     }
     if (killer[0][ply] == move) return 9000;
     if (killer[1][ply] == move) return 8000;
@@ -188,11 +199,11 @@ void stats_move_unmake(Board &copy, const Move move) {
 }
 
 int16_t quiescence(int16_t alpha, int16_t beta) {
+    pvtable.start(ply);
     if ((nodes & 2047) == 0) {
         uci::communicate(settings);
         if (settings->stopped) return 0;
     }
-    pvtable.start(ply);
     nodes++;
 
     int score = evaluate::score_position(board);
@@ -227,11 +238,11 @@ int16_t negamax(int16_t alpha, int16_t beta, uint8_t depth, bool null) {
     Move bestMove;
     Board copy;
 
+    pvtable.start(ply);
     if ((nodes & 2047) == 0) {
         uci::communicate(settings);
         if (settings->stopped) return 0;
     }
-    pvtable.start(ply);
 
     // && fifty >= 100
     if (ply && rtable.is_repetition(board.get_hash())) return 0;
@@ -378,7 +389,7 @@ Move search_position(const uci::Settings &settingsr) {
     settings = &settingsr;
 
     if (settings->newgame) {
-        ttable = TTable(C64(0x1000000));
+        ttable = TTable(C64(0x2FB4377));
     }
 
     rtable.clear();

@@ -71,9 +71,22 @@ using piece::Type::PAWN;
 using piece::Type::QUEEN;
 using piece::Type::ROOK;
 
-int16_t score_position_side(const Board &board, const color::Color side) {
-    U64 bitboard;
+using score::Phase::ENDGAME;
+using score::Phase::OPENING;
+
+uint16_t score_game_phase(const Board &board) {
     int16_t total = 0;
+    for (int type_i = KNIGHT; type_i < KING; type_i++) {
+        const piece::Type type = static_cast<piece::Type>(type_i);
+        total += bit::count(board.get_bitboard_piece(type)) * score::get(type);
+    }
+    return total;
+}
+
+int16_t score_position_side(const Board &board, const color::Color side, const uint16_t phase_score) {
+    U64 bitboard;
+
+    int16_t total = 0, opening = 0, endgame = 0;
     int8_t square_i;
 
     const uint8_t side_i = to_underlying(side);
@@ -84,66 +97,79 @@ int16_t score_position_side(const Board &board, const color::Color side) {
     bitboard = board.get_bitboard_piece(PAWN, side);
     bitboard_for_each_bit(square_i, bitboard) {
         const square::Square square = static_cast<square::Square>(square_i);
-        total += score::get(PAWN, side, square);
-        total += score::get(PAWN);
+        opening += score::get(PAWN, side, square, OPENING) + score::get(PAWN, OPENING);
+        endgame += score::get(PAWN, side, square, ENDGAME) + score::get(PAWN, ENDGAME);
 
         // check isolated, doubled and passed pawns
         const uint8_t file = square::file(square), rank = square::rank(square);
-        if (!(mask_isolated[file] & pawnsS)) total -= score::pawn_isolated;
-        if (bit::count(pawnsS & mask_file[file]) > 1) total -= score::pawn_double;
+        if (!(mask_isolated[file] & pawnsS)) {
+            opening -= score::pawn_isolated_opening;
+            endgame -= score::pawn_isolated_endgame;
+        }
+
+        if (bit::count(pawnsS & mask_file[file]) > 1) {
+            opening -= score::pawn_double_opening;
+            endgame -= score::pawn_double_endgame;
+        }
+
         if (!(pawnsO & mask_passed[side_i][square_i])) total += score::pawn_passed[side_i][rank];
     }
 
     bitboard = board.get_bitboard_piece(KNIGHT, side);
     bitboard_for_each_bit(square_i, bitboard) {
         const square::Square square = static_cast<square::Square>(square_i);
-        total += score::get(KNIGHT, side, square);
-        total += score::get(KNIGHT);
+        opening += score::get(KNIGHT, side, square, OPENING) + score::get(KNIGHT, OPENING);
+        endgame += score::get(KNIGHT, side, square, ENDGAME) + score::get(KNIGHT, ENDGAME);
     }
 
     bitboard = board.get_bitboard_piece(BISHOP, side);
     bitboard_for_each_bit(square_i, bitboard) {
         const square::Square square = static_cast<square::Square>(square_i);
-        total += score::get(BISHOP, side, square);
-        total += score::get(BISHOP);
+        opening += score::get(BISHOP, side, square, OPENING) + score::get(BISHOP, OPENING);
+        endgame += score::get(BISHOP, side, square, ENDGAME) + score::get(BISHOP, ENDGAME);
     }
 
     bitboard = board.get_bitboard_piece(ROOK, side);
     bitboard_for_each_bit(square_i, bitboard) {
         const square::Square square = static_cast<square::Square>(square_i);
-        total += score::get(ROOK, side, square);
-        total += score::get(ROOK);
+        opening += score::get(ROOK, side, square, OPENING) + score::get(ROOK, OPENING);
+        endgame += score::get(ROOK, side, square, ENDGAME) + score::get(ROOK, ENDGAME);
 
         // rook on open and semi-open files
         const uint8_t file = square::file(square);
-        if (!(pawns & mask_file[file])) total += score::score_open;
-        if (!(pawnsS & mask_file[file])) total += score::score_open_semi;
+        if (!(pawns & mask_file[file])) total += score::file_open;
+        if (!(pawnsS & mask_file[file])) total += score::file_open_semi;
     }
 
     bitboard = board.get_bitboard_piece(QUEEN, side);
     bitboard_for_each_bit(square_i, bitboard) {
         const square::Square square = static_cast<square::Square>(square_i);
-        total += score::get(QUEEN, side, square);
-        total += score::get(QUEEN);
+        opening += score::get(QUEEN, side, square, OPENING) + score::get(QUEEN, OPENING);
+        endgame += score::get(QUEEN, side, square, ENDGAME) + score::get(QUEEN, ENDGAME);
     }
 
     bitboard = board.get_bitboard_piece(KING, side);
     bitboard_for_each_bit(square_i, bitboard) {
         const square::Square square = static_cast<square::Square>(square_i);
-        total += score::get(KING, side, square);
-        total += score::get(KING);
+        opening += score::get(KING, side, square, OPENING) + score::get(KING, OPENING);
+        endgame += score::get(KING, side, square, ENDGAME) + score::get(KING, ENDGAME);
 
         // king on open and semi-open files
         const uint8_t file = square::file(square);
-        if (!(pawns & mask_file[file])) total -= score::score_open;
-        if (!(pawnsS & mask_file[file])) total -= score::score_open_semi;
+        if (!(pawns & mask_file[file])) total -= score::file_open;
+        if (!(pawnsS & mask_file[file])) total -= score::file_open_semi;
     }
 
-    return total;
+    opening += total, endgame += total;
+    if (phase_score > score::phase_opening) return opening;
+    if (phase_score < score::phase_endgame) return endgame;
+    return score::interpolate(phase_score, opening, endgame);
 }
 
 int16_t score_position(const Board &board) {
-    const int16_t score = score_position_side(board, color::WHITE) - score_position_side(board, color::BLACK);
+    const uint16_t phase_score = score_game_phase(board);
+    const int16_t score = score_position_side(board, color::WHITE, phase_score) -
+                          score_position_side(board, color::BLACK, phase_score);
     return board.get_side() == color::WHITE ? score : -score;
 }
 
