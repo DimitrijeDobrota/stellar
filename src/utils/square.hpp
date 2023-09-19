@@ -51,7 +51,7 @@ inline constexpr const uint8_t file(const Square square) { return to_underlying(
 inline constexpr const uint8_t rank(const Square square) { return to_underlying(square) >> 3; }
 inline constexpr const Square mirror(const Square square) { return mirror_array[square]; }
 
-inline constexpr const char *to_coordinates(const Square square) {
+inline constexpr const std::string to_coordinates(const Square square) {
     return coordinates_array[to_underlying(square)];
 }
 

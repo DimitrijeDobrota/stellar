@@ -102,9 +102,10 @@ void Move::print(void) const {
     std::cout << is_castle();
 }
 
-std::ostream &operator<<(std::ostream &os, Move move) {
-    std::cout << square::to_coordinates(move.source()) << square::to_coordinates(move.target());
-    if (move.is_promote()) std::cout << piece::get_code(move.promoted());
-
-    return os;
+Move::operator std::string() const {
+    std::string res = square::to_coordinates(source()) + square::to_coordinates(target());
+    if (is_promote()) res += piece::get_code(promoted());
+    return res;
 }
+
+std::ostream &operator<<(std::ostream &os, Move move) { return os << (std::string)move; }

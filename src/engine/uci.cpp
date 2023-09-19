@@ -2,36 +2,16 @@
 #include <limits>
 #include <sstream>
 #include <string>
-#include <sys/time.h>
 
 #include "engine.hpp"
 #include "stellar_version.hpp"
+#include "timer.hpp"
 #include "uci.hpp"
 
 namespace uci {
 
-uint32_t get_time_ms(void) {
-    struct timeval time;
-    gettimeofday(&time, NULL);
-    return time.tv_sec * 1000 + time.tv_usec / 1000;
-}
-
-void pv_print(int16_t score, uint8_t depth, uint64_t nodes, const engine::PVTable &pvtable) {
-    if (score > -MATE_VALUE && score < -MATE_SCORE) {
-        std::cout << "info score mate " << -(score + MATE_VALUE) / 2 - 1;
-    } else if (score > MATE_SCORE && score < MATE_VALUE) {
-        std::cout << "info score mate " << (MATE_VALUE - score) / 2 + 1;
-    } else {
-        std::cout << "info score cp " << score;
-    }
-
-    std::cout << " depth " << (unsigned)depth;
-    std::cout << " nodes " << nodes;
-    std::cout << " pv " << pvtable << "\n";
-}
-
 void communicate(const uci::Settings *settings) {
-    if (!settings->infinite && uci::get_time_ms() > settings->stoptime) {
+    if (!settings->infinite && timer::get_ms() > settings->stoptime) {
         settings->stopped = true;
         return;
     }
@@ -59,6 +39,8 @@ void loop(void) {
     static Settings settings;
     static std::string line, command;
     static Move move;
+
+    Board board;
 
     while (true) {
         std::getline(std::cin, line);
@@ -91,7 +73,7 @@ void loop(void) {
             while (iss >> command)
                 if (command == "moves") break;
 
-            Board board = settings.board;
+            board = settings.board;
             while (iss >> command) {
                 if (!parse_move(board, move, command)) break;
                 settings.madeMoves.push(move);
@@ -127,29 +109,26 @@ void loop(void) {
                     settings.infinite = true;
                 else if (command == "searchmoves") {
                     while (iss >> command) {
-                        if (!parse_move(settings.board, move, command)) break;
+                        if (!parse_move(board, move, command)) break;
                         settings.searchMoves.push(move);
                     }
                 }
             }
 
-            settings.starttime = get_time_ms();
-            uint32_t time = (settings.board.get_side() == color::WHITE) ? wtime : btime;
+            settings.starttime = timer::get_ms();
+            uint64_t time = (board.get_side() == color::WHITE) ? wtime : btime;
 
             if (movetime != 0) {
                 time = movetime;
                 movestogo = 1;
-            }
-
-            if (time != 0) {
-                uint16_t inc = (settings.board.get_side() == color::WHITE) ? winc : binc;
+            } else if (time != 0) {
+                uint16_t inc = (board.get_side() == color::WHITE) ? winc : binc;
                 time /= movestogo;
                 time -= 50;
                 settings.stoptime = settings.starttime + time + inc;
                 settings.infinite = false;
-            }
-
-            if (!time) settings.infinite = true;
+            } else
+                settings.infinite = true;
 
             const Move best = engine::search_position(settings);
             std::cout << "bestmove " << best << '\n';

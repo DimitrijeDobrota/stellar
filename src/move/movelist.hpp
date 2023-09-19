@@ -15,9 +15,17 @@ class MoveList {
 
   public:
     MoveList() : list(){};
-    MoveList(const Board &board, bool attacks_only = false) : list() {
+    MoveList(const Board &board, bool attacks_only = false, bool legal = false) : list() {
         list.reserve(256);
         generate(board, attacks_only);
+        if (!legal) return;
+
+        int size = 0;
+        for (int i = 0; i < list.size(); i++) {
+            Board copy = board;
+            if (list[i].make(copy)) list[size++] = list[i];
+        }
+        list.resize(size);
     }
 
     void clear() { list.clear(); }

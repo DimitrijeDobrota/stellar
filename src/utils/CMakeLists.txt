@@ -14,6 +14,10 @@ add_library(square INTERFACE)
 target_include_directories(square INTERFACE .)
 stellar_target_precompile_headers(square INTERFACE "square.hpp")
 
+add_library(timer INTERFACE)
+target_include_directories(timer INTERFACE .)
+stellar_target_precompile_headers(timer INTERFACE "timer.hpp")
+
 add_library(utils INTERFACE)
 target_include_directories(utils INTERFACE .)
 stellar_target_precompile_headers(utils INTERFACE "utils.hpp")

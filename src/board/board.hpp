@@ -44,6 +44,8 @@ class Board {
                                                     square::Square from) const;
     inline constexpr U64 get_bitboard_piece_moves(piece::Type piece, color::Color color,
                                                   square::Square from) const;
+    inline constexpr U64 get_bitboard_square_land(square::Square land, piece::Type piece,
+                                                  color::Color side) const;
 
     inline constexpr color::Color get_square_piece_color(square::Square square) const;
     inline constexpr piece::Type get_square_piece_type(square::Square square) const;
@@ -107,6 +109,12 @@ constexpr U64 Board::get_bitboard_piece_attacks(piece::Type type, color::Color c
 constexpr U64 Board::get_bitboard_piece_moves(piece::Type type, color::Color color,
                                               square::Square square) const {
     return get_bitboard_piece_attacks(type, color, square) & ~get_bitboard_color(color);
+}
+
+constexpr U64 Board::get_bitboard_square_land(square::Square land, piece::Type piece,
+                                              color::Color side) const {
+
+    return get_bitboard_piece_attacks(piece, color::other(side), land) & get_bitboard_piece(piece, side);
 }
 
 constexpr color::Color Board::get_square_piece_color(square::Square square) const {

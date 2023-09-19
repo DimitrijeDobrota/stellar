@@ -126,7 +126,7 @@ void usage(const char *program) {
     std::cout << " [-h]";
     std::cout << " [-t thread number]";
     std::cout << " [-d depth]";
-    std::cout << " [-f fen]" <<std::endl;
+    std::cout << " [-f fen]" << std::endl;
 }
 
 int main(int argc, char *argv[]) {
@@ -139,19 +139,13 @@ int main(int argc, char *argv[]) {
             thread_num = atoi(optarg);
             if (thread_num <= 0 && thread_num > THREAD_MAX) abort();
             break;
-        case 'f':
-            fen = optarg;
-            break;
+        case 'f': fen = optarg; break;
         case 'd':
             depth = atoi(optarg);
             if (depth <= 0) abort();
             break;
-        case 'h':
-            usage(argv[0]);
-            return 1;
-        default:
-            usage(argv[0]);
-            abort();
+        case 'h': usage(argv[0]); return 1;
+        default: usage(argv[0]); abort();
         }
     }
 

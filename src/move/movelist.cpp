@@ -1,4 +1,5 @@
 #include "movelist.hpp"
+#include "color.hpp"
 #include "piece.hpp"
 #include <iomanip>
 
@@ -15,8 +16,7 @@ using piece::Type::PAWN;
 void MoveList::generate(const Board &board, bool attacks_only) {
     uint8_t src_i, tgt_i;
 
-    const color::Color color = board.get_side();
-    const color::Color colorOther = color == color::BLACK ? color::WHITE : color::BLACK;
+    const color::Color color = board.get_side(), colorOther = color::other(color);
 
     // pawn moves
     const int add = (color == color::WHITE) ? +8 : -8;

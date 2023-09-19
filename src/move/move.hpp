@@ -42,7 +42,7 @@ struct Move {
     bool is_promote(void) const { return flags_i & 0x8; }
 
     bool is_double(void) const { return flags_i == DOUBLE; }
-    bool is_repetable(void) const { return flags_i == QUIET; }
+    bool is_repeatable(void) const { return flags_i == QUIET; }
     bool is_quiet(void) const { return flags_i == QUIET || flags_i == PQUIET; }
 
     bool is_castle(void) const { return flags_i == CASTLEK || flags_i == CASTLEQ; }
@@ -55,6 +55,7 @@ struct Move {
 
     bool make(Board &board) const;
 
+    operator std::string() const;
     friend std::ostream &operator<<(std::ostream &os, Move move);
     void print(void) const;
 

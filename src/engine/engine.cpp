@@ -10,7 +10,9 @@
 #include "move.hpp"
 #include "movelist.hpp"
 #include "piece.hpp"
+#include "repetition.hpp"
 #include "score.hpp"
+#include "timer.hpp"
 #include "uci.hpp"
 #include "utils.hpp"
 
@@ -76,35 +78,6 @@ class TTable {
     std::vector<Hashe> table;
 };
 
-class RTable {
-  public:
-    RTable() = default;
-
-    bool is_repetition(const U64 hash) const {
-        for (int i = repetitions.size() - 1; i >= 0; i--) {
-            if (repetitions[i] == hash) return true;
-            if (repetitions[i] == hashNull) return false;
-        }
-        return false;
-    }
-
-    void pop(void) { repetitions.pop_back(); }
-    void clear(void) { repetitions.clear(); }
-    void push_null(void) { repetitions.push_back(hashNull); }
-    void push_hash(U64 hash) { repetitions.push_back(hash); }
-
-    friend std::ostream &operator<<(std::ostream &os, const RTable &rtable) {
-        for (const U64 hash : rtable.repetitions)
-            os << hash << " ";
-        return os;
-    }
-
-  private:
-    std::vector<U64> repetitions;
-
-    const static int hashNull = 0;
-};
-
 class PVTable {
   public:
     Move best(uint8_t ply = 0) { return table[0][ply]; }
@@ -133,7 +106,7 @@ std::ostream &operator<<(std::ostream &os, const PVTable &pvtable) {
 static const uci::Settings *settings = nullptr;
 static Board board;
 static TTable ttable;
-static RTable rtable;
+static repetition::Table rtable;
 
 static PVTable pvtable;
 
@@ -191,7 +164,7 @@ int stats_move_make(Board &copy, const Move move) {
     }
     ply++;
     rtable.push_hash(copy.get_hash());
-    if (!move.is_repetable()) rtable.push_null();
+    if (!move.is_repeatable()) rtable.push_null();
     return 1;
 }
 
@@ -209,7 +182,7 @@ void stats_move_unmake_pruning(Board &copy) {
 
 void stats_move_unmake(Board &copy, const Move move) {
     board = copy;
-    if (!move.is_repetable()) rtable.pop();
+    if (!move.is_repeatable()) rtable.pop();
     rtable.pop();
     ply--;
 }
@@ -391,8 +364,7 @@ int16_t negamax(int16_t alpha, int16_t beta, uint8_t depth, bool null) {
     }
 
     if (legal_moves == 0) {
-        if (isCheck)
-            return -MATE_VALUE + ply;
+        if (isCheck) return -MATE_VALUE + ply;
         else
             return 0;
     }
@@ -414,7 +386,7 @@ Move search_position(const uci::Settings &settingsr) {
     for (int i = 0; i < settings->madeMoves.size(); i++) {
         rtable.push_hash(board.get_hash());
         settings->madeMoves[i].make(board);
-        if (!settings->madeMoves[i].is_repetable()) rtable.clear();
+        if (!settings->madeMoves[i].is_repeatable()) rtable.clear();
     }
 
     ply = 0;
@@ -422,31 +394,49 @@ Move search_position(const uci::Settings &settingsr) {
     settings->stopped = false;
     memset(killer, 0x00, sizeof(killer));
     memset(history, 0x00, sizeof(history));
-    rtable = RTable();
+    rtable = repetition::Table();
 
-    for (uint8_t depth = 1; depth <= settings->depth; depth++) {
+    Move lastBest;
+    uint8_t max_depth = settings->depth ? settings->depth : MAX_PLY;
+    for (uint8_t depth = 1; depth <= max_depth; depth++) {
+        lastBest = pvtable.best();
+        follow_pv = 1;
+        int16_t score = negamax(alpha, beta, depth, true);
+
         uci::communicate(settings);
         if (settings->stopped) break;
 
-        follow_pv = 1;
-
-        int16_t score = negamax(alpha, beta, depth, true);
         if ((score <= alpha) || (score >= beta)) {
             alpha = -SCORE_INFINITY;
             beta = SCORE_INFINITY;
             depth--;
             continue;
         }
+
         alpha = score - WINDOW;
         beta = score + WINDOW;
 
-        uci::pv_print(score, depth, nodes, pvtable);
-        if (settings->depth == 64 && uci::get_time_ms() >= (settings->stoptime + settings->starttime) / 2)
-            break;
+        uint8_t mate_ply = 0xFF;
+        if (score > -MATE_VALUE && score < -MATE_SCORE) {
+            mate_ply = (score + MATE_VALUE) / 2 + 1;
+            std::cout << "info score mate -" << (int)mate_ply;
+        } else if (score > MATE_SCORE && score < MATE_VALUE) {
+            mate_ply = (MATE_VALUE - score) / 2 + 1;
+            std::cout << "info score mate " << (int)mate_ply;
+        } else {
+            std::cout << "info score cp " << score;
+        }
+
+        std::cout << " depth " << (unsigned)depth;
+        std::cout << " nodes " << nodes;
+        std::cout << " time " << timer::get_ms() - settings->starttime;
+        std::cout << " pv " << pvtable << std::endl;
+
+        if (depth >= mate_ply) break;
     }
 
     settings->board = board;
-    return pvtable.best();
+    return !settings->stopped ? pvtable.best() : lastBest;
 }
 } // namespace engine
 
