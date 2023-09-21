@@ -4,9 +4,9 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 project(
     Stellar
 	VERSION 0.0.35
-    DESCRIPTION "Chess engine written in C"
+    DESCRIPTION "Chess engine written in C++"
 	HOMEPAGE_URL https://git.dimitrijedobrota.com/stellar.git
-    LANGUAGES C CXX
+    LANGUAGES CXX
 )
 enable_testing()
 

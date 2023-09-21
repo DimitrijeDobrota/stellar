@@ -121,11 +121,19 @@ void perft_test(const char *fen, int depth, int thread_num) {
 #endif
 }
 
+void usage(const char *program) {
+    std::cout << "Usage: " << program;
+    std::cout << " [-h]";
+    std::cout << " [-t thread number]";
+    std::cout << " [-d depth]";
+    std::cout << " [-f fen]" <<std::endl;
+}
+
 int main(int argc, char *argv[]) {
     int c, depth = 1, thread_num = 1;
     std::string s(start_position);
     const char *fen = s.data();
-    while ((c = getopt(argc, argv, "t:f:d:")) != -1) {
+    while ((c = getopt(argc, argv, "ht:f:d:")) != -1) {
         switch (c) {
         case 't':
             thread_num = atoi(optarg);
@@ -138,7 +146,11 @@ int main(int argc, char *argv[]) {
             depth = atoi(optarg);
             if (depth <= 0) abort();
             break;
+        case 'h':
+            usage(argv[0]);
+            return 1;
         default:
+            usage(argv[0]);
             abort();
         }
     }
