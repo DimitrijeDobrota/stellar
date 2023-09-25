@@ -32,6 +32,7 @@ class MoveList {
     int size() const { return list.size(); }
 
     const Move operator[](size_t idx) const { return list[idx]; }
+    Move &operator[](size_t idx) { return list[idx]; }
     void push(const Move move) { list.push_back(move); }
 
     friend std::ostream &operator<<(std::ostream &os, const MoveList &list);
