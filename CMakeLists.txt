@@ -3,7 +3,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 project(
     Stellar
-	VERSION 9.0.3
+	VERSION 9.0.4
     DESCRIPTION "Chess engine written in C++"
 	HOMEPAGE_URL https://git.dimitrijedobrota.com/stellar.git
     LANGUAGES CXX

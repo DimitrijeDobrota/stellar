@@ -419,6 +419,8 @@ Move search_position(const uci::Settings &settingsr) {
     rtable = repetition::Table();
 
     Move lastBest;
+
+    uint64_t time_last = timer::get_ms();
     uint8_t max_depth = settings->depth ? settings->depth : MAX_PLY;
     for (uint8_t depth = 1; depth <= max_depth; depth++) {
         lastBest = pvtable.best();
@@ -455,6 +457,10 @@ Move search_position(const uci::Settings &settingsr) {
         std::cout << " pv " << pvtable << std::endl;
 
         if (depth >= mate_ply) break;
+
+        uint64_t time_crnt = timer::get_ms();
+        if (!settings->depth && 2 * time_crnt - time_last > settings->stoptime) break;
+        time_last = time_crnt;
     }
 
     settings->board = board;
