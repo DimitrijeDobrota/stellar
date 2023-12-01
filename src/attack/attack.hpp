@@ -15,7 +15,7 @@
 
 namespace attack {
 
-typedef U64 (*attack_f)(const square::Square square, U64 occupancy);
+using attack_f = U64 (*)(const square::Square, U64);
 
 }
 

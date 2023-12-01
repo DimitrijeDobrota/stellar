@@ -29,8 +29,8 @@ struct Settings {
     mutable bool stopped = false;
 };
 
-void loop(void);
-uint32_t get_time_ms(void);
+void loop();
+uint32_t get_time_ms();
 void communicate(const uci::Settings *settings);
 
 } // namespace uci

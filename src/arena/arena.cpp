@@ -65,10 +65,10 @@ void usage(const char *program) {
 }
 
 int main(int argc, char *argv[]) {
-    char *engine1 = NULL, *engine2 = NULL;
+    char *engine1 = nullptr, *engine2 = nullptr;
     Match::Settings settings1, settings2;
 
-    char c;
+    char c = 0;
     while ((c = getopt(argc, argv, "hE:e:D:d:T:t:I:i:G:g:N:")) != -1) {
         switch (c) {
         case 'E': engine1 = optarg; break;
@@ -93,7 +93,7 @@ int main(int argc, char *argv[]) {
 
     std::vector<std::string> positions;
     for (int i = optind; i < argc; i++)
-        positions.push_back(!strcmp(argv[i], "-") ? start_position : argv[i]);
+        positions.emplace_back(!strcmp(argv[i], "-") ? start_position : argv[i]);
 
     Arena arena(engine1, engine2);
     arena(positions, settings1, settings2);

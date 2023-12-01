@@ -18,14 +18,14 @@ class Game {
 
     void play(const Move move) { list.push(move); }
 
-    const std::string get_moves(void) const;
-    const std::string &get_white(void) const { return white; }
-    const std::string &get_black(void) const { return black; }
-    const Terminate get_terminate(void) const { return terminate; }
+    [[nodiscard]] const std::string get_moves() const;
+    [[nodiscard]] const std::string &get_white() const { return white; }
+    [[nodiscard]] const std::string &get_black() const { return black; }
+    [[nodiscard]] const Terminate get_terminate() const { return terminate; }
 
-    const bool is_win_white(void) const { return !draw && winner == color::WHITE; }
-    const bool is_win_black(void) const { return !draw && winner == color::BLACK; }
-    const bool is_draw(void) const { return draw; }
+    [[nodiscard]] const bool is_win_white() const { return !draw && winner == color::WHITE; }
+    [[nodiscard]] const bool is_win_black() const { return !draw && winner == color::BLACK; }
+    [[nodiscard]] const bool is_draw() const { return draw; }
 
     void set_terminate(const Terminate terminate) { this->terminate = terminate; }
     void set_winner(const color::Color winner) { this->winner = winner; }

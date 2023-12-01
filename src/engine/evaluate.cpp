@@ -10,7 +10,7 @@
 
 namespace evaluate {
 
-typedef std::array<U64, 8> mask_fr_array;
+using mask_fr_array = std::array<U64, 8>;
 inline constexpr const mask_fr_array mask_rank = []() constexpr -> mask_fr_array {
     mask_fr_array mask_rank;
     U64 mask = 0xFF;
@@ -45,11 +45,11 @@ inline constexpr const mask_fr_array mask_isolated = []() constexpr -> mask_fr_a
     return mask_isolated;
 }();
 
-typedef std::array<std::array<U64, 64>, 2> mask_passed_array;
+using mask_passed_array = std::array<std::array<U64, 64>, 2>;
 inline constexpr const mask_passed_array mask_passed = []() constexpr -> mask_passed_array {
     mask_passed_array mask_passed;
 
-    U64 maskW, maskB;
+    U64 maskW = 0, maskB = 0;
     for (uint8_t file = 0; file < 8; file++) {
         maskW = maskB = mask_file[file] | mask_isolated[file];
         for (uint8_t rank = 0; rank < 8; rank++) {
@@ -96,7 +96,7 @@ int16_t score_position_side(const Board &board, const color::Color side, const u
 
     bitboard = board.get_bitboard_piece(PAWN, side);
     bitboard_for_each_bit(square_i, bitboard) {
-        const square::Square square = static_cast<square::Square>(square_i);
+        const auto square = static_cast<square::Square>(square_i);
         opening += score::get(PAWN, side, square, OPENING) + score::get(PAWN, OPENING);
         endgame += score::get(PAWN, side, square, ENDGAME) + score::get(PAWN, ENDGAME);
 
@@ -117,21 +117,21 @@ int16_t score_position_side(const Board &board, const color::Color side, const u
 
     bitboard = board.get_bitboard_piece(KNIGHT, side);
     bitboard_for_each_bit(square_i, bitboard) {
-        const square::Square square = static_cast<square::Square>(square_i);
+        const auto square = static_cast<square::Square>(square_i);
         opening += score::get(KNIGHT, side, square, OPENING) + score::get(KNIGHT, OPENING);
         endgame += score::get(KNIGHT, side, square, ENDGAME) + score::get(KNIGHT, ENDGAME);
     }
 
     bitboard = board.get_bitboard_piece(BISHOP, side);
     bitboard_for_each_bit(square_i, bitboard) {
-        const square::Square square = static_cast<square::Square>(square_i);
+        const auto square = static_cast<square::Square>(square_i);
         opening += score::get(BISHOP, side, square, OPENING) + score::get(BISHOP, OPENING);
         endgame += score::get(BISHOP, side, square, ENDGAME) + score::get(BISHOP, ENDGAME);
     }
 
     bitboard = board.get_bitboard_piece(ROOK, side);
     bitboard_for_each_bit(square_i, bitboard) {
-        const square::Square square = static_cast<square::Square>(square_i);
+        const auto square = static_cast<square::Square>(square_i);
         opening += score::get(ROOK, side, square, OPENING) + score::get(ROOK, OPENING);
         endgame += score::get(ROOK, side, square, ENDGAME) + score::get(ROOK, ENDGAME);
 
@@ -143,14 +143,14 @@ int16_t score_position_side(const Board &board, const color::Color side, const u
 
     bitboard = board.get_bitboard_piece(QUEEN, side);
     bitboard_for_each_bit(square_i, bitboard) {
-        const square::Square square = static_cast<square::Square>(square_i);
+        const auto square = static_cast<square::Square>(square_i);
         opening += score::get(QUEEN, side, square, OPENING) + score::get(QUEEN, OPENING);
         endgame += score::get(QUEEN, side, square, ENDGAME) + score::get(QUEEN, ENDGAME);
     }
 
     bitboard = board.get_bitboard_piece(KING, side);
     bitboard_for_each_bit(square_i, bitboard) {
-        const square::Square square = static_cast<square::Square>(square_i);
+        const auto square = static_cast<square::Square>(square_i);
         opening += score::get(KING, side, square, OPENING) + score::get(KING, OPENING);
         endgame += score::get(KING, side, square, ENDGAME) + score::get(KING, ENDGAME);
 

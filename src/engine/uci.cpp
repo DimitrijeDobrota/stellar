@@ -35,7 +35,7 @@ inline bool parse_move(const Board &board, Move &move, const std::string &move_s
     return false;
 }
 
-void loop(void) {
+void loop() {
     static Settings settings;
     static std::string line, command;
     static Move move;

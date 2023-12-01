@@ -40,7 +40,7 @@ bool Move::make(Board &board) const {
     const color::Color color = board.get_side(), colorOther = color::other(color);
     const square::Square source = this->source(), target = this->target();
 
-    const square::Square ntarget =
+    const auto ntarget =
         static_cast<square::Square>(to_underlying(this->target()) + (color == color::Color::WHITE ? -8 : +8));
 
     const piece::Type piece = board.get_square_piece_type(source);
@@ -88,12 +88,12 @@ bool Move::make(Board &board) const {
 
     if (!board.is_check()) {
         board.switch_side();
-        return 1;
+        return true;
     }
-    return 0;
+    return false;
 }
 
-void Move::print(void) const {
+void Move::print() const {
     std::cout << square::to_coordinates(source()) << " ";
     std::cout << square::to_coordinates(target()) << " ";
     std::cout << (is_promote() ? piece::get_code(promoted()) : '.') << " ";

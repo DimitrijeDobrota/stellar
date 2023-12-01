@@ -5,9 +5,9 @@
 
 namespace timer {
 
-inline uint32_t get_ms(void) {
-    struct timeval time;
-    gettimeofday(&time, NULL);
+inline uint32_t get_ms() {
+    struct timeval time{};
+    gettimeofday(&time, nullptr);
     return time.tv_sec * 1000 + time.tv_usec / 1000;
 }
 

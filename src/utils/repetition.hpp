@@ -7,7 +7,7 @@ class Table {
   public:
     Table() = default;
 
-    bool is_repetition(const U64 hash) const {
+    [[nodiscard]] bool is_repetition(const U64 hash) const {
         for (int i = repetitions.size() - 1; i >= 0; i--) {
             if (repetitions[i] == hash) return true;
             if (repetitions[i] == hashNull) return false;
@@ -15,9 +15,9 @@ class Table {
         return false;
     }
 
-    void pop(void) { repetitions.pop_back(); }
-    void clear(void) { repetitions.clear(); }
-    void push_null(void) { repetitions.push_back(hashNull); }
+    void pop() { repetitions.pop_back(); }
+    void clear() { repetitions.clear(); }
+    void push_null() { repetitions.push_back(hashNull); }
     void push_hash(U64 hash) { repetitions.push_back(hash); }
 
     friend std::ostream &operator<<(std::ostream &os, const Table &rtable) {

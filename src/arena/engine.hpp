@@ -11,22 +11,22 @@ class Engine {
 
     ~Engine();
 
-    const std::string &get_name(void) const { return name; }
-    const std::string &get_author(void) const { return author; }
+    [[nodiscard]] const std::string &get_name() const { return name; }
+    [[nodiscard]] const std::string &get_author() const { return author; }
 
     void send(std::string &&command);
-    std::string receive(void);
+    std::string receive();
 
   private:
-    [[noreturn]] void start_engine(void);
+    [[noreturn]] void start_engine();
 
     const char *file = nullptr;
-    int fd_to[2], fd_from[2];
+    int fd_to[2]{}, fd_from[2]{};
     pid_t engine_pid;
 
     std::string name, author;
 
-    char rb[1000];
+    char rb[1000]{};
     int rb_size = 0;
 
     std::queue<std::string> q;

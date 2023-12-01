@@ -1,8 +1,8 @@
 #include <algorithm>
-#include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cctype>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include "attack.hpp"
 #include "board.hpp"
@@ -16,11 +16,15 @@
 #include "uci.hpp"
 #include "utils.hpp"
 
-#define FULL_DEPTH 4
-#define REDUCTION_LIMIT 3
-#define REDUCTION_MOVE 2
+enum {
+FULL_DEPTH = 4,
+REDUCTION_LIMIT = 3,
+REDUCTION_MOVE = 2
+};
 
-#define WINDOW 50
+enum {
+WINDOW = 50
+};
 
 namespace engine {
 
@@ -41,7 +45,7 @@ class TTable {
   public:
     static inline constexpr const int16_t unknown = 32500;
 
-    TTable() {}
+    TTable() = default;
     TTable(U64 size) : table(size, {0}) {}
 
     void clear() { table.clear(); };
@@ -424,7 +428,7 @@ Move search_position(const uci::Settings &settingsr) {
     uint8_t max_depth = settings->depth ? settings->depth : MAX_PLY;
     for (uint8_t depth = 1; depth <= max_depth; depth++) {
         lastBest = pvtable.best();
-        follow_pv = 1;
+        follow_pv = true;
         int16_t score = negamax(alpha, beta, depth, true);
 
         uci::communicate(settings);
@@ -468,7 +472,7 @@ Move search_position(const uci::Settings &settingsr) {
 }
 } // namespace engine
 
-int main(void) {
+int main() {
     uci::loop();
     return 0;
 }

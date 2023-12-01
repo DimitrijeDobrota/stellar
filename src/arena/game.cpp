@@ -16,7 +16,7 @@ Game::Game(const uint16_t match_id, const std::string white, const std::string b
     logger::log(std::format("Game {}: started", id), logger::Debug);
 }
 
-const std::string Game::get_moves(void) const {
+const std::string Game::get_moves() const {
     std::string res;
     if (list.size()) res += (std::string)list[0];
     for (int i = 1; i < list.size(); i++)
@@ -43,7 +43,7 @@ const std::string Game::to_san(const Board &board, const Move move) {
 
         if (bit::count(potential) > 1) {
             int file[9] = {0}, rank[9] = {0};
-            uint8_t square_i;
+            uint8_t square_i = 0;
             bitboard_for_each_bit(square_i, potential) {
                 const std::string crd = square::to_coordinates(static_cast<square::Square>(square_i));
                 file[crd[0] & 0x3]++;

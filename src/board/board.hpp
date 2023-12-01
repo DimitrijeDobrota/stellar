@@ -29,32 +29,32 @@ class Board {
 
     /* Getters */
 
-    inline constexpr U64 get_hash(void) const;
-    inline constexpr color::Color get_side(void) const;
-    inline constexpr uint8_t get_castle(void) const;
-    inline constexpr square::Square get_enpassant(void) const;
+    [[nodiscard]] inline constexpr U64 get_hash() const;
+    [[nodiscard]] inline constexpr color::Color get_side() const;
+    [[nodiscard]] inline constexpr uint8_t get_castle() const;
+    [[nodiscard]] inline constexpr square::Square get_enpassant() const;
 
-    inline constexpr U64 get_bitboard_color(color::Color side) const;
-    inline constexpr U64 get_bitboard_occupancy(void) const;
+    [[nodiscard]] inline constexpr U64 get_bitboard_color(color::Color side) const;
+    [[nodiscard]] inline constexpr U64 get_bitboard_occupancy() const;
 
-    inline constexpr U64 get_bitboard_piece(piece::Type piece) const;
-    inline constexpr U64 get_bitboard_piece(piece::Type piece, color::Color color) const;
+    [[nodiscard]] inline constexpr U64 get_bitboard_piece(piece::Type piece) const;
+    [[nodiscard]] inline constexpr U64 get_bitboard_piece(piece::Type piece, color::Color color) const;
 
-    inline constexpr U64 get_bitboard_piece_attacks(piece::Type piece, color::Color color,
+    [[nodiscard]] inline constexpr U64 get_bitboard_piece_attacks(piece::Type piece, color::Color color,
                                                     square::Square from) const;
-    inline constexpr U64 get_bitboard_piece_moves(piece::Type piece, color::Color color,
+    [[nodiscard]] inline constexpr U64 get_bitboard_piece_moves(piece::Type piece, color::Color color,
                                                   square::Square from) const;
-    inline constexpr U64 get_bitboard_square_land(square::Square land, piece::Type piece,
+    [[nodiscard]] inline constexpr U64 get_bitboard_square_land(square::Square land, piece::Type piece,
                                                   color::Color side) const;
 
-    inline constexpr color::Color get_square_piece_color(square::Square square) const;
-    inline constexpr piece::Type get_square_piece_type(square::Square square) const;
-    inline constexpr const piece::Piece *get_square_piece(square::Square square) const;
+    [[nodiscard]] inline constexpr color::Color get_square_piece_color(square::Square square) const;
+    [[nodiscard]] inline constexpr piece::Type get_square_piece_type(square::Square square) const;
+    [[nodiscard]] inline constexpr const piece::Piece *get_square_piece(square::Square square) const;
 
     /* Setters */
 
     inline constexpr void xor_hash(U64 op);
-    inline constexpr void switch_side(void);
+    inline constexpr void switch_side();
     inline constexpr void and_castle(uint8_t right);
     inline constexpr void set_enpassant(square::Square target);
 
@@ -69,11 +69,11 @@ class Board {
 
     /* Queries */
 
-    inline constexpr bool is_square_attacked(square::Square square, color::Color side) const;
-    inline constexpr bool is_square_occupied(square::Square square) const;
-    inline constexpr bool is_piece_attack_square(piece::Type type, color::Color color, square::Square source,
+    [[nodiscard]] inline constexpr bool is_square_attacked(square::Square square, color::Color side) const;
+    [[nodiscard]] inline constexpr bool is_square_occupied(square::Square square) const;
+    [[nodiscard]] inline constexpr bool is_piece_attack_square(piece::Type type, color::Color color, square::Square source,
                                                  square::Square target) const;
-    inline constexpr bool is_check(void) const;
+    [[nodiscard]] inline constexpr bool is_check() const;
 
   private:
     U64 colors[2] = {0};
@@ -84,14 +84,14 @@ class Board {
     uint8_t castle = 0;
 };
 
-constexpr color::Color Board::get_side(void) const { return side; }
-constexpr U64 Board::get_hash(void) const { return hash; }
-constexpr uint8_t Board::get_castle(void) const { return castle; }
-constexpr square::Square Board::get_enpassant(void) const { return enpassant; }
+constexpr color::Color Board::get_side() const { return side; }
+constexpr U64 Board::get_hash() const { return hash; }
+constexpr uint8_t Board::get_castle() const { return castle; }
+constexpr square::Square Board::get_enpassant() const { return enpassant; }
 
 constexpr U64 Board::get_bitboard_color(color::Color side) const { return colors[to_underlying(side)]; }
 
-constexpr U64 Board::get_bitboard_occupancy(void) const {
+constexpr U64 Board::get_bitboard_occupancy() const {
     return colors[to_underlying(color::WHITE)] | colors[to_underlying(color::BLACK)];
 }
 
@@ -147,7 +147,7 @@ constexpr void Board::and_castle(uint8_t right) {
     hash ^= Zobrist::key_castle(castle);
 }
 
-constexpr void Board::switch_side(void) {
+constexpr void Board::switch_side() {
     side = color::other(side);
     hash ^= Zobrist::key_side();
 }
@@ -195,11 +195,11 @@ constexpr bool Board::is_square_attacked(square::Square square, color::Color sid
 
     for (piece::Type type : piece::TypeIter()) {
         if (get_bitboard_piece_attacks(type, side_other, square) & get_bitboard_piece(type, side)) {
-            return 1;
+            return true;
         }
     }
 
-    return 0;
+    return false;
 }
 
 constexpr bool Board::is_piece_attack_square(piece::Type type, color::Color color, square::Square source,
@@ -207,16 +207,16 @@ constexpr bool Board::is_piece_attack_square(piece::Type type, color::Color colo
     return get_bitboard_piece_attacks(type, color, source) & (C64(1) << to_underlying(target));
 }
 
-constexpr bool Board::is_check(void) const {
+constexpr bool Board::is_check() const {
     U64 king = pieces[to_underlying(piece::Type::KING)] & colors[to_underlying(side)];
     color::Color side_other = (side == color::BLACK) ? color::WHITE : color::BLACK;
-    square::Square square = static_cast<square::Square>(bit::lsb_index(king));
+    auto square = static_cast<square::Square>(bit::lsb_index(king));
     return is_square_attacked(square, side_other);
 }
 
 U64 Zobrist::hash(const Board &board) {
     U64 key_final = C64(0);
-    uint8_t square;
+    uint8_t square = 0;
 
     for (piece::Type type : piece::TypeIter()) {
         int piece_white_index = piece::get_index(type, color::WHITE);

@@ -1,7 +1,7 @@
-#include <ctype.h>
+#include <cctype>
 #include <exception>
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 
 #include "board.hpp"
 #include "piece.hpp"
@@ -12,7 +12,7 @@
 /* Getters */
 
 Board::Board(const std::string &fen) {
-    int file = 0, rank = 7, i;
+    int file = 0, rank = 7, i = 0;
     for (i = 0; fen[i] != ' '; i++) {
         if (isalpha(fen[i])) {
             const piece::Piece &piece = piece::get_from_code(fen[i]);
@@ -58,7 +58,7 @@ std::ostream &operator<<(std::ostream &os, const Board &board) {
     for (int rank = 0; rank < 8; rank++) {
         for (int file = 0; file < 8; file++) {
             if (!file) os << 8 - rank << " ";
-            square::Square square = static_cast<square::Square>((7 - rank) * 8 + file);
+            auto square = static_cast<square::Square>((7 - rank) * 8 + file);
             const piece::Piece *piece = board.get_square_piece(square);
             os << (piece ? piece->code : '.') << " ";
         }

@@ -10,11 +10,13 @@
 // FEN debug positions
 #define tricky_position "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1 "
 
-#define THREAD_MAX 64
+enum {
+THREAD_MAX = 64
+};
 
 class Perft {
   public:
-    typedef std::counting_semaphore<THREAD_MAX> semaphore_t;
+    using semaphore_t = std::counting_semaphore<THREAD_MAX>;
     Perft(semaphore_t &sem) : sem(sem) {}
     void operator()(const Board &board_start, Move move, int depth) {
         Board board = board_start;
@@ -130,7 +132,7 @@ void usage(const char *program) {
 }
 
 int main(int argc, char *argv[]) {
-    int c, depth = 1, thread_num = 1;
+    int c = 0, depth = 1, thread_num = 1;
     std::string s(start_position);
     const char *fen = s.data();
     while ((c = getopt(argc, argv, "ht:f:d:")) != -1) {

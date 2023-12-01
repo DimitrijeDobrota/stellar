@@ -21,15 +21,15 @@ class MoveList {
         if (!legal) return;
 
         int size = 0;
-        for (int i = 0; i < list.size(); i++) {
+        for (const auto& move : list) {
             Board copy = board;
-            if (list[i].make(copy)) list[size++] = list[i];
+            if (move.make(copy)) list[size++] = move;
         }
         list.resize(size);
     }
 
     void clear() { list.clear(); }
-    int size() const { return list.size(); }
+    [[nodiscard]] int size() const { return list.size(); }
 
     const Move operator[](size_t idx) const { return list[idx]; }
     Move &operator[](size_t idx) { return list[idx]; }

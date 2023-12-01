@@ -44,7 +44,7 @@ Engine::Engine(const char *file) : file(file) {
 
 Engine::~Engine() {
     send("quit");
-    waitpid(engine_pid, NULL, 0);
+    waitpid(engine_pid, nullptr, 0);
     // kill(engine_pid, SIGKILL);
 
     if (close(fd_to[1]) < 0) logger::error("close");
@@ -68,7 +68,7 @@ void Engine::send(std::string &&command) {
     logger::log(std::format("Engine {}: TO {}: {}", id, name.size() ? name : file, command), logger::Info);
 }
 
-std::string Engine::receive(void) {
+std::string Engine::receive() {
     int size = 0;
 
     while (true) {
@@ -104,7 +104,7 @@ std::string Engine::receive(void) {
     }
 }
 
-[[noreturn]] void Engine::start_engine(void) {
+[[noreturn]] void Engine::start_engine() {
     if (close(fd_to[1]) < 0 || close(fd_from[0])) {
         logger::error("close");
         throw std::runtime_error("close failed");
@@ -115,7 +115,7 @@ std::string Engine::receive(void) {
         throw std::runtime_error("dup2 failed");
     }
 
-    execl(file, file, (char *)NULL);
+    execl(file, file, (char *)nullptr);
     logger::error("execl");
     throw std::runtime_error("execl failed");
 }

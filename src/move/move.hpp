@@ -35,29 +35,29 @@ struct Move {
         return a.source_i == b.source_i && a.target_i == b.target_i && a.flags_i == b.flags_i;
     }
 
-    square::Square source(void) const { return static_cast<square::Square>(source_i); }
-    square::Square target(void) const { return static_cast<square::Square>(target_i); }
+    [[nodiscard]] square::Square source() const { return static_cast<square::Square>(source_i); }
+    [[nodiscard]] square::Square target() const { return static_cast<square::Square>(target_i); }
 
-    bool is_capture(void) const { return flags_i != PQUIET && (flags_i & CAPTURE); }
-    bool is_promote(void) const { return flags_i & 0x8; }
+    [[nodiscard]] bool is_capture() const { return flags_i != PQUIET && (flags_i & CAPTURE); }
+    [[nodiscard]] bool is_promote() const { return flags_i & 0x8; }
 
-    bool is_double(void) const { return flags_i == DOUBLE; }
-    bool is_repeatable(void) const { return flags_i == QUIET; }
-    bool is_quiet(void) const { return flags_i == QUIET || flags_i == PQUIET; }
+    [[nodiscard]] bool is_double() const { return flags_i == DOUBLE; }
+    [[nodiscard]] bool is_repeatable() const { return flags_i == QUIET; }
+    [[nodiscard]] bool is_quiet() const { return flags_i == QUIET || flags_i == PQUIET; }
 
-    bool is_castle(void) const { return flags_i == CASTLEK || flags_i == CASTLEQ; }
-    bool is_castle_king(void) const { return flags_i == CASTLEK; }
-    bool is_castle_queen(void) const { return flags_i == CASTLEQ; }
+    [[nodiscard]] bool is_castle() const { return flags_i == CASTLEK || flags_i == CASTLEQ; }
+    [[nodiscard]] bool is_castle_king() const { return flags_i == CASTLEK; }
+    [[nodiscard]] bool is_castle_queen() const { return flags_i == CASTLEQ; }
 
-    bool is_enpassant(void) const { return flags_i == ENPASSANT; }
+    [[nodiscard]] bool is_enpassant() const { return flags_i == ENPASSANT; }
 
-    const piece::Type promoted(void) const { return static_cast<piece::Type>((flags_i & 0x3) + 1); }
+    [[nodiscard]] const piece::Type promoted() const { return static_cast<piece::Type>((flags_i & 0x3) + 1); }
 
     bool make(Board &board) const;
 
     operator std::string() const;
     friend std::ostream &operator<<(std::ostream &os, Move move);
-    void print(void) const;
+    void print() const;
 
   private:
     inline void piece_remove(Board &board, piece::Type type, color::Color color, square::Square square) const;

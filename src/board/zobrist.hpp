@@ -14,7 +14,7 @@ class Zobrist {
     Zobrist() = delete;
 
     static inline U64 hash(const Board &board);
-    static inline constexpr U64 key_side(void) { return keys_side; }
+    static inline constexpr U64 key_side() { return keys_side; }
     static inline constexpr U64 key_castle(int exp) { return keys_castle[exp]; }
     static inline constexpr U64 key_enpassant(square::Square square) {
         return keys_enpassant[to_underlying(square)];
@@ -24,7 +24,7 @@ class Zobrist {
     }
 
   private:
-    typedef std::array<std::array<U64, 64>, 12> key_piece_array;
+    using key_piece_array = std::array<std::array<U64, 64>, 12>;
     static inline constexpr const key_piece_array keys_piece = []() constexpr -> key_piece_array {
         key_piece_array key_piece;
         Random gen(C64(1804289383));
@@ -39,7 +39,7 @@ class Zobrist {
         return key_piece;
     }();
 
-    typedef std::array<U64, 64> key_enpassant_array;
+    using key_enpassant_array = std::array<U64, 64>;
     static inline constexpr const key_enpassant_array keys_enpassant = []() constexpr -> key_enpassant_array {
         key_enpassant_array key_enpassant;
         Random gen(C32(337245213));
@@ -49,7 +49,7 @@ class Zobrist {
         return key_enpassant;
     }();
 
-    typedef std::array<U64, 16> key_castle_array;
+    using key_castle_array = std::array<U64, 16>;
     static inline constexpr const key_castle_array keys_castle = []() constexpr -> key_castle_array {
         key_castle_array key_castle;
         Random gen(C32(3642040919));
