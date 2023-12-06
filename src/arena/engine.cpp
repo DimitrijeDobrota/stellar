@@ -6,24 +6,29 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-
-uint16_t Engine::id_t = 0;
-Engine::Engine(const char *file) : file(file) {
-    if (pipe(fd_to) < 0 || pipe(fd_from) < 0) {
+Engine::Pipes::Pipes() {
+    if (pipe(fd) < 0 || pipe(fd) < 0) {
         logger::error("pipe");
         throw std::runtime_error("pipe failed");
     }
+}
 
-    if ((engine_pid = fork()) > 0) {
+
+void Engine::Pipes::close() {
+    if (::close(fd[0]) < 0 || ::close(fd[1])) {
+        logger::error("close");
+        throw std::runtime_error("close failed");
+    }
+    closed = true;
+}
+
+uint16_t Engine::id_t = 0;
+Engine::Engine(const char *file) : file(file) {
+    if ((engine_pid = fork()) == 0) {
         start_engine();
     } else if (engine_pid < 0) {
         logger::error("fork");
         throw std::runtime_error("fork failed");
-    }
-
-    if (close(fd_to[0]) < 0 || close(fd_from[1])) {
-        logger::error("close");
-        throw std::runtime_error("close failed");
     }
 
     send("uci");
@@ -47,8 +52,8 @@ Engine::~Engine() {
     waitpid(engine_pid, nullptr, 0);
     // kill(engine_pid, SIGKILL);
 
-    if (close(fd_to[1]) < 0) logger::error("close");
-    if (close(fd_from[0]) < 0) logger::error("close");
+    pipeFrom.close();
+    pripeTo.close();
     logger::log("Engine: destroyed", logger::Debug);
 }
 
@@ -57,7 +62,7 @@ void Engine::send(std::string &&command) {
     const char *buffer = command.data();
     size_t to_write = command.size();
     while (to_write) {
-        ssize_t size = write(fd_to[1], buffer, to_write);
+        ssize_t size = write(pripeTo[1], buffer, to_write);
         if (size == -1) {
             logger::error("write");
             throw std::runtime_error("write failed");
@@ -80,7 +85,7 @@ std::string Engine::receive() {
             return response;
         }
 
-        if ((size = read(fd_from[0], rb + rb_size, sizeof(rb) - rb_size)) == -1) {
+        if ((size = read(pipeFrom[0], rb + rb_size, sizeof(rb) - rb_size)) == -1) {
             logger::error("read");
             throw std::runtime_error("read failed");
         }
@@ -105,15 +110,13 @@ std::string Engine::receive() {
 }
 
 [[noreturn]] void Engine::start_engine() {
-    if (close(fd_to[1]) < 0 || close(fd_from[0])) {
-        logger::error("close");
-        throw std::runtime_error("close failed");
-    }
-
-    if (dup2(fd_to[0], 0) < 0 || dup2(fd_from[1], 1) < 0) {
+    if (dup2(pripeTo[0], 0) < 0 || dup2(pipeFrom[1], 1) < 0) {
         logger::error("dup2");
         throw std::runtime_error("dup2 failed");
     }
+
+    pipeFrom.close();
+    pripeTo.close();
 
     execl(file, file, (char *)nullptr);
     logger::error("execl");

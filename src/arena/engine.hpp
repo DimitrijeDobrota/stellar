@@ -18,10 +18,29 @@ class Engine {
     std::string receive();
 
   private:
+    class Pipes {
+      public:
+        Pipes();
+        Pipes(const Pipes &) = delete;
+        Pipes &operator=(const Pipes &) = delete;
+
+        ~Pipes() {
+            if (!closed) close();
+        }
+
+        void close();
+
+        int operator[](int idx) { return fd[idx]; }
+
+      private:
+        int fd[2]{};
+        bool closed = false;
+    };
+
     [[noreturn]] void start_engine();
 
     const char *file = nullptr;
-    int fd_to[2]{}, fd_from[2]{};
+    Pipes pipeFrom, pripeTo;
     pid_t engine_pid;
 
     std::string name, author;
