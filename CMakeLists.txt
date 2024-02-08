@@ -14,6 +14,17 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+set(CMAKE_CXX_FLAGS_PROFILE "-pg" CACHE STRING
+    "Enable profileing for the project"
+    FORCE
+)
+
+mark_as_advanced(CMAKE_CXX_FLAGS_PROFILE)
+set(CMAKE_BUILD_TYPE "${CMAKE_BUILD_TYPE}" CACHE STRING
+    "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel Profile"
+    FORCE
+)
+
 
 include(CheckCXXCompilerFlag)
 
