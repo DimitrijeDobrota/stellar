@@ -40,7 +40,9 @@ To see the games played or play a game on your own checkout the profile on [lich
 
 ## Version History
 
-* 1.0
+- 1.1
+    * Add Arena
+- 1.0
     * Initial Release
 
 ## License
