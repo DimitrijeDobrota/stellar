@@ -1,13 +1,16 @@
-
 # Stellar
 
 UCI bitboard chess engine written in C++20
 
+
 ## Description
 
-The goal of the project is experimentation. I want to see how far I can push the engine to play better while learning various techniques of optimization.
+The goal of the project is experimentation. I want to see how far I can push
+the engine to play better while learning various techniques of optimization.
 
-To see the games played or play a game on your own checkout the profile on [lichess](https://lichess.org/@/StellarBOT), bullet, blitz and rapid challenges, ranked or casual, are accepted.
+To see the games played or play a game on your own checkout the profile on
+[lichess](https://lichess.org/@/StellarBOT), bullet, blitz and rapid challenges, ranked or casual, are accepted.
+
 
 ## Getting Started
 
@@ -16,11 +19,13 @@ To see the games played or play a game on your own checkout the profile on [lich
 * CMake 3.25.2 or latter
 * Compiler with C++20 support
 
+
 ### Installing
 
 * Clone the repo
 * Make a build folder and cd into it
 * Run `cmake -DCMAKE_BUILD_TYPE=Release <path to cloned repo>`
+
 
 ### Executing program
 
@@ -28,6 +33,7 @@ To see the games played or play a game on your own checkout the profile on [lich
 
 * The engine accepts commands on the standard input and produces results to the standard output
 * To communicate with the engine use UCI command. Reference for UCI protocol can be found [here](http://download.shredderchess.com/div/uci.zip)
+
 
 ## Help
 
@@ -40,14 +46,20 @@ To see the games played or play a game on your own checkout the profile on [lich
 
 ## Version History
 
+- 1.2
+    * Improved evaluation using interpolation
+    * Incremental sorting
+    * Fix timeouts
 - 1.1
     * Add Arena
 - 1.0
     * Initial Release
 
+    
 ## License
 
 This project is licensed under the MIT License - see the LICENSE.md file for details
+
 
 ## Acknowledgments
 
