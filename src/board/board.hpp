@@ -41,11 +41,11 @@ class Board {
     [[nodiscard]] inline constexpr U64 get_bitboard_piece(piece::Type piece, color::Color color) const;
 
     [[nodiscard]] inline constexpr U64 get_bitboard_piece_attacks(piece::Type piece, color::Color color,
-                                                    square::Square from) const;
+                                                                  square::Square from) const;
     [[nodiscard]] inline constexpr U64 get_bitboard_piece_moves(piece::Type piece, color::Color color,
-                                                  square::Square from) const;
+                                                                square::Square from) const;
     [[nodiscard]] inline constexpr U64 get_bitboard_square_land(square::Square land, piece::Type piece,
-                                                  color::Color side) const;
+                                                                color::Color side) const;
 
     [[nodiscard]] inline constexpr color::Color get_square_piece_color(square::Square square) const;
     [[nodiscard]] inline constexpr piece::Type get_square_piece_type(square::Square square) const;
@@ -71,8 +71,9 @@ class Board {
 
     [[nodiscard]] inline constexpr bool is_square_attacked(square::Square square, color::Color side) const;
     [[nodiscard]] inline constexpr bool is_square_occupied(square::Square square) const;
-    [[nodiscard]] inline constexpr bool is_piece_attack_square(piece::Type type, color::Color color, square::Square source,
-                                                 square::Square target) const;
+    [[nodiscard]] inline constexpr bool is_piece_attack_square(piece::Type type, color::Color color,
+                                                               square::Square source,
+                                                               square::Square target) const;
     [[nodiscard]] inline constexpr bool is_check() const;
 
   private:
@@ -142,19 +143,19 @@ constexpr const piece::Piece *Board::get_square_piece(square::Square square) con
 
 constexpr void Board::xor_hash(U64 op) { hash ^= op; }
 constexpr void Board::and_castle(uint8_t right) {
-    hash ^= Zobrist::key_castle(castle);
+    hash ^= zobrist::key_castle(castle);
     castle &= right;
-    hash ^= Zobrist::key_castle(castle);
+    hash ^= zobrist::key_castle(castle);
 }
 
 constexpr void Board::switch_side() {
     side = color::other(side);
-    hash ^= Zobrist::key_side();
+    hash ^= zobrist::key_side();
 }
 
 constexpr void Board::set_enpassant(square::Square target) {
-    if (enpassant != square::Square::no_sq) hash ^= Zobrist::key_enpassant(enpassant);
-    if (target != square::Square::no_sq) hash ^= Zobrist::key_enpassant(target);
+    if (enpassant != square::Square::no_sq) hash ^= zobrist::key_enpassant(enpassant);
+    if (target != square::Square::no_sq) hash ^= zobrist::key_enpassant(target);
     enpassant = target;
 }
 
@@ -214,7 +215,7 @@ constexpr bool Board::is_check() const {
     return is_square_attacked(square, side_other);
 }
 
-U64 Zobrist::hash(const Board &board) {
+U64 zobrist::hash(const Board &board) {
     U64 key_final = C64(0);
     uint8_t square = 0;
 

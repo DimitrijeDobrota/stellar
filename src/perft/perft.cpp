@@ -153,6 +153,7 @@ int main(int argc, char *argv[]) {
     }
 
     attack::init();
+    zobrist::init();
     perft_test(fen, depth, thread_num);
     return 0;
 }

@@ -17,13 +17,13 @@
 #include "utils.hpp"
 
 enum {
-FULL_DEPTH = 4,
-REDUCTION_LIMIT = 3,
-REDUCTION_MOVE = 2
+    FULL_DEPTH = 4,
+    REDUCTION_LIMIT = 3,
+    REDUCTION_MOVE = 2
 };
 
 enum {
-WINDOW = 50
+    WINDOW = 50
 };
 
 namespace engine {
@@ -474,6 +474,7 @@ Move search_position(const uci::Settings &settingsr) {
 
 int main() {
     attack::init();
+    zobrist::init();
     uci::loop();
     return 0;
 }

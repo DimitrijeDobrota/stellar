@@ -97,6 +97,7 @@ int main(int argc, char *argv[]) {
         positions.emplace_back(!strcmp(argv[i], "-") ? start_position : argv[i]);
 
     attack::init();
+    zobrist::init();
     Arena arena(engine1, engine2);
     arena(positions, settings1, settings2);
 

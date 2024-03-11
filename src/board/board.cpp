@@ -1,13 +1,18 @@
 #include <cctype>
-#include <exception>
 #include <cstdio>
 #include <cstring>
+#include <exception>
 
 #include "board.hpp"
 #include "piece.hpp"
 #include "square.hpp"
 #include "utils.hpp"
 #include "zobrist.hpp"
+
+/* Init arrays for Zobris hashing */
+std::array<std::array<U64, 64>, 12> zobrist::keys_piece = {{{0}}};
+std::array<U64, 64> zobrist::keys_enpassant = {{0}};
+std::array<U64, 16> zobrist::keys_castle = {{0}};
 
 /* Getters */
 
@@ -34,8 +39,7 @@ Board::Board(const std::string &fen) {
                            : throw std::runtime_error("Invalid player char");
 
     for (i += 2; fen[i] != ' '; i++) {
-        if (fen[i] == 'K')
-            castle |= to_underlying(Castle::WK);
+        if (fen[i] == 'K') castle |= to_underlying(Castle::WK);
         else if (fen[i] == 'Q')
             castle |= to_underlying(Castle::WQ);
         else if (fen[i] == 'k')
@@ -51,7 +55,7 @@ Board::Board(const std::string &fen) {
 
     enpassant = fen[++i] != '-' ? square::from_coordinates(fen.substr(i, 2)) : square::no_sq;
 
-    hash = Zobrist::hash(*this);
+    hash = zobrist::hash(*this);
 }
 
 std::ostream &operator<<(std::ostream &os, const Board &board) {
