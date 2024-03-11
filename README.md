@@ -16,8 +16,12 @@ To see the games played or play a game on your own checkout the profile on
 
 ### Dependencies
 
-* CMake 3.25.2 or latter
-* Compiler with C++20 support
+- Linux
+    * CMake 3.25.2 or latter
+    * Compiler with C++20 support (tested: clang 16.0.5, gcc 13.2.0)
+
+- Windows
+    * Visual Studio (tested: Community 2022 17.9.2)
 
 
 ### Installing
@@ -46,12 +50,18 @@ To see the games played or play a game on your own checkout the profile on
 
 ## Version History
 
+- 1.3
+    * Build engine on Windows using Visual Studio
+    * Improve compilation time
+
 - 1.2
     * Improved evaluation using interpolation
     * Incremental sorting
     * Fix timeouts
+
 - 1.1
     * Add Arena
+
 - 1.0
     * Initial Release
 
