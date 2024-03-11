@@ -1,4 +1,4 @@
-add_library(attack attack.cpp)
+add_library(attack attack.cpp bishop.cpp rook.cpp)
 
 target_link_libraries(attack
     PRIVATE bit

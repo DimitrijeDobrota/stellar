@@ -473,6 +473,7 @@ Move search_position(const uci::Settings &settingsr) {
 } // namespace engine
 
 int main() {
+    attack::init();
     uci::loop();
     return 0;
 }

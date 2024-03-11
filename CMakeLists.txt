@@ -3,7 +3,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 project(
     Stellar
-	VERSION 1.2.2
+	VERSION 1.2.3
     DESCRIPTION "Chess engine written in C++"
 	HOMEPAGE_URL https://git.dimitrijedobrota.com/stellar.git
     LANGUAGES CXX
@@ -25,7 +25,6 @@ set(CMAKE_BUILD_TYPE "${CMAKE_BUILD_TYPE}" CACHE STRING
     FORCE
 )
 
-
 include(CheckCXXCompilerFlag)
 
 option(STELLAR_ENABLE_PCH "Build using pre-compiled headers" ON)
@@ -34,21 +33,6 @@ function(stellar_target_precompile_headers)
         target_precompile_headers(${ARGV})
     endif()
 endfunction()
-
-CHECK_CXX_COMPILER_FLAG("-fconstexpr-ops-limit=10000000000" COMPILER_SUPPORTS_CONSTEXPR_OPS_LIMIT)
-if(COMPILER_SUPPORTS_CONSTEXPR_OPS_LIMIT)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fconstexpr-ops-limit=1000000000")
-endif()
-
-CHECK_CXX_COMPILER_FLAG("-fconstexpr-steps=1000000000" COMPILER_SUPPORTS_CONSTEXPR_STEPS)
-if(COMPILER_SUPPORTS_CONSTEXPR_STEPS)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fconstexpr-steps=1000000000")
-endif()
-
-CHECK_CXX_COMPILER_FLAG("-march=native" COMPILER_SUPPORTS_MARCH_NATIVE)
-if(COMPILER_SUPPORTS_MARCH_NATIVE)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
-endif()
 
 add_subdirectory(src)
 

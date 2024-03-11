@@ -2,6 +2,7 @@
 #include <semaphore>
 #include <thread>
 
+#include "attack.hpp"
 #include "board.hpp"
 #include "move.hpp"
 #include "movelist.hpp"
@@ -151,6 +152,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    attack::init();
     perft_test(fen, depth, thread_num);
     return 0;
 }

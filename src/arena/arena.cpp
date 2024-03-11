@@ -7,6 +7,7 @@
 #include <bits/getopt_core.h>
 #include <stdexcept>
 
+#include "attack.hpp"
 #include "logger.hpp"
 #include "match.hpp"
 
@@ -95,6 +96,7 @@ int main(int argc, char *argv[]) {
     for (int i = optind; i < argc; i++)
         positions.emplace_back(!strcmp(argv[i], "-") ? start_position : argv[i]);
 
+    attack::init();
     Arena arena(engine1, engine2);
     arena(positions, settings1, settings2);
 

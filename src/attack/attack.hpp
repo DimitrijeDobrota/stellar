@@ -11,12 +11,12 @@
 #include "pawnw.hpp"
 #include "queen.hpp"
 #include "rook.hpp"
-#include "slider.hpp"
 
 namespace attack {
 
+void init(void);
 using attack_f = U64 (*)(const square::Square, U64);
 
-}
+} // namespace attack
 
 #endif
