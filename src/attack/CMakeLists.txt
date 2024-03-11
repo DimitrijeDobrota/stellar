@@ -1,4 +1,4 @@
-add_library(attack attack.cpp)
+add_library(attack attack.cpp bishop.cpp rook.cpp)
 
 target_link_libraries(attack
     PRIVATE bit
@@ -9,14 +9,3 @@ target_link_libraries(attack
 )
 
 target_include_directories(attack INTERFACE .)
-
-stellar_target_precompile_headers(attack
-    PRIVATE "bishop.hpp"
-    PRIVATE "king.hpp"
-    PRIVATE "knight.hpp"
-    PRIVATE "pawnb.hpp"
-    PRIVATE "pawnw.hpp"
-    PRIVATE "queen.hpp"
-    PRIVATE "rook.hpp"
-    PRIVATE "slider.hpp"
-)

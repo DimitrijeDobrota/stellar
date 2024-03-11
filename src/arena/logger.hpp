@@ -5,6 +5,7 @@
 #include <cerrno>
 #include <cstring>
 #include <format>
+#include <iostream>
 
 namespace logger {
 

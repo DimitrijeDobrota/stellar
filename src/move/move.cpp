@@ -6,12 +6,12 @@
 
 void Move::piece_remove(Board &board, piece::Type type, color::Color color, square::Square square) const {
     board.pop_piece(type, color, square);
-    board.xor_hash(Zobrist::key_piece(type, color, square));
+    board.xor_hash(zobrist::key_piece(type, color, square));
 }
 
 void Move::piece_set(Board &board, piece::Type type, color::Color color, square::Square square) const {
     board.set_piece(type, color, square);
-    board.xor_hash(Zobrist::key_piece(type, color, square));
+    board.xor_hash(zobrist::key_piece(type, color, square));
 }
 
 void Move::piece_move(Board &board, piece::Type type, color::Color color, square::Square source,

@@ -1,6 +1,8 @@
 #ifndef STELLAR_ATTAKC_SLIDER_H
 #define STELLAR_ATTAKC_SLIDER_H
 
+#include "bit.hpp"
+#include "bitboard.hpp"
 #include "square.hpp"
 #include "utils.hpp"
 

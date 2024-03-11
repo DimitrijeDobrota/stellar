@@ -9,6 +9,3 @@ target_link_libraries(board
 )
 
 target_include_directories(board INTERFACE .)
-stellar_target_precompile_headers(board INTERFACE "board.hpp")
-
-

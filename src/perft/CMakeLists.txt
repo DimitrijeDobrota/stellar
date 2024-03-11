@@ -12,10 +12,6 @@ target_link_libraries(perft
     PRIVATE utils
 )
 
-target_precompile_headers(perft
-    REUSE_FROM engine
-)
-
 set_target_properties(perft PROPERTIES
     VERSION ${PROJECT_VERSION}
     SOVERSION ${PROJECT_VERSION_MAJOR}

@@ -7,5 +7,3 @@ target_link_libraries(piece
 )
 
 target_include_directories(piece INTERFACE .)
-stellar_target_precompile_headers(piece INTERFACE "piece.hpp")
-
