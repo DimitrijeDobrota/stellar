@@ -1,7 +1,9 @@
 #ifndef STELLAR_ARENA_ENGINE_H
 #define STELLAR_ARENA_ENGINE_H
 
+#include <cstdint>
 #include <queue>
+#include <string>
 
 class Engine {
   public:

@@ -3,7 +3,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 project(
     Stellar
-	VERSION 1.2.3
+	VERSION 1.2.4
     DESCRIPTION "Chess engine written in C++"
 	HOMEPAGE_URL https://git.dimitrijedobrota.com/stellar.git
     LANGUAGES CXX
@@ -24,15 +24,6 @@ set(CMAKE_BUILD_TYPE "${CMAKE_BUILD_TYPE}" CACHE STRING
     "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel Profile"
     FORCE
 )
-
-include(CheckCXXCompilerFlag)
-
-option(STELLAR_ENABLE_PCH "Build using pre-compiled headers" ON)
-function(stellar_target_precompile_headers)
-    if(STELLAR_ENABLE_PCH)
-        target_precompile_headers(${ARGV})
-    endif()
-endfunction()
 
 add_subdirectory(src)
 
