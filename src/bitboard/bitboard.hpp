@@ -5,7 +5,6 @@
 
 namespace bitboard {
 
-void init(void);
 void print(U64 bitboard);
 
 inline constexpr const U64 notAFile = C64(0xfefefefefefefefe);
@@ -20,8 +19,6 @@ inline constexpr U64 soEaOne(U64 b) { return (b & notHFile) >> 7; }
 inline constexpr U64 soWeOne(U64 b) { return (b & notAFile) >> 9; }
 inline constexpr U64 noEaOne(U64 b) { return (b & notHFile) << 9; }
 inline constexpr U64 noWeOne(U64 b) { return (b & notAFile) << 7; }
-
-extern U64 line[Square::no_sq][Square::no_sq];
 
 } // namespace bitboard
 

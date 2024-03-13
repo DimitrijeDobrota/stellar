@@ -63,20 +63,13 @@ inline constexpr const mask_passed_array mask_passed = []() constexpr -> mask_pa
     return mask_passed;
 }();
 
-using piece::Type::BISHOP;
-using piece::Type::KING;
-using piece::Type::KNIGHT;
-using piece::Type::PAWN;
-using piece::Type::QUEEN;
-using piece::Type::ROOK;
-
 using score::Phase::ENDGAME;
 using score::Phase::OPENING;
 
 uint16_t score_game_phase(const Board &board) {
     int16_t total = 0;
     for (int type_i = KNIGHT; type_i < KING; type_i++) {
-        const piece::Type type = static_cast<piece::Type>(type_i);
+        const Type type = static_cast<Type>(type_i);
         total += bit::count(board.get_bitboard_piece(type)) * score::get(type);
     }
     return total;

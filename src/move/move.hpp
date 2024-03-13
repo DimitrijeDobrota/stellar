@@ -50,7 +50,7 @@ struct Move {
 
     [[nodiscard]] bool is_enpassant() const { return flags_i == ENPASSANT; }
 
-    [[nodiscard]] const piece::Type promoted() const { return static_cast<piece::Type>((flags_i & 0x3) + 1); }
+    [[nodiscard]] const Type promoted() const { return static_cast<Type>((flags_i & 0x3) + 1); }
 
     bool make(Board &board) const;
 
@@ -59,9 +59,9 @@ struct Move {
     void print() const;
 
   private:
-    inline void piece_remove(Board &board, piece::Type type, Color color, Square square) const;
-    inline void piece_set(Board &board, piece::Type type, Color color, Square square) const;
-    inline void piece_move(Board &board, piece::Type type, Color color, Square source, Square target) const;
+    inline void piece_remove(Board &board, Type type, Color color, Square square) const;
+    inline void piece_set(Board &board, Type type, Color color, Square square) const;
+    inline void piece_move(Board &board, Type type, Color color, Square source, Square target) const;
 
     unsigned source_i : 6;
     unsigned target_i : 6;

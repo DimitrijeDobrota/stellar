@@ -8,18 +8,6 @@
 
 namespace piece {
 
-enum Type {
-    PAWN = 0,
-    KNIGHT,
-    BISHOP,
-    ROOK,
-    QUEEN,
-    KING,
-    NONE = 7,
-};
-
-ENABLE_INCR_OPERATORS_ON(Type)
-
 struct Piece {
     const uint8_t index;
     const Type type;

@@ -20,13 +20,13 @@ inline constexpr const U64 attack_pawn(const Color color, const Square from) {
     return attack::pawn::attack(color, from);
 }
 
-inline constexpr const U64 attack(const piece::Type type, const Square from, const U64 occupancy) {
+inline constexpr const U64 attack(const Type type, const Square from, const U64 occupancy) {
     switch (type) {
-    case piece::QUEEN: return attack::queen::attack(from, occupancy);
-    case piece::ROOK: return attack::rook::attack(from, occupancy);
-    case piece::BISHOP: return attack::bishop::attack(from, occupancy);
-    case piece::KING: return attack::king::attack(from);
-    case piece::KNIGHT: return attack::knight::attack(from);
+    case QUEEN: return attack::queen::attack(from, occupancy);
+    case ROOK: return attack::rook::attack(from, occupancy);
+    case BISHOP: return attack::bishop::attack(from, occupancy);
+    case KING: return attack::king::attack(from);
+    case KNIGHT: return attack::knight::attack(from);
     default: return 0;
     }
 }

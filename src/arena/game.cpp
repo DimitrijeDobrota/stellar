@@ -35,11 +35,11 @@ const std::string Game::to_san(const Board &board, const Move move) {
     if (move.is_castle_king()) return "O-O";
     if (move.is_castle_queen()) return "O-O-O";
 
-    const piece::Type piece = board.get_square_piece_type(move.source());
-    const piece::Type target = board.get_square_piece_type(move.target());
+    const Type piece = board.get_square_piece_type(move.source());
+    const Type target = board.get_square_piece_type(move.target());
 
     std::string res;
-    if (piece != piece::PAWN) {
+    if (piece != PAWN) {
         U64 potential = board.get_bitboard_square_land(move.target(), piece, board.get_side());
 
         if (bit::count(potential) > 1) {
@@ -60,10 +60,10 @@ const std::string Game::to_san(const Board &board, const Move move) {
         }
 
         res += piece::get_code(piece, WHITE);
-        if (target != piece::NONE) res += "x";
+        if (target != Type::NONE) res += "x";
         res += to_coordinates(move.target());
     } else {
-        if (target != piece::NONE) res += std::format("{}x", to_coordinates(move.source())[0]);
+        if (target != Type::NONE) res += std::format("{}x", to_coordinates(move.source())[0]);
         res += to_coordinates(move.target());
         if (move.is_promote()) res += piece::get_code(move.promoted(), WHITE);
         if (move.is_enpassant()) res += " e.p.";

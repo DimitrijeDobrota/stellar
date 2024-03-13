@@ -146,11 +146,9 @@ enum Phase {
     ENDGAME,
 };
 
-inline constexpr int16_t get(const piece::Type piece, const Phase phase = OPENING) {
-    return value[phase][piece];
-}
+inline constexpr int16_t get(const Type piece, const Phase phase = OPENING) { return value[phase][piece]; }
 
-inline constexpr int16_t get(piece::Type piece, Color color, Square square, Phase phase = ENDGAME) {
+inline constexpr int16_t get(Type piece, Color color, Square square, Phase phase = ENDGAME) {
     if (color != WHITE) square = get_mirror(square);
     return position[phase][piece][square];
 }

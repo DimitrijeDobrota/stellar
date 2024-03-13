@@ -10,7 +10,7 @@
     ((color == BLACK && source >= Square::a7 && source <= Square::h7) ||                                     \
      (color == WHITE && source >= Square::a2 && source <= Square::h2))
 
-using piece::Type::PAWN;
+using Type::PAWN;
 
 void MoveList::generate(const Board &board, bool attacks_only) {
     uint8_t src_i = 0, tgt_i = 0;
@@ -62,7 +62,7 @@ void MoveList::generate(const Board &board, bool attacks_only) {
     }
 
     // All piece move
-    for (piece::Type type = piece::KNIGHT; type <= piece::KING; ++type) {
+    for (Type type = KNIGHT; type <= KING; ++type) {
         U64 bitboard = board.get_bitboard_piece(type, color);
         bitboard_for_each_bit(src_i, bitboard) {
             const auto src = static_cast<Square>(src_i);

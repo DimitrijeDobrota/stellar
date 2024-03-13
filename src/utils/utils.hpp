@@ -57,4 +57,18 @@ constexpr uint8_t get_file(const Square square) { return square & 0x07; }
 constexpr uint8_t get_rank(const Square square) { return square >> 3; }
 constexpr Square get_mirror(const Square square) { return mirror_array[square]; }
 
+/* piece */
+
+enum Type {
+    PAWN = 0,
+    KNIGHT,
+    BISHOP,
+    ROOK,
+    QUEEN,
+    KING,
+    NONE = 7,
+};
+
+ENABLE_INCR_OPERATORS_ON(Type)
+
 #endif

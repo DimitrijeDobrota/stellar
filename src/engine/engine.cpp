@@ -132,9 +132,9 @@ U32 inline move_score(const Move move) {
         // clang-format on
     };
 
-    const piece::Type type = board.get_square_piece_type(move.source());
+    const Type type = board.get_square_piece_type(move.source());
     if (move.is_capture()) {
-        const piece::Type captured = board.get_square_piece_type(move.target());
+        const Type captured = board.get_square_piece_type(move.target());
         return capture[type][captured] + 10000;
     }
     if (killer[0][ply] == move) return 9000;
@@ -279,7 +279,7 @@ int16_t negamax(int16_t alpha, int16_t beta, uint8_t depth, bool null) {
     // if (ply > MAX_PLY - 1) return evaluate::score_position(board);
 
     if (!pv_node && !isCheck) {
-        static constexpr const U32 score_pawn = score::get(piece::Type::PAWN);
+        static constexpr const U32 score_pawn = score::get(PAWN);
         int16_t staticEval = evaluate::score_position(board);
 
         // evaluation pruning
@@ -316,9 +316,9 @@ int16_t negamax(int16_t alpha, int16_t beta, uint8_t depth, bool null) {
         // futility pruning condition
         static constexpr const int16_t margin[] = {
             0,
-            score::get(piece::Type::PAWN),
-            score::get(piece::Type::KNIGHT),
-            score::get(piece::Type::ROOK),
+            score::get(PAWN),
+            score::get(KNIGHT),
+            score::get(ROOK),
         };
         if (depth < 4 && abs(alpha) < MATE_SCORE && staticEval + margin[depth] <= alpha) futility = 1;
     }
@@ -367,7 +367,7 @@ int16_t negamax(int16_t alpha, int16_t beta, uint8_t depth, bool null) {
         if (settings->stopped) return 0;
         if (score > alpha) {
             if (!move.is_capture()) {
-                const piece::Type piece = board.get_square_piece_type(move.source());
+                const Type piece = board.get_square_piece_type(move.source());
                 history[piece::get_index(piece, board.get_side())][move.target()] += depth;
             }
 

@@ -5,23 +5,23 @@
 #include <algorithm>
 #include <iomanip>
 
-void Move::piece_remove(Board &board, piece::Type type, Color color, Square square) const {
+void Move::piece_remove(Board &board, Type type, Color color, Square square) const {
     board.pop_piece(type, color, square);
     board.xor_hash(zobrist::key_piece(type, color, square));
 }
 
-void Move::piece_set(Board &board, piece::Type type, Color color, Square square) const {
+void Move::piece_set(Board &board, Type type, Color color, Square square) const {
     board.set_piece(type, color, square);
     board.xor_hash(zobrist::key_piece(type, color, square));
 }
 
-void Move::piece_move(Board &board, piece::Type type, Color color, Square source, Square target) const {
+void Move::piece_move(Board &board, Type type, Color color, Square source, Square target) const {
     piece_remove(board, type, color, source);
     piece_set(board, type, color, target);
 }
 
-using piece::Type::PAWN;
-using piece::Type::ROOK;
+using Type::PAWN;
+using Type::ROOK;
 
 bool Move::make(Board &board) const {
     static constexpr const int castling_rights[64] = {
@@ -42,7 +42,7 @@ bool Move::make(Board &board) const {
 
     const auto ntarget = static_cast<Square>(this->target() + (color == Color::WHITE ? -8 : +8));
 
-    const piece::Type piece = board.get_square_piece_type(source);
+    const Type piece = board.get_square_piece_type(source);
 
     if (!is_capture()) {
         if (is_promote()) {
@@ -52,7 +52,7 @@ bool Move::make(Board &board) const {
             piece_move(board, piece, color, source, target);
         }
     } else {
-        const piece::Type captured = board.get_square_piece_type(target);
+        const Type captured = board.get_square_piece_type(target);
         if (is_enpassant()) {
             piece_move(board, piece, color, source, target);
             piece_remove(board, PAWN, colorOther, ntarget);
