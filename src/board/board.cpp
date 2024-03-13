@@ -8,10 +8,14 @@
 #include "utils_ui.hpp"
 #include "zobrist.hpp"
 
+namespace zobrist {
+
 /* Init arrays for Zobris hashing */
-std::array<std::array<U64, 64>, 12> zobrist::keys_piece = {{{0}}};
-std::array<U64, 64> zobrist::keys_enpassant = {{0}};
-std::array<U64, 16> zobrist::keys_castle = {{0}};
+U64 keys_piece[2][12][64] = {0};
+U64 keys_enpassant[64] = {0};
+U64 keys_castle[16] = {0};
+
+} // namespace zobrist
 
 /* Getters */
 

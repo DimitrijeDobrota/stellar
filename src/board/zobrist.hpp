@@ -11,20 +11,18 @@
 class Board;
 namespace zobrist {
 
-extern std::array<std::array<U64, 64>, 12> keys_piece;
-extern std::array<U64, 64> keys_enpassant;
-extern std::array<U64, 16> keys_castle;
+extern U64 keys_piece[2][12][64];
+extern U64 keys_enpassant[64];
+extern U64 keys_castle[16];
 
 const U64 keys_side = Random(C32(1699391443))();
 
 inline void init() {
     Random gen1(C64(1804289383));
     for (Type type = PAWN; type <= KING; ++type) {
-        int piece_index_white = piece::get(type, Color::WHITE).index;
-        int piece_index_black = piece::get(type, Color::BLACK).index;
         for (int square = 0; square < 64; square++) {
-            keys_piece[piece_index_white][square] = gen1();
-            keys_piece[piece_index_black][square] = gen1();
+            keys_piece[WHITE][type][square] = gen1();
+            keys_piece[BLACK][type][square] = gen1();
         }
     }
 
@@ -44,7 +42,7 @@ inline constexpr U64 key_side() { return keys_side; }
 inline constexpr U64 key_castle(int exp) { return keys_castle[exp]; }
 inline constexpr U64 key_enpassant(Square square) { return keys_enpassant[square]; }
 inline constexpr U64 key_piece(Type type, Color color, Square square) {
-    return keys_piece[piece::get_index(type, color)][square];
+    return keys_piece[color][type][square];
 }
 
 }; // namespace zobrist
