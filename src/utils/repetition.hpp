@@ -1,6 +1,11 @@
 #ifndef STELLAR_REPETITION_H
 #define STELLAR_REPETITION_H
 
+#include <iostream>
+#include <vector>
+
+#include "utils.hpp"
+
 namespace repetition {
 
 class Table {

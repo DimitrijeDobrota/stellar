@@ -12,7 +12,7 @@
 #define tricky_position "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1 "
 
 enum {
-THREAD_MAX = 64
+    THREAD_MAX = 64
 };
 
 class Perft {
@@ -68,8 +68,7 @@ class Perft {
             Board copy = board;
             if (!list[i].make(copy)) continue;
             // debug(board, list[i], copy);
-            if (depth != 1)
-                test(copy, depth - 1);
+            if (depth != 1) test(copy, depth - 1);
             else
                 score(copy, list[i]);
         }

@@ -3,7 +3,6 @@
 
 #include "bit.hpp"
 #include "bitboard.hpp"
-#include "square.hpp"
 #include "utils.hpp"
 
 #include <array>
@@ -11,7 +10,7 @@
 namespace attack {
 namespace knight {
 
-static constexpr U64 mask(const square::Square square) {
+static constexpr U64 mask(const Square square) {
     U64 bitboard = C64(0), attacks = C64(0), tmp;
 
     bit::set(bitboard, square);
@@ -31,14 +30,14 @@ typedef std::array<U64, 64> attack_array;
 const attack_array attacks = []() -> attack_array {
     std::array<U64, 64> attacks;
 
-    for (square::Square square = square::a1; square <= square::h8; ++square) {
+    for (Square square = Square::a1; square <= Square::h8; ++square) {
         attacks[square] = mask(square);
     }
 
     return attacks;
 }();
 
-inline constexpr U64 attack(const square::Square square) { return attacks[square]; }
+inline constexpr U64 attack(const Square square) { return attacks[square]; }
 
 } // namespace knight
 } // namespace attack

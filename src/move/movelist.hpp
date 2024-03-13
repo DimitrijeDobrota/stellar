@@ -21,7 +21,7 @@ class MoveList {
         if (!legal) return;
 
         int size = 0;
-        for (const auto& move : list) {
+        for (const auto &move : list) {
             Board copy = board;
             if (move.make(copy)) list[size++] = move;
         }

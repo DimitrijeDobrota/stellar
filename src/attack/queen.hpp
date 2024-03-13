@@ -7,7 +7,7 @@
 namespace attack {
 namespace queen {
 
-inline U64 attack(const square::Square square, U64 occupancy) {
+inline U64 attack(const Square square, U64 occupancy) {
     return rook::attack(square, occupancy) | bishop::attack(square, occupancy);
 }
 

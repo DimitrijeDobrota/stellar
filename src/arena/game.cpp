@@ -3,6 +3,7 @@
 #include "board.hpp"
 #include "logger.hpp"
 #include "timer.hpp"
+#include "utils_ui.hpp"
 
 #include <format>
 
@@ -45,12 +46,12 @@ const std::string Game::to_san(const Board &board, const Move move) {
             int file[9] = {0}, rank[9] = {0};
             uint8_t square_i = 0;
             bitboard_for_each_bit(square_i, potential) {
-                const std::string crd = square::to_coordinates(static_cast<square::Square>(square_i));
+                const std::string crd = to_coordinates(static_cast<Square>(square_i));
                 file[crd[0] & 0x3]++;
                 rank[crd[1] & 0x3]++;
             }
 
-            const std::string crd = square::to_coordinates(move.source());
+            const std::string crd = to_coordinates(move.source());
             if (file[crd[0] & 0x3] == 1) res += crd[0];
             else if (rank[crd[1] & 0x3] == 1)
                 res += crd[1];
@@ -58,13 +59,13 @@ const std::string Game::to_san(const Board &board, const Move move) {
                 res += crd;
         }
 
-        res += piece::get_code(piece, color::WHITE);
+        res += piece::get_code(piece, WHITE);
         if (target != piece::NONE) res += "x";
-        res += square::to_coordinates(move.target());
+        res += to_coordinates(move.target());
     } else {
-        if (target != piece::NONE) res += std::format("{}x", square::to_coordinates(move.source())[0]);
-        res += square::to_coordinates(move.target());
-        if (move.is_promote()) res += piece::get_code(move.promoted(), color::WHITE);
+        if (target != piece::NONE) res += std::format("{}x", to_coordinates(move.source())[0]);
+        res += to_coordinates(move.target());
+        if (move.is_promote()) res += piece::get_code(move.promoted(), WHITE);
         if (move.is_enpassant()) res += " e.p.";
     }
 
@@ -94,8 +95,8 @@ std::ostream &operator<<(std::ostream &os, const Game &game) {
     if (!game.list.size()) return os;
     Board board(game.fen);
 
-    const color::Color side = board.get_side();
-    if (side == color::BLACK) os << std::format("1. ... ");
+    const Color side = board.get_side();
+    if (side == BLACK) os << std::format("1. ... ");
     for (int i = 0; i < game.list.size(); i++) {
         if (i % 2 == side) os << std::format("{}. ", i / 2 + 1);
         os << std::format("{} ", Game::san ? Game::to_san(board, game.list[i]) : (std::string)game.list[i]);

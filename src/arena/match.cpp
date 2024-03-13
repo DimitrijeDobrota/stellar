@@ -2,6 +2,7 @@
 #include "logger.hpp"
 #include "repetition.hpp"
 #include "timer.hpp"
+#include "utils_ui.hpp"
 
 uint16_t Match::id_t = 0;
 Match::~Match() { logger::log(std::format("Match {}: destroyed", id), logger::Debug); }
@@ -23,11 +24,11 @@ Game Match::play(Settings swhite, Settings sblack, const std::string fen = Game:
     engines[0]->send("ucinewgame");
     engines[1]->send("ucinewgame");
 
-    color::Color turn = board.get_side();
+    Color turn = board.get_side();
     while (true) {
         const MoveList list = MoveList(board, false, true);
         if (!list.size()) {
-            game.set_winner(color::other(turn));
+            game.set_winner(other(turn));
             break;
         }
 
@@ -45,15 +46,14 @@ Game Match::play(Settings swhite, Settings sblack, const std::string fen = Game:
 
         std::string move_str = response.substr(9);
         if ((move = parse_move(list, move_str)) == Move() || !move.make(board)) {
-            logger::log(
-                std::format("Match {}: {} illegal {}", id, color::to_string(turn), (std::string)move));
+            logger::log(std::format("Match {}: {} illegal {}", id, to_string(turn), (std::string)move));
             game.set_terminate(Game::Illegal);
-            game.set_winner(color::other(turn));
+            game.set_winner(other(turn));
             break;
         }
 
         if (rtable.is_repetition(board.get_hash())) {
-            logger::log(std::format("Match {}: {} repetition", id, color::to_string(turn)));
+            logger::log(std::format("Match {}: {} repetition", id, to_string(turn)));
             game.set_terminate(Game::Repetition);
             game.set_draw(true);
             break;
@@ -64,21 +64,21 @@ Game Match::play(Settings swhite, Settings sblack, const std::string fen = Game:
         game.play(move);
 
         uint64_t time_passed = timer::get_ms() - time_start;
-        if (turn == color::WHITE ? swhite.time <= time_passed : sblack.time <= time_passed) {
-            logger::log(std::format("Match {}: {} timeout", id, color::to_string(turn)));
+        if (turn == WHITE ? swhite.time <= time_passed : sblack.time <= time_passed) {
+            logger::log(std::format("Match {}: {} timeout", id, to_string(turn)));
             game.set_terminate(Game::Timeout);
-            game.set_winner(color::other(turn));
+            game.set_winner(other(turn));
             break;
         }
 
-        if (turn == color::WHITE && !swhite.depth) swhite.time -= time_passed;
-        if (turn == color::BLACK && !sblack.depth) sblack.time -= time_passed;
+        if (turn == WHITE && !swhite.depth) swhite.time -= time_passed;
+        if (turn == BLACK && !sblack.depth) sblack.time -= time_passed;
 
-        turn = color::other(turn);
+        turn = other(turn);
     }
 
     if (!game.is_draw()) {
-        logger::log(std::format("Match {}: winner is {}", id, color::to_string(turn)));
+        logger::log(std::format("Match {}: winner is {}", id, to_string(turn)));
     } else {
         logger::log(std::format("Match {}: ended in a draw", id));
     }
@@ -87,19 +87,19 @@ Game Match::play(Settings swhite, Settings sblack, const std::string fen = Game:
     return game;
 }
 
-std::string Match::get_go(Settings &swhite, Settings &sblack, color::Color side) {
+std::string Match::get_go(Settings &swhite, Settings &sblack, Color side) {
     std::string go = "go";
-    if (side == color::WHITE && swhite.depth) go += " depth " + std::to_string(swhite.depth);
+    if (side == WHITE && swhite.depth) go += " depth " + std::to_string(swhite.depth);
     else {
-        if (side == color::WHITE && swhite.togo) go += " movestogo " + std::to_string(swhite.togo);
+        if (side == WHITE && swhite.togo) go += " movestogo " + std::to_string(swhite.togo);
         if (!sblack.depth && swhite.time) go += " wtime " + std::to_string(swhite.time);
         if (swhite.inc) go += " winc " + std::to_string(swhite.inc);
         if (swhite.movetime) go += " movetime " + std::to_string(swhite.movetime);
     }
 
-    if (side == color::BLACK && sblack.depth) go += " depth " + std::to_string(sblack.depth);
+    if (side == BLACK && sblack.depth) go += " depth " + std::to_string(sblack.depth);
     else {
-        if (side == color::BLACK && sblack.togo) go += " movestogo " + std::to_string(sblack.togo);
+        if (side == BLACK && sblack.togo) go += " movestogo " + std::to_string(sblack.togo);
         if (!swhite.depth && sblack.time) go += " btime " + std::to_string(sblack.time);
         if (sblack.inc) go += " binc " + std::to_string(sblack.inc);
         if (swhite.movetime) go += " movetime " + std::to_string(sblack.movetime);
@@ -108,8 +108,8 @@ std::string Match::get_go(Settings &swhite, Settings &sblack, color::Color side)
 }
 
 Move Match::parse_move(const MoveList list, const std::string &move_string) {
-    const square::Square source = square::from_coordinates(move_string.substr(0, 2));
-    const square::Square target = square::from_coordinates(move_string.substr(2, 2));
+    const Square source = from_coordinates(move_string.substr(0, 2));
+    const Square target = from_coordinates(move_string.substr(2, 2));
 
     for (int i = 0; i < list.size(); i++) {
         const Move crnt = list[i];

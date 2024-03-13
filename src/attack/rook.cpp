@@ -43,11 +43,11 @@ inline constexpr const U64 rook_magic_numbers[64] = {
 inline constexpr const bitboard::direction_f dir[4] = {bitboard::westOne, bitboard::soutOne,
                                                        bitboard::eastOne, bitboard::nortOne};
 
-inline constexpr U32 hash(const U64 key, const square::Square square) {
+inline constexpr U32 hash(const U64 key, const Square square) {
     return (key * rook_magic_numbers[square]) >> (64 - relevant_bits[square]);
 }
 
-inline constexpr U64 mask_fly(const square::Square square, U64 block) {
+inline constexpr U64 mask_fly(const Square square, U64 block) {
     int tr = square / 8, tf = square % 8;
     int len[4] = {tf, tr, 7 - tf, 7 - tr};
 
@@ -58,14 +58,14 @@ std::array<U64, 64> mask = {{0}};
 std::array<std::array<U64, 4096>, 64> attacks = {{{0}}};
 
 void init(void) {
-    for (square::Square square = square::a1; square <= square::h8; ++square) {
+    for (Square square = Square::a1; square <= Square::h8; ++square) {
         const int tr = square / 8, tf = square % 8;
         const int len[4] = {tf - 1, tr - 1, 6 - tf, 6 - tr};
 
         mask[square] = attack::slider::mask(square, C64(0), dir, len);
     }
 
-    for (square::Square square = square::a1; square <= square::h8; ++square) {
+    for (Square square = Square::a1; square <= Square::h8; ++square) {
         U64 attack_mask = mask[square];
         uint8_t relevant_bits = bit::count(attack_mask);
         U64 occupancy_indices = C64(1) << relevant_bits;
@@ -78,7 +78,7 @@ void init(void) {
     }
 }
 
-U64 attack(const square::Square square, U64 occupancy) {
+U64 attack(const Square square, U64 occupancy) {
     occupancy &= mask[square];
     occupancy = hash(occupancy, square);
     return attacks[square][occupancy];

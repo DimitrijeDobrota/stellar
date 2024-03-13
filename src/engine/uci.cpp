@@ -18,8 +18,8 @@ void communicate(const uci::Settings *settings) {
 }
 
 inline bool parse_move(const Board &board, Move &move, const std::string &move_string) {
-    const square::Square source = square::from_coordinates(move_string.substr(0, 2));
-    const square::Square target = square::from_coordinates(move_string.substr(2, 2));
+    const Square source = from_coordinates(move_string.substr(0, 2));
+    const Square target = from_coordinates(move_string.substr(2, 2));
 
     const MoveList list(board);
     for (int i = 0; i < list.size(); i++) {
@@ -85,8 +85,7 @@ void loop() {
             uint16_t winc = 0, binc = 0, movestogo = 60;
 
             while (iss >> command) {
-                if (command == "wtime")
-                    iss >> wtime;
+                if (command == "wtime") iss >> wtime;
                 else if (command == "btime")
                     iss >> btime;
                 else if (command == "winc")
@@ -116,13 +115,13 @@ void loop() {
             }
 
             settings.starttime = timer::get_ms();
-            uint64_t time = (board.get_side() == color::WHITE) ? wtime : btime;
+            uint64_t time = (board.get_side() == WHITE) ? wtime : btime;
 
             if (movetime != 0) {
                 time = movetime;
                 movestogo = 1;
             } else if (time != 0) {
-                uint16_t inc = (board.get_side() == color::WHITE) ? winc : binc;
+                uint16_t inc = (board.get_side() == WHITE) ? winc : binc;
                 time /= movestogo;
                 time -= 50;
                 settings.stoptime = settings.starttime + time + inc;

@@ -1,7 +1,6 @@
 #ifndef STELLAR_ATTACK_H
 #define STELLAR_ATTACK_H
 
-#include "square.hpp"
 #include "utils.hpp"
 
 #include "bishop.hpp"
@@ -17,11 +16,11 @@ namespace attack {
 
 void init(void);
 
-inline constexpr const U64 attack_pawn(const color::Color color, const square::Square from) {
+inline constexpr const U64 attack_pawn(const Color color, const Square from) {
     return attack::pawn::attack(color, from);
 }
 
-inline constexpr const U64 attack(const piece::Type type, const square::Square from, const U64 occupancy) {
+inline constexpr const U64 attack(const piece::Type type, const Square from, const U64 occupancy) {
     switch (type) {
     case piece::QUEEN: return attack::queen::attack(from, occupancy);
     case piece::ROOK: return attack::rook::attack(from, occupancy);

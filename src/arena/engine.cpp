@@ -13,7 +13,6 @@ Engine::Pipes::Pipes() {
     }
 }
 
-
 void Engine::Pipes::close() {
     if (::close(fd[0]) < 0 || ::close(fd[1])) {
         logger::error("close");

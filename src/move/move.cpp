@@ -1,21 +1,21 @@
 #include "move.hpp"
 #include "utils.hpp"
+#include "utils_ui.hpp"
 
 #include <algorithm>
 #include <iomanip>
 
-void Move::piece_remove(Board &board, piece::Type type, color::Color color, square::Square square) const {
+void Move::piece_remove(Board &board, piece::Type type, Color color, Square square) const {
     board.pop_piece(type, color, square);
     board.xor_hash(zobrist::key_piece(type, color, square));
 }
 
-void Move::piece_set(Board &board, piece::Type type, color::Color color, square::Square square) const {
+void Move::piece_set(Board &board, piece::Type type, Color color, Square square) const {
     board.set_piece(type, color, square);
     board.xor_hash(zobrist::key_piece(type, color, square));
 }
 
-void Move::piece_move(Board &board, piece::Type type, color::Color color, square::Square source,
-                      square::Square target) const {
+void Move::piece_move(Board &board, piece::Type type, Color color, Square source, Square target) const {
     piece_remove(board, type, color, source);
     piece_set(board, type, color, target);
 }
@@ -37,11 +37,10 @@ bool Move::make(Board &board) const {
         // clang-format on
     };
 
-    const color::Color color = board.get_side(), colorOther = color::other(color);
-    const square::Square source = this->source(), target = this->target();
+    const Color color = board.get_side(), colorOther = other(color);
+    const Square source = this->source(), target = this->target();
 
-    const auto ntarget =
-        static_cast<square::Square>(this->target() + (color == color::Color::WHITE ? -8 : +8));
+    const auto ntarget = static_cast<Square>(this->target() + (color == Color::WHITE ? -8 : +8));
 
     const piece::Type piece = board.get_square_piece_type(source);
 
@@ -67,19 +66,15 @@ bool Move::make(Board &board) const {
         }
     }
 
-    board.set_enpassant(is_double() ? ntarget : square::Square::no_sq);
+    board.set_enpassant(is_double() ? ntarget : Square::no_sq);
 
     if (is_castle()) {
-        if (color == color::Color::WHITE) {
-            if (is_castle_king())
-                piece_move(board, ROOK, color::Color::WHITE, square::Square::h1, square::Square::f1);
-            if (is_castle_queen())
-                piece_move(board, ROOK, color::Color::WHITE, square::Square::a1, square::Square::d1);
+        if (color == Color::WHITE) {
+            if (is_castle_king()) piece_move(board, ROOK, Color::WHITE, Square::h1, Square::f1);
+            if (is_castle_queen()) piece_move(board, ROOK, Color::WHITE, Square::a1, Square::d1);
         } else {
-            if (is_castle_king())
-                piece_move(board, ROOK, color::Color::BLACK, square::Square::h8, square::Square::f8);
-            if (is_castle_queen())
-                piece_move(board, ROOK, color::Color::BLACK, square::Square::a8, square::Square::d8);
+            if (is_castle_king()) piece_move(board, ROOK, Color::BLACK, Square::h8, Square::f8);
+            if (is_castle_queen()) piece_move(board, ROOK, Color::BLACK, Square::a8, Square::d8);
         }
     }
 
@@ -93,8 +88,8 @@ bool Move::make(Board &board) const {
 }
 
 void Move::print() const {
-    std::cout << square::to_coordinates(source()) << " ";
-    std::cout << square::to_coordinates(target()) << " ";
+    std::cout << to_coordinates(source()) << " ";
+    std::cout << to_coordinates(target()) << " ";
     std::cout << (is_promote() ? piece::get_code(promoted()) : '.') << " ";
     std::cout << is_double() << " ";
     std::cout << is_enpassant() << " ";
@@ -102,7 +97,7 @@ void Move::print() const {
 }
 
 Move::operator std::string() const {
-    std::string res = square::to_coordinates(source()) + square::to_coordinates(target());
+    std::string res = to_coordinates(source()) + to_coordinates(target());
     if (is_promote()) res += piece::get_code(promoted());
     return res;
 }

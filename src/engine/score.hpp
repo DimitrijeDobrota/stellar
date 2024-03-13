@@ -150,9 +150,8 @@ inline constexpr int16_t get(const piece::Type piece, const Phase phase = OPENIN
     return value[phase][piece];
 }
 
-inline constexpr int16_t get(piece::Type piece, color::Color color, square::Square square,
-                             Phase phase = ENDGAME) {
-    if (color != color::WHITE) square = square::mirror(square);
+inline constexpr int16_t get(piece::Type piece, Color color, Square square, Phase phase = ENDGAME) {
+    if (color != WHITE) square = get_mirror(square);
     return position[phase][piece][square];
 }
 

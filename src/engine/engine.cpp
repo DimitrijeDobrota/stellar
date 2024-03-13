@@ -194,7 +194,7 @@ int stats_move_make(Board &copy, const Move move) {
 void stats_move_make_pruning(Board &copy) {
     copy = board;
     board.switch_side();
-    board.set_enpassant(square::no_sq);
+    board.set_enpassant(Square::no_sq);
     ply++;
 }
 

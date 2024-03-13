@@ -6,6 +6,7 @@
 #include "movelist.hpp"
 #include "score.hpp"
 #include "utils.hpp"
+#include "utils_ui.hpp"
 
 namespace uci {
 

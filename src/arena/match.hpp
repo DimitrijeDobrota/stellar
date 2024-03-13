@@ -17,7 +17,7 @@ class Match {
     Game play(Settings swhite, Settings sblack, const std::string fen);
 
   private:
-    static std::string get_go(Settings &swhite, Settings &sblack, color::Color side);
+    static std::string get_go(Settings &swhite, Settings &sblack, Color side);
     static Move parse_move(const MoveList list, const std::string &move_string);
 
     std::array<Engine *, 2> engines;

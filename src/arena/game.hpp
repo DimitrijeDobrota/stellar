@@ -23,12 +23,12 @@ class Game {
     [[nodiscard]] const std::string &get_black() const { return black; }
     [[nodiscard]] const Terminate get_terminate() const { return terminate; }
 
-    [[nodiscard]] const bool is_win_white() const { return !draw && winner == color::WHITE; }
-    [[nodiscard]] const bool is_win_black() const { return !draw && winner == color::BLACK; }
+    [[nodiscard]] const bool is_win_white() const { return !draw && winner == WHITE; }
+    [[nodiscard]] const bool is_win_black() const { return !draw && winner == BLACK; }
     [[nodiscard]] const bool is_draw() const { return draw; }
 
     void set_terminate(const Terminate terminate) { this->terminate = terminate; }
-    void set_winner(const color::Color winner) { this->winner = winner; }
+    void set_winner(const Color winner) { this->winner = winner; }
     void set_draw(const bool draw) { this->draw = draw; }
 
     static void set_san(bool san) { Game::san = san; }
@@ -47,7 +47,7 @@ class Game {
     MoveList list;
 
     bool draw = false;
-    color::Color winner;
+    Color winner;
     Terminate terminate = Terminate::Deatch;
 
     static bool san;

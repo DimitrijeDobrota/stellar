@@ -3,7 +3,6 @@
 
 #include "bit.hpp"
 #include "bitboard.hpp"
-#include "square.hpp"
 #include "utils.hpp"
 
 namespace attack {
@@ -22,7 +21,7 @@ inline constexpr U64 occupancy(U64 index, uint8_t bits_in_mask, U64 attack_mask)
     return occupancy;
 }
 
-inline constexpr U64 mask(const square::Square square, U64 block, const bitboard::direction_f dir[4],
+inline constexpr U64 mask(const Square square, U64 block, const bitboard::direction_f dir[4],
                           const int len[4]) {
     U64 bitboard = C64(0), attacks = C64(0);
     bit::set(bitboard, square);
