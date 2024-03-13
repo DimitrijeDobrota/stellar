@@ -7,15 +7,30 @@
 #include "bishop.hpp"
 #include "king.hpp"
 #include "knight.hpp"
-#include "pawnb.hpp"
-#include "pawnw.hpp"
+#include "pawn.hpp"
 #include "queen.hpp"
 #include "rook.hpp"
+
+#include "piece.hpp"
 
 namespace attack {
 
 void init(void);
-using attack_f = U64 (*)(const square::Square, U64);
+
+inline constexpr const U64 attack_pawn(const color::Color color, const square::Square from) {
+    return attack::pawn::attack(color, from);
+}
+
+inline constexpr const U64 attack(const piece::Type type, const square::Square from, const U64 occupancy) {
+    switch (type) {
+    case piece::QUEEN: return attack::queen::attack(from, occupancy);
+    case piece::ROOK: return attack::rook::attack(from, occupancy);
+    case piece::BISHOP: return attack::bishop::attack(from, occupancy);
+    case piece::KING: return attack::king::attack(from);
+    case piece::KNIGHT: return attack::knight::attack(from);
+    default: return 0;
+    }
+}
 
 } // namespace attack
 

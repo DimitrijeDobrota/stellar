@@ -38,7 +38,7 @@ const attack_array attacks = []() -> attack_array {
     return attacks;
 }();
 
-inline constexpr U64 attack(const square::Square square, U64 occupancy) { return attacks[square]; }
+inline constexpr U64 attack(const square::Square square) { return attacks[square]; }
 
 } // namespace knight
 } // namespace attack

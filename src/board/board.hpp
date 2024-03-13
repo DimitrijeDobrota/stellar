@@ -1,6 +1,7 @@
 #ifndef STELLAR_BOARD_H
 #define STELLAR_BOARD_H
 
+#include "attack.hpp"
 #include "bit.hpp"
 #include "color.hpp"
 #include "piece.hpp"
@@ -100,7 +101,8 @@ constexpr U64 Board::get_bitboard_piece(piece::Type piece, color::Color color) c
 
 constexpr U64 Board::get_bitboard_piece_attacks(piece::Type type, color::Color color,
                                                 square::Square from) const {
-    return piece::get_attack(type, color, from, get_bitboard_occupancy());
+    if (type == piece::PAWN) return attack::attack_pawn(color, from);
+    return attack::attack(type, from, get_bitboard_occupancy());
 }
 
 constexpr U64 Board::get_bitboard_piece_moves(piece::Type type, color::Color color,
