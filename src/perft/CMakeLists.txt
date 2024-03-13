@@ -6,6 +6,7 @@ if(STELLAR_FULL_COUNT)
 endif()
 
 target_link_libraries(perft
+    PRIVATE bitboard
     PRIVATE board
     PRIVATE moves
     PRIVATE piece

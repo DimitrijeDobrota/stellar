@@ -3,8 +3,9 @@ add_library(board OBJECT
 )
 
 target_link_libraries(board
+    PRIVATE bitboard
     PRIVATE utils
-    PUBLIC piece
+    PRIVATE piece
     PUBLIC random
 )
 

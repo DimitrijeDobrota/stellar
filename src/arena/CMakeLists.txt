@@ -1,12 +1,13 @@
 add_executable(arena
     arena.cpp
-    match.cpp
     engine.cpp
     game.cpp
+    match.cpp
 )
 
 target_link_libraries(arena
     PRIVATE Stellar_version
+    PRIVATE bitboard
     PRIVATE board
     PRIVATE moves
     PRIVATE piece

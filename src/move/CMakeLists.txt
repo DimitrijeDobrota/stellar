@@ -4,8 +4,9 @@ add_library(moves OBJECT
 )
 
 target_link_libraries(moves
-    PRIVATE piece
+    PRIVATE bitboard
     PRIVATE board
+    PRIVATE piece
     PRIVATE utils
 )
 

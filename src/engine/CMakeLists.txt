@@ -1,12 +1,13 @@
 add_executable(engine
+    engine.cpp
     evaluate.cpp
     uci.cpp
-    engine.cpp
 )
 
 
 target_link_libraries(engine
     PRIVATE Stellar_version
+    PRIVATE bitboard
     PRIVATE board
     PRIVATE moves
     PRIVATE piece
