@@ -63,7 +63,7 @@ void MoveList::generate(const Board &board, bool attacks_only) {
     }
 
     // All piece move
-    for (const piece::Type type : ++piece::TypeIter()) {
+    for (piece::Type type = piece::KNIGHT; type <= piece::KING; ++type) {
         U64 bitboard = board.get_bitboard_piece(type, color);
         bitboard_for_each_bit(src_i, bitboard) {
             const auto src = static_cast<square::Square>(src_i);
@@ -85,12 +85,12 @@ void MoveList::generate(const Board &board, bool attacks_only) {
     // Castling
     if (color == color::WHITE) {
         if (!board.is_square_attacked(square::e1, color::BLACK)) {
-            if (board.get_castle() & to_underlying(Board::Castle::WK)) {
+            if (board.get_castle() & Board::Castle::WK) {
                 if (!board.is_square_occupied(square::f1) && !board.is_square_occupied(square::g1) &&
                     !board.is_square_attacked(square::f1, color::BLACK))
                     list.emplace_back(square::e1, square::g1, Move::CASTLEK);
             }
-            if (board.get_castle() & to_underlying(Board::Castle::WQ)) {
+            if (board.get_castle() & Board::Castle::WQ) {
                 if (!board.is_square_occupied(square::d1) && !board.is_square_occupied(square::c1) &&
                     !board.is_square_occupied(square::b1) &&
                     !board.is_square_attacked(square::d1, color::BLACK) &&
@@ -100,12 +100,12 @@ void MoveList::generate(const Board &board, bool attacks_only) {
         }
     } else {
         if (!board.is_square_attacked(square::e8, color::WHITE)) {
-            if (board.get_castle() & to_underlying(Board::Castle::BK)) {
+            if (board.get_castle() & Board::Castle::BK) {
                 if (!board.is_square_occupied(square::f8) && !board.is_square_occupied(square::g8) &&
                     !board.is_square_attacked(square::f8, color::WHITE))
                     list.emplace_back(square::Square::e8, square::Square::g8, Move::CASTLEK);
             }
-            if (board.get_castle() & to_underlying(Board::Castle::BQ)) {
+            if (board.get_castle() & Board::Castle::BQ) {
                 if (!board.is_square_occupied(square::d8) && !board.is_square_occupied(square::c8) &&
                     !board.is_square_occupied(square::b8) &&
                     !board.is_square_attacked(square::d8, color::WHITE) &&

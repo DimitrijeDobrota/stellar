@@ -39,13 +39,13 @@ Board::Board(const std::string &fen) {
                            : throw std::runtime_error("Invalid player char");
 
     for (i += 2; fen[i] != ' '; i++) {
-        if (fen[i] == 'K') castle |= to_underlying(Castle::WK);
+        if (fen[i] == 'K') castle |= Castle::WK;
         else if (fen[i] == 'Q')
-            castle |= to_underlying(Castle::WQ);
+            castle |= Castle::WQ;
         else if (fen[i] == 'k')
-            castle |= to_underlying(Castle::BK);
+            castle |= Castle::BK;
         else if (fen[i] == 'q')
-            castle |= to_underlying(Castle::BQ);
+            castle |= Castle::BQ;
         else if (fen[i] == '-') {
             i++;
             break;
@@ -73,10 +73,10 @@ std::ostream &operator<<(std::ostream &os, const Board &board) {
     os << ((board.side == color::WHITE) ? "white" : "black") << "\n";
     os << "Enpassant: " << square::to_coordinates(board.enpassant) << "\n";
     os << "   Castle:";
-    os << ((board.castle & to_underlying(Board::Castle::WK)) ? 'K' : '-');
-    os << ((board.castle & to_underlying(Board::Castle::WQ)) ? 'Q' : '-');
-    os << ((board.castle & to_underlying(Board::Castle::BK)) ? 'k' : '-');
-    os << ((board.castle & to_underlying(Board::Castle::BQ)) ? 'q' : '-');
+    os << ((board.castle & Board::Castle::WK) ? 'K' : '-');
+    os << ((board.castle & Board::Castle::WQ) ? 'Q' : '-');
+    os << ((board.castle & Board::Castle::BK) ? 'k' : '-');
+    os << ((board.castle & Board::Castle::BQ) ? 'q' : '-');
     os << "\n     Hash:" << board.hash << "\n\n";
 
     return os;

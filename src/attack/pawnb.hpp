@@ -14,21 +14,22 @@ namespace pawnb {
 static constexpr U64 mask(const square::Square square) {
     U64 bitboard = C64(0);
 
-    bit::set(bitboard, to_underlying(square));
+    bit::set(bitboard, square);
     return bitboard::soWeOne(bitboard) | bitboard::soEaOne(bitboard);
 }
 
 typedef std::array<U64, 64> attack_array;
 const attack_array attacks = []() -> attack_array {
     std::array<U64, 64> attacks;
-    for (uint8_t square = 0; square < 64; square++)
-        attacks[square] = mask(static_cast<square::Square>(square));
+
+    for (square::Square square = square::a1; square <= square::h8; ++square) {
+        attacks[square] = mask(square);
+    }
+
     return attacks;
 }();
 
-inline constexpr U64 attack(const square::Square square, U64 occupancy) {
-    return attacks[to_underlying(square)];
-}
+inline constexpr U64 attack(const square::Square square, U64 occupancy) { return attacks[square]; }
 
 } // namespace pawnb
 }; // namespace attack

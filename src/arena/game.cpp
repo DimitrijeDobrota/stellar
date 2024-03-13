@@ -84,7 +84,7 @@ std::ostream &operator<<(std::ostream &os, const Game &game) {
     os << std::format("\n[White \"{}\"]", game.get_white());
     os << std::format("\n[Black \"{}\"]", game.get_black());
     os << std::format("\n[Result \"{}-{}\"]", (int)game.is_win_white(), (int)game.is_win_black());
-    os << std::format("\n[Termination \"{}\"]", name[to_underlying(game.get_terminate())]);
+    os << std::format("\n[Termination \"{}\"]", name[game.get_terminate()]);
     if (game.fen != Game::startPosition) {
         os << std::format("\n[SetUp \"1\"]");
         os << std::format("\n[FEN \"{}\"]", game.fen);
@@ -97,7 +97,7 @@ std::ostream &operator<<(std::ostream &os, const Game &game) {
     const color::Color side = board.get_side();
     if (side == color::BLACK) os << std::format("1. ... ");
     for (int i = 0; i < game.list.size(); i++) {
-        if (i % 2 == to_underlying(side)) os << std::format("{}. ", i / 2 + 1);
+        if (i % 2 == side) os << std::format("{}. ", i / 2 + 1);
         os << std::format("{} ", Game::san ? Game::to_san(board, game.list[i]) : (std::string)game.list[i]);
         game.list[i].make(board);
     }

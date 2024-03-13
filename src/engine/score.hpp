@@ -1,6 +1,7 @@
 #ifndef STELLAR_SCORE_H
 #define STELLAR_SCORE_H
 
+#include "piece.hpp"
 #include "utils.hpp"
 #define MAX_PLY 64
 
@@ -146,13 +147,13 @@ enum Phase {
 };
 
 inline constexpr int16_t get(const piece::Type piece, const Phase phase = OPENING) {
-    return value[to_underlying(phase)][to_underlying(piece)];
+    return value[phase][piece];
 }
 
-inline constexpr int16_t get(const piece::Type piece, const color::Color color, const square::Square square,
-                             const Phase phase = ENDGAME) {
-    uint8_t square_i = to_underlying(color == color::WHITE ? square : square::mirror(square));
-    return position[to_underlying(phase)][to_underlying(piece)][square_i];
+inline constexpr int16_t get(piece::Type piece, color::Color color, square::Square square,
+                             Phase phase = ENDGAME) {
+    if (color != color::WHITE) square = square::mirror(square);
+    return position[phase][piece][square];
 }
 
 inline constexpr const uint8_t pawn_double_opening = 5;

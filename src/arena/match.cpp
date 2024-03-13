@@ -31,7 +31,7 @@ Game Match::play(Settings swhite, Settings sblack, const std::string fen = Game:
             break;
         }
 
-        Engine *engine = engines[to_underlying(turn)];
+        Engine *engine = engines[turn];
         engine->send(std::format("{} moves {}", position, game.get_moves()));
         engine->send(get_go(swhite, sblack, turn));
 

@@ -135,11 +135,11 @@ U32 inline move_score(const Move move) {
     const piece::Type type = board.get_square_piece_type(move.source());
     if (move.is_capture()) {
         const piece::Type captured = board.get_square_piece_type(move.target());
-        return capture[to_underlying(type)][to_underlying(captured)] + 10000;
+        return capture[type][captured] + 10000;
     }
     if (killer[0][ply] == move) return 9000;
     if (killer[1][ply] == move) return 8000;
-    return history[piece::get_index(type, board.get_side())][to_underlying(move.target())];
+    return history[piece::get_index(type, board.get_side())][move.target()];
 }
 
 void move_list_sort(MoveList &list, std::vector<int> &score, int crnt) {
@@ -368,7 +368,7 @@ int16_t negamax(int16_t alpha, int16_t beta, uint8_t depth, bool null) {
         if (score > alpha) {
             if (!move.is_capture()) {
                 const piece::Type piece = board.get_square_piece_type(move.source());
-                history[piece::get_index(piece, board.get_side())][to_underlying(move.target())] += depth;
+                history[piece::get_index(piece, board.get_side())][move.target()] += depth;
             }
 
             alpha = score;

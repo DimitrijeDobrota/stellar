@@ -45,49 +45,44 @@ inline constexpr const bitboard::direction_f dir[4] = {bitboard::noEaOne, bitboa
                                                        bitboard::soEaOne, bitboard::soWeOne};
 
 inline constexpr U32 hash(const U64 key, const square::Square square) {
-    uint8_t square_i = to_underlying(square);
-    return (key * bishop_magic_numbers[square_i]) >> (64 - relevant_bits[square_i]);
+    return (key * bishop_magic_numbers[square]) >> (64 - relevant_bits[square]);
 }
 
 inline constexpr U64 mask_fly(const square::Square square, U64 block) {
-    uint8_t square_i = to_underlying(square);
-    int tr = square_i / 8, tf = square_i % 8;
+    int tr = square / 8, tf = square % 8;
     int len[4] = {std::min(7 - tf, 7 - tr), std::min(tf, 7 - tr), std::min(7 - tf, tr), std::min(tf, tr)};
 
     return attack::slider::mask(square, block, dir, len);
 }
 
-std::array<U64, 64> masks = {{0}};
-inline U64 mask(const square::Square square) { return masks[to_underlying(square)]; }
-
+std::array<U64, 64> mask = {{0}};
 std::array<std::array<U64, 4098>, 64> attacks = {{{0}}};
 
 void init(void) {
-    for (uint8_t square = 0; square < 64; square++) {
+    for (square::Square square = square::a1; square <= square::h8; ++square) {
         int tr = square / 8, tf = square % 8;
         int len[4] = {std::min(7 - tf, 7 - tr) - 1, std::min(tf, 7 - tr) - 1, std::min(7 - tf, tr) - 1,
                       std::min(tf, tr) - 1};
-        masks[square] = attack::slider::mask(static_cast<square::Square>(square), C64(0), dir, len);
+        mask[square] = attack::slider::mask(square, C64(0), dir, len);
     }
 
-    for (uint8_t square = 0; square < 64; square++) {
-        square::Square Square = static_cast<square::Square>(square);
-        U64 attack_mask = mask(Square);
+    for (square::Square square = square::a1; square <= square::h8; ++square) {
+        U64 attack_mask = mask[square];
         uint8_t relevant_bits = bit::count(attack_mask);
         U64 occupancy_indices = C64(1) << relevant_bits;
 
         for (U64 idx = 0; idx < occupancy_indices; idx++) {
             U64 occupancy = attack::slider::occupancy(idx, relevant_bits, attack_mask);
-            U32 magic_index = hash(occupancy, Square);
-            attacks[square][magic_index] = mask_fly(Square, occupancy);
+            U32 magic_index = hash(occupancy, square);
+            attacks[square][magic_index] = mask_fly(square, occupancy);
         }
     }
 }
 
 U64 attack(const square::Square square, U64 occupancy) {
-    occupancy &= mask(square);
+    occupancy &= mask[square];
     occupancy = hash(occupancy, square);
-    return attacks[to_underlying(square)][occupancy];
+    return attacks[square][occupancy];
 }
 
 } // namespace bishop

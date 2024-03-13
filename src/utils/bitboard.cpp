@@ -4,6 +4,7 @@
 #include <iostream>
 
 namespace bitboard {
+
 void print(U64 bitboard) {
     for (int rank = 0; rank < 8; rank++) {
         for (int file = 0; file < 8; file++) {
@@ -17,4 +18,5 @@ void print(U64 bitboard) {
     std::cout << "\n    A B C D E F G H\n\n";
     std::cout << "    Bitboard: " << std::hex << bitboard << std::dec << std::endl;
 }
+
 } // namespace bitboard

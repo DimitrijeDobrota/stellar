@@ -89,7 +89,6 @@ int16_t score_position_side(const Board &board, const color::Color side, const u
     int16_t total = 0, opening = 0, endgame = 0;
     int8_t square_i;
 
-    const uint8_t side_i = to_underlying(side);
     const U64 pawns = board.get_bitboard_piece(PAWN);
     const U64 pawnsS = board.get_bitboard_piece(PAWN, side);
     const U64 pawnsO = pawns & ~pawnsS;
@@ -112,7 +111,7 @@ int16_t score_position_side(const Board &board, const color::Color side, const u
             endgame -= score::pawn_double_endgame;
         }
 
-        if (!(pawnsO & mask_passed[side_i][square_i])) total += score::pawn_passed[side_i][rank];
+        if (!(pawnsO & mask_passed[side][square_i])) total += score::pawn_passed[side][rank];
     }
 
     bitboard = board.get_bitboard_piece(KNIGHT, side);

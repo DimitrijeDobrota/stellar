@@ -25,7 +25,7 @@ inline constexpr U64 occupancy(U64 index, uint8_t bits_in_mask, U64 attack_mask)
 inline constexpr U64 mask(const square::Square square, U64 block, const bitboard::direction_f dir[4],
                           const int len[4]) {
     U64 bitboard = C64(0), attacks = C64(0);
-    bit::set(bitboard, to_underlying(square));
+    bit::set(bitboard, square);
     for (int i = 0; i < 4; i++) {
         U64 tmp = bitboard;
         for (int j = 0; j < len[i]; j++) {

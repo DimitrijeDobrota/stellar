@@ -22,7 +22,7 @@ inline void set_level(const Level lvl) { active = lvl; }
 inline void log(const std::string &message, const Level lvl = Arena) {
     static const std::string name[] = {"crit", "arena", "debug", "info"};
     if (lvl > active) return;
-    std::cerr << std::format("[ {:>5} ] {}\n", name[to_underlying(lvl)], message);
+    std::cerr << std::format("[ {:>5} ] {}\n", name[lvl], message);
 }
 
 inline void error(const char *call) { log(std::format("{}, {}", call, std::strerror(errno)), Critical); }

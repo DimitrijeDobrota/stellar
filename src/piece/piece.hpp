@@ -18,7 +18,8 @@ enum Type {
     KING,
     NONE = 7,
 };
-typedef Iterator<Type, Type::PAWN, Type::KING> TypeIter;
+
+ENABLE_INCR_OPERATORS_ON(Type)
 
 struct Piece {
     const uint8_t index;
@@ -68,7 +69,7 @@ inline constexpr const U64 get_index(const Type type, const color::Color color) 
 inline constexpr const Piece &get_from_code(const char code) {
     color::Color color = isupper(code) ? color::WHITE : color::BLACK;
 
-    for (Type type : TypeIter()) {
+    for (Type type = PAWN; type <= KING; ++type) {
         const Piece &piece = get(type, color);
         if (piece.code == code) return piece;
     }

@@ -41,7 +41,7 @@ bool Move::make(Board &board) const {
     const square::Square source = this->source(), target = this->target();
 
     const auto ntarget =
-        static_cast<square::Square>(to_underlying(this->target()) + (color == color::Color::WHITE ? -8 : +8));
+        static_cast<square::Square>(this->target() + (color == color::Color::WHITE ? -8 : +8));
 
     const piece::Type piece = board.get_square_piece_type(source);
 
@@ -83,8 +83,7 @@ bool Move::make(Board &board) const {
         }
     }
 
-    board.and_castle(castling_rights[to_underlying(this->source())] &
-                     castling_rights[to_underlying(this->target())]);
+    board.and_castle(castling_rights[this->source()] & castling_rights[this->target()]);
 
     if (!board.is_check()) {
         board.switch_side();

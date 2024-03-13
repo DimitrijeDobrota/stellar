@@ -1,6 +1,7 @@
 #ifndef STELLAR_BITBOARD_H
 #define STELLAR_BITBOARD_H
 
+#include "square.hpp"
 #include "utils.hpp"
 
 namespace bitboard {

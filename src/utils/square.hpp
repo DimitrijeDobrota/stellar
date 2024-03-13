@@ -6,7 +6,7 @@
 
 namespace square {
 
-enum Square {
+enum Square : int {
     // clang-format off
     a1, b1, c1, d1, e1, f1, g1, h1,
     a2, b2, c2, d2, e2, f2, g2, h2,
@@ -19,7 +19,7 @@ enum Square {
     // clang-format on
 };
 
-typedef Iterator<Square, Square::a1, Square::h8> Iter;
+ENABLE_INCR_OPERATORS_ON(Square)
 
 inline constexpr const Square mirror_array[]{
     // clang-format off
@@ -47,13 +47,10 @@ inline constexpr const char *coordinates_array[] = {
     // clang-format on
 };
 
-inline constexpr const uint8_t file(const Square square) { return to_underlying(square) & 0x07; }
-inline constexpr const uint8_t rank(const Square square) { return to_underlying(square) >> 3; }
+inline constexpr const uint8_t file(const Square square) { return square & 0x07; }
+inline constexpr const uint8_t rank(const Square square) { return square >> 3; }
 inline constexpr const Square mirror(const Square square) { return mirror_array[square]; }
-
-inline constexpr const std::string to_coordinates(const Square square) {
-    return coordinates_array[to_underlying(square)];
-}
+inline constexpr const std::string to_coordinates(const Square square) { return coordinates_array[square]; }
 
 inline const Square from_coordinates(const std::string &cord) {
     return static_cast<Square>((cord[1] - '1') * 8 + (cord[0] - 'a'));
