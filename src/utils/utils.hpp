@@ -21,7 +21,7 @@ enum Color {
     COLOR_NB = 2
 };
 
-inline constexpr const Color other(const Color color) { return color == WHITE ? BLACK : WHITE; }
+inline constexpr const Color other(const Color color) { return static_cast<Color>(!color); }
 
 /* Square */
 
@@ -66,7 +66,7 @@ enum Type {
     ROOK,
     QUEEN,
     KING,
-    NONE = 7,
+    NO_TYPE,
 };
 
 ENABLE_INCR_OPERATORS_ON(Type)

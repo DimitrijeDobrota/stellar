@@ -45,7 +45,6 @@ class Board {
 
     [[nodiscard]] inline constexpr Color get_square_piece_color(Square square) const;
     [[nodiscard]] inline constexpr Type get_square_piece_type(Square square) const;
-    [[nodiscard]] inline constexpr const piece::Piece *get_square_piece(Square square) const;
 
     /* Setters */
 
@@ -110,22 +109,14 @@ constexpr U64 Board::get_bitboard_square_land(Square land, Type piece, Color sid
 constexpr Color Board::get_square_piece_color(Square square) const {
     if (bit::get(colors[WHITE], square)) return WHITE;
     if (bit::get(colors[BLACK], square)) return BLACK;
-    throw std::exception();
+    return COLOR_NB;
 }
 
 constexpr Type Board::get_square_piece_type(Square square) const {
     for (Type type = PAWN; type <= KING; ++type) {
         if (bit::get(pieces[type], square)) return type;
     }
-    return Type::NONE;
-}
-
-constexpr const piece::Piece *Board::get_square_piece(Square square) const {
-    try {
-        return &piece::get(get_square_piece_type(square), get_square_piece_color(square));
-    } catch (std::exception &e) {
-        return nullptr;
-    }
+    return Type::NO_TYPE;
 }
 
 /* Setters */

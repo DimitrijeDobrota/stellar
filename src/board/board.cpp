@@ -5,6 +5,7 @@
 
 #include "board.hpp"
 #include "piece.hpp"
+#include "utils.hpp"
 #include "utils_ui.hpp"
 #include "zobrist.hpp"
 
@@ -64,8 +65,13 @@ std::ostream &operator<<(std::ostream &os, const Board &board) {
         for (int file = 0; file < 8; file++) {
             if (!file) os << 8 - rank << " ";
             auto square = static_cast<Square>((7 - rank) * 8 + file);
-            const piece::Piece *piece = board.get_square_piece(square);
-            os << (piece ? piece->code : '.') << " ";
+            const Type t = board.get_square_piece_type(square);
+            if (t == NO_TYPE) {
+                os << ". ";
+            } else {
+                const Color c = board.get_square_piece_color(square);
+                os << piece::get_code(t, c) << " ";
+            }
         }
         printf("\n");
     }

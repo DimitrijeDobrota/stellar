@@ -24,7 +24,7 @@ class Arena {
         logger::log(std::format("Arena {}: destroyed", id), logger::Debug);
     }
 
-    void operator()(const std::vector<std::string> positions, Match::Settings swhite,
+    void operator()(const std::vector<std::string> &positions, Match::Settings swhite,
                     Match::Settings sblack) {
         Match match(*engine1, *engine2);
         for (const std::string &fen : positions) {
@@ -36,7 +36,7 @@ class Arena {
     }
 
   private:
-    static void print(const Game game) {
+    static void print(const Game &game) {
         mutex.lock();
         std::cout << game << std::endl;
         mutex.unlock();

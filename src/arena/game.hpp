@@ -13,7 +13,7 @@ class Game {
         Repetition,
     };
 
-    Game(const uint16_t match_id, const std::string white, const std::string black, const std::string fen);
+    Game(const uint16_t match_id, const std::string &white, const std::string &black, const std::string &fen);
     ~Game();
 
     void play(const Move move) { list.push(move); }

@@ -1,6 +1,8 @@
 #ifndef STELLAR_SCORE_H
 #define STELLAR_SCORE_H
 
+#include <array>
+
 #include "piece.hpp"
 #include "utils.hpp"
 #define MAX_PLY 64

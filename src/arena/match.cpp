@@ -10,7 +10,7 @@ Match::Match(Engine &white, Engine &black) : engines({&white, &black}) {
     logger::log(std::format("Match {}: created", id), logger::Debug);
 }
 
-Game Match::play(Settings swhite, Settings sblack, const std::string fen = Game::startPosition) {
+Game Match::play(Settings swhite, Settings sblack, const std::string &fen = Game::startPosition) {
     const std::string position = "position " + (fen == Game::startPosition ? "startpos" : "fen " + fen);
 
     repetition::Table rtable;
@@ -107,7 +107,7 @@ std::string Match::get_go(Settings &swhite, Settings &sblack, Color side) {
     return go;
 }
 
-Move Match::parse_move(const MoveList list, const std::string &move_string) {
+Move Match::parse_move(const MoveList &list, const std::string &move_string) {
     const Square source = from_coordinates(move_string.substr(0, 2));
     const Square target = from_coordinates(move_string.substr(2, 2));
 

@@ -12,7 +12,8 @@ const std::string Game::startPosition = start_position;
 
 uint16_t Game::id_t = 0;
 Game::~Game() { logger::log(std::format("Game {}: destroyed", id), logger::Debug); }
-Game::Game(const uint16_t match_id, const std::string white, const std::string black, const std::string fen)
+Game::Game(const uint16_t match_id, const std::string &white, const std::string &black,
+           const std::string &fen)
     : match_id(match_id), white(white), black(black), fen(fen) {
     logger::log(std::format("Game {}: started", id), logger::Debug);
 }
@@ -60,10 +61,10 @@ const std::string Game::to_san(const Board &board, const Move move) {
         }
 
         res += piece::get_code(piece, WHITE);
-        if (target != Type::NONE) res += "x";
+        if (target != Type::NO_TYPE) res += "x";
         res += to_coordinates(move.target());
     } else {
-        if (target != Type::NONE) res += std::format("{}x", to_coordinates(move.source())[0]);
+        if (target != Type::NO_TYPE) res += std::format("{}x", to_coordinates(move.source())[0]);
         res += to_coordinates(move.target());
         if (move.is_promote()) res += piece::get_code(move.promoted(), WHITE);
         if (move.is_enpassant()) res += " e.p.";
