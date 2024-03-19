@@ -7,12 +7,16 @@
 
 void Move::piece_remove(Board &board, Type type, Color color, Square square) const {
     board.pop_piece(type, color, square);
+
     board.xor_hash(zobrist::key_piece(type, color, square));
+    if (type == PAWN) board.xor_hash_pawn(zobrist::key_pawn(color, square));
 }
 
 void Move::piece_set(Board &board, Type type, Color color, Square square) const {
     board.set_piece(type, color, square);
+
     board.xor_hash(zobrist::key_piece(type, color, square));
+    if (type == PAWN) board.xor_hash_pawn(zobrist::key_pawn(color, square));
 }
 
 void Move::piece_move(Board &board, Type type, Color color, Square source, Square target) const {

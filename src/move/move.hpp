@@ -34,23 +34,23 @@ struct Move {
         return a.source_i == b.source_i && a.target_i == b.target_i && a.flags_i == b.flags_i;
     }
 
-    [[nodiscard]] Square source() const { return static_cast<Square>(source_i); }
-    [[nodiscard]] Square target() const { return static_cast<Square>(target_i); }
+    [[nodiscard]] constexpr Square source() const { return static_cast<Square>(source_i); }
+    [[nodiscard]] constexpr Square target() const { return static_cast<Square>(target_i); }
 
-    [[nodiscard]] bool is_capture() const { return flags_i != PQUIET && (flags_i & CAPTURE); }
-    [[nodiscard]] bool is_promote() const { return flags_i & 0x8; }
+    [[nodiscard]] constexpr bool is_capture() const { return flags_i != PQUIET && (flags_i & CAPTURE); }
+    [[nodiscard]] constexpr bool is_promote() const { return flags_i & 0x8; }
 
-    [[nodiscard]] bool is_double() const { return flags_i == DOUBLE; }
-    [[nodiscard]] bool is_repeatable() const { return flags_i == QUIET; }
-    [[nodiscard]] bool is_quiet() const { return flags_i == QUIET || flags_i == PQUIET; }
+    [[nodiscard]] constexpr bool is_double() const { return flags_i == DOUBLE; }
+    [[nodiscard]] constexpr bool is_repeatable() const { return flags_i == QUIET; }
+    [[nodiscard]] constexpr bool is_quiet() const { return flags_i == QUIET || flags_i == PQUIET; }
 
-    [[nodiscard]] bool is_castle() const { return flags_i == CASTLEK || flags_i == CASTLEQ; }
-    [[nodiscard]] bool is_castle_king() const { return flags_i == CASTLEK; }
-    [[nodiscard]] bool is_castle_queen() const { return flags_i == CASTLEQ; }
+    [[nodiscard]] constexpr bool is_castle() const { return flags_i == CASTLEK || flags_i == CASTLEQ; }
+    [[nodiscard]] constexpr bool is_castle_king() const { return flags_i == CASTLEK; }
+    [[nodiscard]] constexpr bool is_castle_queen() const { return flags_i == CASTLEQ; }
 
-    [[nodiscard]] bool is_enpassant() const { return flags_i == ENPASSANT; }
+    [[nodiscard]] constexpr bool is_enpassant() const { return flags_i == ENPASSANT; }
 
-    [[nodiscard]] const Type promoted() const { return static_cast<Type>((flags_i & 0x3) + 1); }
+    [[nodiscard]] constexpr const Type promoted() const { return static_cast<Type>((flags_i & 0x3) + 1); }
 
     bool make(Board &board) const;
 

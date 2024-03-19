@@ -11,6 +11,7 @@
 class Board;
 namespace zobrist {
 
+extern U32 keys_pawn[2][64];
 extern U64 keys_piece[2][12][64];
 extern U64 keys_enpassant[64];
 extern U64 keys_castle[16];
@@ -35,12 +36,22 @@ inline void init() {
     for (int castle = 0; castle < 16; castle++) {
         keys_castle[castle] = gen3();
     }
+
+    Random gen4(C32(3642040919));
+    for (int c = 0; c < 2; c++) {
+        for (int square = 0; square < 64; square++) {
+            keys_pawn[c][square] = gen4.get_U32();
+        }
+    }
 };
 
 inline U64 hash(const Board &board);
+inline U32 hash_pawn(const Board &board);
+
 inline constexpr U64 key_side() { return keys_side; }
 inline constexpr U64 key_castle(int exp) { return keys_castle[exp]; }
 inline constexpr U64 key_enpassant(Square square) { return keys_enpassant[square]; }
+inline constexpr U64 key_pawn(Color color, Square square) { return keys_pawn[color][square]; }
 inline constexpr U64 key_piece(Type type, Color color, Square square) {
     return keys_piece[color][type][square];
 }

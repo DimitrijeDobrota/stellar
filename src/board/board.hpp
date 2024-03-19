@@ -28,10 +28,11 @@ class Board {
 
     /* Getters */
 
-    [[nodiscard]] inline constexpr U64 get_hash() const;
-    [[nodiscard]] inline constexpr Color get_side() const;
-    [[nodiscard]] inline constexpr uint8_t get_castle() const;
-    [[nodiscard]] inline constexpr Square get_enpassant() const;
+    [[nodiscard]] inline constexpr U64 get_hash() const { return hash; }
+    [[nodiscard]] inline constexpr Color get_side() const { return side; }
+    [[nodiscard]] inline constexpr uint8_t get_castle() const { return castle; }
+    [[nodiscard]] inline constexpr Square get_enpassant() const { return enpassant; }
+    [[nodiscard]] inline constexpr U64 get_hash_pawn() const { return hash_pawn; }
 
     [[nodiscard]] inline constexpr U64 get_bitboard_color(Color side) const;
     [[nodiscard]] inline constexpr U64 get_bitboard_occupancy() const;
@@ -49,6 +50,8 @@ class Board {
     /* Setters */
 
     inline constexpr void xor_hash(U64 op);
+    inline constexpr void xor_hash_pawn(U32 op);
+
     inline constexpr void switch_side();
     inline constexpr void and_castle(uint8_t right);
     inline constexpr void set_enpassant(Square target);
@@ -74,15 +77,11 @@ class Board {
     U64 colors[2] = {0};
     U64 pieces[6] = {0};
     U64 hash = 0;
+    U32 hash_pawn = 0;
     Color side = WHITE;
     Square enpassant = Square::no_sq;
     uint8_t castle = 0;
 };
-
-constexpr Color Board::get_side() const { return side; }
-constexpr U64 Board::get_hash() const { return hash; }
-constexpr uint8_t Board::get_castle() const { return castle; }
-constexpr Square Board::get_enpassant() const { return enpassant; }
 
 constexpr U64 Board::get_bitboard_color(Color side) const { return colors[side]; }
 constexpr U64 Board::get_bitboard_occupancy() const { return colors[WHITE] | colors[BLACK]; }
@@ -122,6 +121,8 @@ constexpr Type Board::get_square_piece_type(Square square) const {
 /* Setters */
 
 constexpr void Board::xor_hash(U64 op) { hash ^= op; }
+constexpr void Board::xor_hash_pawn(U32 op) { hash_pawn ^= op; }
+
 constexpr void Board::and_castle(uint8_t right) {
     hash ^= zobrist::key_castle(castle);
     castle &= right;
@@ -199,6 +200,19 @@ U64 zobrist::hash(const Board &board) {
 
     if (board.get_side() == BLACK) key_final ^= keys_side;
     if (board.get_enpassant() != Square::no_sq) key_final ^= keys_enpassant[board.get_enpassant()];
+
+    return key_final;
+}
+
+U32 zobrist::hash_pawn(const Board &board) {
+    U32 key_final = C32(0);
+    uint8_t square = 0;
+
+    U64 bitboard_white = board.get_bitboard_piece(PAWN, WHITE);
+    bitboard_for_each_bit(square, bitboard_white) { key_final ^= keys_pawn[WHITE][square]; }
+
+    U64 bitboard_black = board.get_bitboard_piece(PAWN, BLACK);
+    bitboard_for_each_bit(square, bitboard_black) { key_final ^= keys_pawn[BLACK][square]; }
 
     return key_final;
 }

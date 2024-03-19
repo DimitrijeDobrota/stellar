@@ -6,6 +6,7 @@
 #include "utils.hpp"
 
 #include <array>
+#include <vector>
 
 namespace evaluate {
 
@@ -63,8 +64,38 @@ inline constexpr const mask_passed_array mask_passed = []() constexpr -> mask_pa
     return mask_passed;
 }();
 
-using score::Phase::ENDGAME;
-using score::Phase::OPENING;
+struct Hashe {
+    U32 key;
+    int16_t opening;
+    int16_t endgame;
+    int16_t total;
+};
+
+template <U32 SIZE> struct PTable {
+
+    static void clear() { memset(table, 0x00, SIZE * sizeof(Hashe)); }
+
+    [[nodiscard]] static inline U32 read(U32 hash, Color side) {
+        const U32 key = side * SIZE + hash % SIZE;
+        const Hashe &phashe = table[key];
+        return phashe.key == hash ? key : __UINT32_MAX__;
+    }
+
+    [[nodiscard]] static inline int16_t read_opening(U32 key) { return table[key].opening; }
+    [[nodiscard]] static inline int16_t read_endgame(U32 key) { return table[key].endgame; }
+    [[nodiscard]] static inline int16_t read_total(U32 key) { return table[key].total; }
+
+    static inline void write(U32 hash, Color side, int16_t opening, int16_t endgame, int16_t total) {
+        table[side * SIZE + hash % SIZE] = {hash, opening, endgame, total};
+    }
+
+  private:
+    static std::array<Hashe, 2 * SIZE> table;
+};
+
+template <U32 SIZE> std::array<Hashe, 2 * SIZE> PTable<SIZE>::table = {{{0}}};
+
+PTable<65537> ptable;
 
 uint16_t score_game_phase(const Board &board) {
     int16_t total = 0;
@@ -76,34 +107,47 @@ uint16_t score_game_phase(const Board &board) {
 }
 
 int16_t score_position_side(const Board &board, const Color side, const uint16_t phase_score) {
-    U64 bitboard;
+    using score::Phase::ENDGAME;
+    using score::Phase::OPENING;
 
-    int16_t total = 0, opening = 0, endgame = 0;
+    U64 bitboard;
     int8_t square_i;
 
     const U64 pawns = board.get_bitboard_piece(PAWN);
     const U64 pawnsS = board.get_bitboard_piece(PAWN, side);
     const U64 pawnsO = pawns & ~pawnsS;
 
-    bitboard = board.get_bitboard_piece(PAWN, side);
-    bitboard_for_each_bit(square_i, bitboard) {
-        const auto square = static_cast<Square>(square_i);
-        opening += score::get(PAWN, side, square, OPENING) + score::get(PAWN, OPENING);
-        endgame += score::get(PAWN, side, square, ENDGAME) + score::get(PAWN, ENDGAME);
+    int16_t total = 0, opening = 0, endgame = 0;
 
-        // check isolated, doubled and passed pawns
-        const uint8_t file = get_file(square), rank = get_rank(square);
-        if (!(mask_isolated[file] & pawnsS)) {
-            opening -= score::pawn_isolated_opening;
-            endgame -= score::pawn_isolated_endgame;
+    const U32 hash = board.get_hash_pawn();
+    const U32 key = ptable.read(hash, side);
+    if (key == __UINT32_MAX__) {
+        bitboard = board.get_bitboard_piece(PAWN, side);
+        bitboard_for_each_bit(square_i, bitboard) {
+            const auto square = static_cast<Square>(square_i);
+            opening += score::get(PAWN, side, square, OPENING) + score::get(PAWN, OPENING);
+            endgame += score::get(PAWN, side, square, ENDGAME) + score::get(PAWN, ENDGAME);
+
+            // check isolated, doubled and passed pawns
+            const uint8_t file = get_file(square), rank = get_rank(square);
+            if (!(mask_isolated[file] & pawnsS)) {
+                opening -= score::pawn_isolated_opening;
+                endgame -= score::pawn_isolated_endgame;
+            }
+
+            if (bit::count(pawnsS & mask_file[file]) > 1) {
+                opening -= score::pawn_double_opening;
+                endgame -= score::pawn_double_endgame;
+            }
+
+            if (!(pawnsO & mask_passed[side][square_i])) total += score::pawn_passed[side][rank];
         }
 
-        if (bit::count(pawnsS & mask_file[file]) > 1) {
-            opening -= score::pawn_double_opening;
-            endgame -= score::pawn_double_endgame;
-        }
-
-        if (!(pawnsO & mask_passed[side][square_i])) total += score::pawn_passed[side][rank];
+        ptable.write(hash, side, opening, endgame, total);
+    } else {
+        opening = ptable.read_opening(key);
+        endgame = ptable.read_endgame(key);
+        total = ptable.read_total(key);
     }
 
     bitboard = board.get_bitboard_piece(KNIGHT, side);
@@ -151,10 +195,9 @@ int16_t score_position_side(const Board &board, const Color side, const uint16_t
         if (!(pawnsS & mask_file[file])) total -= score::file_open_semi;
     }
 
-    opening += total, endgame += total;
-    if (phase_score > score::phase_opening) return opening;
-    if (phase_score < score::phase_endgame) return endgame;
-    return score::interpolate(phase_score, opening, endgame);
+    if (phase_score > score::phase_opening) return opening + total;
+    if (phase_score < score::phase_endgame) return endgame + total;
+    return score::interpolate(phase_score, opening, endgame) + total;
 }
 
 int16_t score_position(const Board &board) {

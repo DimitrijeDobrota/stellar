@@ -12,6 +12,7 @@
 namespace zobrist {
 
 /* Init arrays for Zobris hashing */
+U32 keys_pawn[2][64] = {0};
 U64 keys_piece[2][12][64] = {0};
 U64 keys_enpassant[64] = {0};
 U64 keys_castle[16] = {0};
@@ -57,6 +58,7 @@ Board::Board(const std::string &fen) {
 
     enpassant = fen[++i] != '-' ? from_coordinates(fen.substr(i, 2)) : Square::no_sq;
 
+    hash_pawn = zobrist::hash_pawn(*this);
     hash = zobrist::hash(*this);
 }
 
