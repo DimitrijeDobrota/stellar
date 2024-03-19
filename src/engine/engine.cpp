@@ -41,15 +41,12 @@ struct Hashe {
     Flag flag;
 };
 
-class TTable {
+template <U64 size> class TTable_internal {
   public:
     static inline constexpr const int16_t unknown = 32500;
 
-    TTable() = default;
-    TTable(U64 size) : table(size, {0}) {}
-
-    void clear() { table.clear(); };
-    int16_t read(const Board &board, int ply, Move *best, int16_t alpha, int16_t beta, uint8_t depth) const {
+    static void clear() { memset(table.data(), 0x00, size * sizeof(Hashe)); };
+    static int16_t read(const Board &board, int ply, Move *best, int16_t alpha, int16_t beta, uint8_t depth) {
         U64 hash = board.get_hash();
         const Hashe &phashe = table[hash % table.size()];
         if (phashe.key == hash) {
@@ -68,7 +65,8 @@ class TTable {
         return unknown;
     }
 
-    void write(const Board &board, int ply, Move best, int16_t score, uint8_t depth, Hashe::Flag flag) {
+    static void write(const Board &board, int ply, Move best, int16_t score, uint8_t depth,
+                      Hashe::Flag flag) {
         U64 hash = board.get_hash();
         Hashe &phashe = table[hash % table.size()];
 
@@ -79,8 +77,10 @@ class TTable {
     }
 
   private:
-    std::vector<Hashe> table;
+    static std::array<Hashe, size> table;
 };
+
+template <U64 size> std::array<Hashe, size> TTable_internal<size>::table;
 
 class PVTable {
   public:
@@ -107,9 +107,11 @@ std::ostream &operator<<(std::ostream &os, const PVTable &pvtable) {
     return os;
 }
 
+using TTable = TTable_internal<C64(0x2FB4377)>;
+TTable ttable;
+
 static const uci::Settings *settings = nullptr;
 static Board board;
-static TTable ttable;
 static repetition::Table rtable;
 
 static PVTable pvtable;
@@ -403,9 +405,7 @@ Move search_position(const uci::Settings &settingsr) {
     int16_t alpha = -SCORE_INFINITY, beta = SCORE_INFINITY;
     settings = &settingsr;
 
-    if (settings->newgame) {
-        ttable = TTable(C64(0x2FB4377));
-    }
+    if (settings->newgame) ttable.clear();
 
     rtable.clear();
     board = settings->board;
