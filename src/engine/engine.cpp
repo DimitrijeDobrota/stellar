@@ -45,10 +45,44 @@ template <U64 size> class TTable_internal {
   public:
     static inline constexpr const int16_t unknown = 32500;
 
-    static void clear() { memset(table.data(), 0x00, size * sizeof(Hashe)); };
+    static void clear() {
+        memset(table.data(), 0x00, size * sizeof(Hashe));
+#ifdef USE_STATS
+        accessed = 0, rewrite = 0, miss = 0;
+#endif
+    };
+
+#ifdef USE_STATS
+    static void print() {
+        std::cout << "Transposition table: " << std::endl;
+        std::cout << "\tSize:    " << size << " entries (" << sizeof(Hashe) << "B per entry)" << std::endl;
+        std::cout << "\tSize:    " << std::fixed << std::setprecision(2)
+                  << (double)size * sizeof(Hashe) / (1 << 20) << "MB" << std::endl;
+        std::cout << "\tReads:   " << accessed << std::endl;
+        std::cout << "\tMisses:  " << miss << "(" << (double)miss / accessed << "%)" << std::endl;
+        std::cout << "\tRewrite: " << rewrite << std::endl;
+        std::cout << "\tUsed     " << (double)used() / size << "%" << std::endl;
+    }
+
+    static U64 used() {
+        U64 res = 0;
+
+        for (int i = 0; i < size; i++) {
+            if (table[i].key) res++;
+        }
+
+        return res;
+    }
+#endif
+
     static int16_t read(const Board &board, int ply, Move *best, int16_t alpha, int16_t beta, uint8_t depth) {
         U64 hash = board.get_hash();
-        const Hashe &phashe = table[hash % table.size()];
+        const Hashe &phashe = table[hash % size];
+
+#ifdef USE_STATS
+        accessed++;
+#endif
+
         if (phashe.key == hash) {
             if (phashe.depth >= depth) {
                 int16_t score = phashe.score;
@@ -62,25 +96,53 @@ template <U64 size> class TTable_internal {
             }
             *best = phashe.best;
         }
+#ifdef USE_STATS
+        else {
+            miss++;
+        }
+#endif
         return unknown;
     }
 
     static void write(const Board &board, int ply, Move best, int16_t score, uint8_t depth,
                       Hashe::Flag flag) {
         U64 hash = board.get_hash();
-        Hashe &phashe = table[hash % table.size()];
+        Hashe &phashe = table[hash % size];
 
         if (score < -MATE_SCORE) score += ply;
         if (score > MATE_SCORE) score -= ply;
+
+        if (phashe.key == hash) {
+            if (phashe.depth > depth) return;
+        }
+#ifdef USE_STATS
+        else {
+            rewrite++;
+        }
+#endif
 
         phashe = {hash, best, depth, score, flag};
     }
 
   private:
     static std::array<Hashe, size> table;
+
+#ifdef USE_STATS
+    static U64 accessed, rewrite, miss;
+#endif
 };
 
 template <U64 size> std::array<Hashe, size> TTable_internal<size>::table;
+
+#ifdef USE_STATS
+template <U64 size> U64 TTable_internal<size>::accessed = 0;
+template <U64 size> U64 TTable_internal<size>::rewrite = 0;
+template <U64 size> U64 TTable_internal<size>::miss = 0;
+#endif
+
+using TTable = TTable_internal<C64(0x2000023)>;
+
+TTable ttable;
 
 class PVTable {
   public:
@@ -106,9 +168,6 @@ std::ostream &operator<<(std::ostream &os, const PVTable &pvtable) {
         os << pvtable.table[0][i] << " ";
     return os;
 }
-
-using TTable = TTable_internal<C64(0x2FB4377)>;
-TTable ttable;
 
 static const uci::Settings *settings = nullptr;
 static Board board;
@@ -476,5 +535,8 @@ int main() {
     attack::init();
     zobrist::init();
     uci::loop();
+#ifdef USE_STATS
+    engine::ttable.print();
+#endif
     return 0;
 }

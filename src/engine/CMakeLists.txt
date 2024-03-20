@@ -4,6 +4,10 @@ add_executable(engine
     uci.cpp
 )
 
+option(STELLAR_STATS "Provide stats for analysis" OFF)
+if(STELLAR_STATS)
+    add_definitions(-DUSE_STATS)
+endif()
 
 target_link_libraries(engine
     PRIVATE Stellar_version
