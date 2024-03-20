@@ -26,6 +26,7 @@ class Game {
     [[nodiscard]] const bool is_win_white() const { return !draw && winner == WHITE; }
     [[nodiscard]] const bool is_win_black() const { return !draw && winner == BLACK; }
     [[nodiscard]] const bool is_draw() const { return draw; }
+    [[nodiscard]] const Color get_winner() const { return winner; }
 
     void set_terminate(const Terminate terminate) { this->terminate = terminate; }
     void set_winner(const Color winner) { this->winner = winner; }

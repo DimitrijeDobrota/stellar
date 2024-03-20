@@ -78,7 +78,7 @@ Game Match::play(Settings swhite, Settings sblack, const std::string &fen = Game
     }
 
     if (!game.is_draw()) {
-        logger::log(std::format("Match {}: winner is {}", id, to_string(turn)));
+        logger::log(std::format("Match {}: winner is {}", id, to_string(game.get_winner())));
     } else {
         logger::log(std::format("Match {}: ended in a draw", id));
     }

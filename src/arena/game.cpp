@@ -41,8 +41,9 @@ const std::string Game::to_san(const Board &board, const Move move) {
 
     std::string res;
     if (piece != PAWN) {
-        U64 potential = board.get_bitboard_square_land(move.target(), piece, board.get_side());
+        res += piece::get_code(piece, WHITE);
 
+        U64 potential = board.get_bitboard_square_land(move.target(), piece, board.get_side());
         if (bit::count(potential) > 1) {
             int file[9] = {0}, rank[9] = {0};
             uint8_t square_i = 0;
@@ -60,7 +61,6 @@ const std::string Game::to_san(const Board &board, const Move move) {
                 res += crd;
         }
 
-        res += piece::get_code(piece, WHITE);
         if (target != Type::NO_TYPE) res += "x";
         res += to_coordinates(move.target());
     } else {
