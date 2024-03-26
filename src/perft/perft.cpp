@@ -82,7 +82,6 @@ class Perft {
 
     void score(const Board &board, Move move) {
         local.node++;
-        std::cout << std::setw(16) << std::hex << board.get_hash() << std::endl;
 #ifdef USE_FULL_COUNT
         if (board.is_check()) local.check++;
         if (move.is_capture()) local.capture++;

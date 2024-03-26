@@ -277,6 +277,7 @@ int16_t quiescence(int16_t alpha, int16_t beta) {
         uci::communicate(settings);
         if (settings->stopped) return 0;
     }
+
     nodes++;
 
     int score = evaluate::score_position(board);

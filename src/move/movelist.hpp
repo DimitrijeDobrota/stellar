@@ -15,11 +15,12 @@ class MoveList {
 
   public:
     MoveList() : list(){};
-    MoveList(const Board &board, bool attacks_only = false, bool legal = false) : list() {
+    MoveList(const Board &board, bool attacks_only = false) : list() {
         list.reserve(256);
         generate(board, attacks_only);
-        if (!legal) return;
+    }
 
+    MoveList(const Board &board, bool attacks_only, bool legal) : MoveList(board, attacks_only) {
         int size = 0;
         for (const auto &move : list) {
             Board copy = board;

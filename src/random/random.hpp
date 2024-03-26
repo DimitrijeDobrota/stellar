@@ -10,8 +10,6 @@ class Random {
 
     constexpr U64 operator()(void) { return get_U64(); }
 
-    constexpr void reset(void) { state = seed; }
-
     constexpr U32 get_U32(void) {
         U32 number = state;
 
@@ -34,8 +32,8 @@ class Random {
     }
 
   private:
-    static inline constexpr const U32 seed = C32(1804289383);
-    U32 state = seed;
+    static const U32 default_seed = C32(1804289383);
+    U32 state = default_seed;
 };
 
 #endif

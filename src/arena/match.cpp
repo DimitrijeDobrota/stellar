@@ -3,6 +3,7 @@
 #include "repetition.hpp"
 #include "timer.hpp"
 #include "utils_ui.hpp"
+#include <algorithm>
 
 uint16_t Match::id_t = 0;
 Match::~Match() { logger::log(std::format("Match {}: destroyed", id), logger::Debug); }
@@ -36,13 +37,14 @@ Game Match::play(Settings swhite, Settings sblack, const std::string &fen = Game
         engine->send(std::format("{} moves {}", position, game.get_moves()));
         engine->send(get_go(swhite, sblack, turn));
 
-        uint64_t time_start = timer::get_ms();
-
         std::string response;
+
+        uint64_t time_start = timer::get_ms();
         while (true) {
             response = engine->receive();
             if (response.starts_with("bestmove")) break;
         }
+        uint64_t time_passed = timer::get_ms() - time_start;
 
         std::string move_str = response.substr(9);
         if ((move = parse_move(list, move_str)) == Move() || !move.make(board)) {
@@ -63,8 +65,7 @@ Game Match::play(Settings swhite, Settings sblack, const std::string &fen = Game
         if (!move.is_repeatable()) rtable.push_null();
         game.play(move);
 
-        uint64_t time_passed = timer::get_ms() - time_start;
-        if (turn == WHITE ? swhite.time <= time_passed : sblack.time <= time_passed) {
+        if ((turn == WHITE ? swhite.time : sblack.time) <= time_passed) {
             logger::log(std::format("Match {}: {} timeout", id, to_string(turn)));
             game.set_terminate(Game::Timeout);
             game.set_winner(other(turn));
@@ -73,6 +74,9 @@ Game Match::play(Settings swhite, Settings sblack, const std::string &fen = Game
 
         if (turn == WHITE && !swhite.depth) swhite.time -= time_passed;
         if (turn == BLACK && !sblack.depth) sblack.time -= time_passed;
+
+        logger::log(std::format("Match {}: wtime: {}, btime: {}", id, swhite.time, sblack.time),
+                    logger::Debug);
 
         turn = other(turn);
     }
@@ -104,6 +108,7 @@ std::string Match::get_go(Settings &swhite, Settings &sblack, Color side) {
         if (sblack.inc) go += " binc " + std::to_string(sblack.inc);
         if (swhite.movetime) go += " movetime " + std::to_string(sblack.movetime);
     }
+
     return go;
 }
 

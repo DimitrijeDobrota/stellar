@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <iostream>
 #include <limits>
 #include <sstream>
@@ -82,7 +83,7 @@ void loop() {
         } else if (command == "go") {
             settings.searchMoves.clear();
             uint64_t wtime = 0, btime = 0, movetime = 0;
-            uint16_t winc = 0, binc = 0, movestogo = 60;
+            uint16_t winc = 0, binc = 0, movestogo = 40;
 
             while (iss >> command) {
                 if (command == "wtime") iss >> wtime;
@@ -114,20 +115,25 @@ void loop() {
                 }
             }
 
-            settings.starttime = timer::get_ms();
-            uint64_t time = (board.get_side() == WHITE) ? wtime : btime;
+            uint16_t time_left = board.get_side() == WHITE ? wtime : btime;
+            int64_t time = 0;
 
             if (movetime != 0) {
                 time = movetime;
                 movestogo = 1;
-            } else if (time != 0) {
-                uint16_t inc = (board.get_side() == WHITE) ? winc : binc;
-                time /= movestogo;
-                time -= 50;
-                settings.stoptime = settings.starttime + time + inc;
+            } else if (time_left != 0) {
+                uint16_t inc = board.get_side() == WHITE ? winc : binc;
+                time = time_left / movestogo + inc / 2;
+                if (time > time_left) time = time_left - 500;
+                if (time <= 0) time = 100;
+
                 settings.infinite = false;
-            } else
+            } else {
                 settings.infinite = true;
+            }
+
+            settings.starttime = timer::get_ms();
+            settings.stoptime = settings.starttime + time;
 
             const Move best = engine::search_position(settings);
             std::cout << "bestmove " << best << '\n';
