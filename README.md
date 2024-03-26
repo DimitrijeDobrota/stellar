@@ -11,6 +11,9 @@ the engine to play better while learning various techniques of optimization.
 To see the games played or play a game on your own checkout the profile on
 [lichess](https://lichess.org/@/StellarBOT), bullet, blitz and rapid challenges, ranked or casual, are accepted.
 
+Check out the games carried out by [CCLR](http://computerchess.org.uk/ccrl/404/)
+for up to date rating against other engines.
+
 
 ## Getting Started
 
@@ -50,6 +53,10 @@ To see the games played or play a game on your own checkout the profile on
 
 ## Version History
 
+- 1.4
+    * Better time management
+    * Pawn hash table
+
 - 1.3
     * Build engine on Windows using Visual Studio
     * Improve compilation time
@@ -72,6 +79,10 @@ This project is licensed under the MIT License - see the LICENSE.md file for det
 
 
 ## Acknowledgments
+
+Big thanks to [Gabor Szots](https://github.com/SzotsGabor) from CCRL testing
+group, for taking an interest in this project by allowing Stellar to compete
+with other engines.
 
 Inspiration, code snippets, etc.
 * [Chess Programming Wiki](https://www.chessprogramming.org/)
