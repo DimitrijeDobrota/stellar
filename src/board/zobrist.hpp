@@ -48,11 +48,11 @@ inline void init() {
 inline U64 hash(const Board &board);
 inline U32 hash_pawn(const Board &board);
 
-inline constexpr U64 key_side() { return keys_side; }
-inline constexpr U64 key_castle(int exp) { return keys_castle[exp]; }
-inline constexpr U64 key_enpassant(Square square) { return keys_enpassant[square]; }
-inline constexpr U64 key_pawn(Color color, Square square) { return keys_pawn[color][square]; }
-inline constexpr U64 key_piece(Type type, Color color, Square square) {
+inline U64 key_side() { return keys_side; }
+inline U64 key_castle(int exp) { return keys_castle[exp]; }
+inline U64 key_enpassant(Square square) { return keys_enpassant[square]; }
+inline U64 key_pawn(Color color, Square square) { return keys_pawn[color][square]; }
+inline U64 key_piece(Type type, Color color, Square square) {
     return keys_piece[color][type][square];
 }
 

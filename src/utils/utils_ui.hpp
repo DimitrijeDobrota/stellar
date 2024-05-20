@@ -7,13 +7,13 @@
 
 /* Color */
 
-constexpr const std::string to_string(const Color color) {
+static const std::string to_string(const Color color) {
     return std::string(color == WHITE ? "white" : "black");
 }
 
 /* Square */
 
-constexpr const char *coordinates_array[] = {
+static const char *coordinates_array[] = {
     // clang-format off
    "a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1",
    "a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2",
@@ -26,9 +26,9 @@ constexpr const char *coordinates_array[] = {
     // clang-format on
 };
 
-constexpr const std::string to_coordinates(const Square square) { return coordinates_array[square]; }
+static const std::string to_coordinates(const Square square) { return coordinates_array[square]; }
 
-constexpr Square from_coordinates(const std::string &cord) {
+static Square from_coordinates(const std::string &cord) {
     return static_cast<Square>((cord[1] - '1') * 8 + (cord[0] - 'a'));
 }
 

@@ -52,9 +52,9 @@ class Board {
     inline constexpr void xor_hash(U64 op);
     inline constexpr void xor_hash_pawn(U32 op);
 
-    inline constexpr void switch_side();
-    inline constexpr void and_castle(uint8_t right);
-    inline constexpr void set_enpassant(Square target);
+    inline void switch_side();
+    inline void and_castle(uint8_t right);
+    inline void set_enpassant(Square target);
 
     inline constexpr void pop_bitboard_color(Color color, Square square);
     inline constexpr void set_bitboard_color(Color color, Square square);
@@ -123,18 +123,18 @@ constexpr Type Board::get_square_piece_type(Square square) const {
 constexpr void Board::xor_hash(U64 op) { hash ^= op; }
 constexpr void Board::xor_hash_pawn(U32 op) { hash_pawn ^= op; }
 
-constexpr void Board::and_castle(uint8_t right) {
+void Board::and_castle(uint8_t right) {
     hash ^= zobrist::key_castle(castle);
     castle &= right;
     hash ^= zobrist::key_castle(castle);
 }
 
-constexpr void Board::switch_side() {
+void Board::switch_side() {
     side = other(side);
     hash ^= zobrist::key_side();
 }
 
-constexpr void Board::set_enpassant(Square target) {
+void Board::set_enpassant(Square target) {
     if (enpassant != Square::no_sq) hash ^= zobrist::key_enpassant(enpassant);
     if (target != Square::no_sq) hash ^= zobrist::key_enpassant(target);
     enpassant = target;
