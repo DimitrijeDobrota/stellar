@@ -83,7 +83,7 @@ void loop() {
         } else if (command == "go") {
             settings.searchMoves.clear();
             uint64_t wtime = 0, btime = 0, movetime = 0;
-            uint16_t winc = 0, binc = 0, movestogo = 40;
+            uint64_t winc = 0, binc = 0, movestogo = 40;
 
             while (iss >> command) {
                 if (command == "wtime") iss >> wtime;
@@ -115,14 +115,14 @@ void loop() {
                 }
             }
 
-            uint16_t time_left = board.get_side() == WHITE ? wtime : btime;
+            auto time_left = board.get_side() == WHITE ? wtime : btime;
             int64_t time = 0;
 
             if (movetime != 0) {
                 time = movetime;
                 movestogo = 1;
             } else if (time_left != 0) {
-                uint16_t inc = board.get_side() == WHITE ? winc : binc;
+                auto inc = board.get_side() == WHITE ? winc : binc;
                 time = time_left / movestogo + inc / 2;
                 if (time > time_left) time = time_left - 500;
                 if (time <= 0) time = 100;

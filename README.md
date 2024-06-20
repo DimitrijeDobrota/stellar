@@ -72,7 +72,6 @@ for up to date rating against other engines.
 - 1.0
     * Initial Release
 
-    
 ## License
 
 This project is licensed under the MIT License - see the LICENSE.md file for details
