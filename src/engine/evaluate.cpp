@@ -7,6 +7,7 @@
 
 #include <array>
 #include <vector>
+#include <numeric>
 
 namespace evaluate {
 
@@ -78,7 +79,7 @@ template <U32 SIZE> struct PTable {
     [[nodiscard]] static inline U32 read(U32 hash, Color side) {
         const U32 key = side * SIZE + hash % SIZE;
         const Hashe &phashe = table[key];
-        return phashe.key == hash ? key : __UINT32_MAX__;
+        return phashe.key == hash ? key : std::numeric_limits<uint32_t>::max();
     }
 
     [[nodiscard]] static inline int16_t read_opening(U32 key) { return table[key].opening; }
@@ -121,7 +122,7 @@ int16_t score_position_side(const Board &board, const Color side, const uint16_t
 
     const U32 hash = board.get_hash_pawn();
     const U32 key = ptable.read(hash, side);
-    if (key == __UINT32_MAX__) {
+    if (key == std::numeric_limits<uint32_t>::max()) {
         bitboard = board.get_bitboard_piece(PAWN, side);
         bitboard_for_each_bit(square_i, bitboard) {
             const auto square = static_cast<Square>(square_i);
